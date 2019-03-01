@@ -1,0 +1,25 @@
+--- a/drivers/irqchip/irq-gic-v3.c
++++ b/drivers/irqchip/irq-gic-v3.c
+@@ -421,6 +421,12 @@ static void __init gic_dist_init(void)
+ 	affinity = gic_mpidr_to_affinity(cpu_logical_map(smp_processor_id()));
+ 	for (i = 32; i < gic_data.irq_nr; i++)
+ 		gic_write_irouter(affinity, base + GICD_IROUTER + i * 8);
++
++        /* irq 142 routed to all cpus  */
++        affinity = affinity | 0x80000000;
++        gic_write_irouter(affinity, base + GICD_IROUTER + 142 * 8);
++        /* Decrease irq 142 priority value from default 0x0a to 0x09 */
++        writel_relaxed(0xa090a0a0, base + GICD_IPRIORITYR + rounddown(142, 4));
+ }
+ 
+ static int gic_populate_rdist(void)
+@@ -658,7 +664,8 @@ static int gic_set_affinity(struct irq_d
+ 	reg = gic_dist_base(d) + GICD_IROUTER + (gic_irq(d) * 8);
+ 	val = gic_mpidr_to_affinity(cpu_logical_map(cpu));
+ 
+-	gic_write_irouter(val, reg);
++        if (gic_irq(d) != 142)
++                gic_write_irouter(val, reg);
+ 
+ 	/*
+ 	 * If the interrupt was enabled, enabled it again. Otherwise,

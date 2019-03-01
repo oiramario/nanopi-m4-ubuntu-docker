@@ -1,0 +1,17 @@
+--- a/drivers/media/usb/uvc/uvcvideo.h
++++ b/drivers/media/usb/uvc/uvcvideo.h
+@@ -144,11 +144,11 @@
+ #define DRIVER_VERSION		"1.1.1"
+ 
+ /* Number of isochronous URBs. */
+-#define UVC_URBS		5
++#define UVC_URBS		32
+ /* Maximum number of packets per URB. */
+-#define UVC_MAX_PACKETS		32
++#define UVC_MAX_PACKETS		16
+ /* Maximum status buffer size in bytes of interrupt URB. */
+-#define UVC_MAX_STATUS_SIZE	16
++#define UVC_MAX_STATUS_SIZE	32
+ 
+ #define UVC_CTRL_CONTROL_TIMEOUT	300
+ #define UVC_CTRL_STREAMING_TIMEOUT	5000

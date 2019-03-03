@@ -1,7 +1,10 @@
-PACKAGES=/tmp/packages
+WORKPATH=/tmp/rk3399
+rm -rf ${WORKPATH}
+
+PACKAGES=${WORKPATH}/packages
 mkdir -p ${PACKAGES}
 
-OUTPUT=/tmp/output
+OUTPUT=${WORKPATH}/output
 mkdir -p ${OUTPUT}
 
 ROOTFS=${OUTPUT}/rootfs
@@ -27,3 +30,12 @@ resize2fs -M ${OUTPUT}/rootfs.img
 rm -rf ${PACKAGES} ${ROOTFS}
 echo -e "\e[33m Done. \e[0m"
 tree ${OUTPUT} -h
+
+# cd ${OUTPUT}
+#./rkdeveloptool db rk3399_loader_v1.18.118.bin
+#./rkdeveloptool di gpt parameter_gpt.txt
+#./rkdeveloptool wl 0x4000 uboot.img
+#./rkdeveloptool wl 0x6000 trust.img
+#./rkdeveloptool wl 0x8000 boot.img
+#./rkdeveloptool wl 0x40000 rootfs.img
+#./rkdeveloptool rd

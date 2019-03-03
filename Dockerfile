@@ -21,7 +21,7 @@ deb ${SOURCES} bionic-backports main restricted universe multiverse" > /etc/apt/
 
 RUN apt-get update && \
     apt-get install -y \
-                    gcc-7 g++-7 \
+                    gcc g++ \
                     gcc-8-aarch64-linux-gnu g++-8-aarch64-linux-gnu \
                     make
 
@@ -30,9 +30,6 @@ ENV CROSS_COMPILE "aarch64-linux-gnu-"
 ENV ARCH arm64
 
 RUN cd /usr/bin \
-    && ln -s gcc-7 gcc \
-    && ln -s gcc cc \
-    && ln -s g++-7 g++ \
     && ln -s aarch64-linux-gnu-gcc-8 aarch64-linux-gnu-gcc \
     && ln -s aarch64-linux-gnu-g++-8 aarch64-linux-gnu-g++
 
@@ -69,16 +66,14 @@ RUN set -x \
 ENV UBOOT_VERSION stable-4.4-rk3399-linux
 ADD "./packages/boot/u-boot-${UBOOT_VERSION}.tar.xz" "${BUILD}"
 # git clone https://github.com/rockchip-linux/u-boot.git --depth 1 -b stable-4.4-rk3399-linux u-boot
-ADD "./packages/boot/rkbin-${UBOOT_VERSION}.tar.xz" "${BUILD}"
-# git clone https://github.com/rockchip-linux/rkbin.git --depth 1 -b stable-4.4-rk3399-linux rkbin
+ADD "./packages/boot/rkbin.tar.xz" "${BUILD}"
+# git clone https://github.com/rockchip-linux/rkbin.git --depth 1 rkbin
 RUN set -x \
     && cd u-boot \
     && ./make.sh rk3399 \
-    && cp uboot.img trust.img "${BOOT}" \
-    && cp rk3399_loader_v1.17.115.bin "${BOOT}/MiniLoaderAll.bin" \
-    && tools/mkimage -n rk3399 -T rksd -d "${BUILD}/rkbin/bin/rk33/rk3399_ddr_800MHz_v1.17.bin" idbloader.img \
-    && cat rk3399_loader_v1.17.115.bin >> idbloader.img \
-    && cp idbloader.img "${BOOT}"
+    && cp uboot.img trust.img rk3399_loader_*.bin "${BOOT}" \
+    && cd ../rkbin/tools \
+    && cp resource_tool rkdeveloptool parameter_gpt.txt "${BOOT}"
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -113,9 +108,9 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" > "${BUILD}/toolchain.cmake"
 
 
 # build libdrm
-ENV LIBDRM_VERSION 2.4.74
+ENV LIBDRM_VERSION 2.4.91
 ADD "./packages/rootfs/libdrm-${LIBDRM_VERSION}.tar.xz" "${BUILD}"
-# git clone https://github.com/rockchip-linux/libdrm-rockchip.git --depth 1 -b rockchip-2.4.74 libdrm-2.4.74
+# git clone https://github.com/numbqq/libdrm-rockchip.git --depth 1 -b rockchip-2.4.91 libdrm-2.4.91
 RUN set -x \
     && cd "libdrm-${LIBDRM_VERSION}" \
     && ./autogen.sh --prefix="${PREFIX}" --host="${HOST}" \
@@ -197,32 +192,14 @@ RUN set -x \
     # bt,wifi,audio firmware
     && mkdir -p "${ROOTFS}/system/lib/modules" \
     && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan/*"  -name "*.ko" | \
-            xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules/" \
+            xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
     && cp -a * "${ROOTFS}"
-
-#----------------------------------------------------------------------------------------------------------------#
-
-RUN apt-get install -y \
-                    libusb-1.0
-
-
-# build rkdeveloptool
-ENV RKDEVELOPTOOL_VERSION 1.3
-ADD "./packages/rkdeveloptool-${RKDEVELOPTOOL_VERSION}.tar.xz" "${BUILD}"
-# git clone https://github.com/rockchip-linux/rkdeveloptool.git --depth 1
-RUN set -x \
-    && cd "rkdeveloptool-${RKDEVELOPTOOL_VERSION}" \
-    && autoreconf -vfi \
-    && ./configure --host=x86_64-linux-gnu \
-    CXX=x86_64-linux-gnu-g++ PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig \
-    && make -j$(nproc) \
-    && cp rkdeveloptool "${BOOT}"
 
 
 # clean rootfs
 RUN cd "${PREFIX}" \
-    && rm -rf include/ \
-    && rm -rf lib/pkgconfig/ lib/cmake/ \
+    && rm -rf include \
+    && rm -rf lib/pkgconfig lib/cmake \
     && rm -f lib/*.a
 
 RUN cd "${BOOT}" \

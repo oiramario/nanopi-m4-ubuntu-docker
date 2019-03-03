@@ -6,9 +6,9 @@ OS Image for development with the following tidbits:
 
 * Kernel 4.4.y
 * u-boot 2.0
-* nanopi4-overlay-firmware 2018.10
+* overlay-firmware 2018.10
 * busybox 1.30.1
-* libdrm 2.4.74
+* libdrm 2.4.91
 * mali 14.0
 * libusb 1.0.22
 * librealsense2 2.18.1
@@ -28,17 +28,13 @@ OS Image for development with the following tidbits:
 
 * rkbin
 
-        git clone https://github.com/rockchip-linux/rkbin.git --depth 1 -b stable-4.4-rk3399-linux rkbin
-
-* rkdeveloptool
-
-        git clone https://github.com/rockchip-linux/rkdeveloptool.git --depth 1
+        git clone https://github.com/rockchip-linux/rkbin.git --depth 1 rkbin
 
 ### rootfs
 
 * libdrm
 
-        git clone https://github.com/rockchip-linux/libdrm-rockchip.git --depth 1 -b rockchip-2.4.74 libdrm-2.4.74
+        git clone https://github.com/numbqq/libdrm-rockchip.git --depth 1 -b rockchip-2.4.91 libdrm-2.4.91
 
 * mali
 
@@ -78,7 +74,7 @@ OS Image for development with the following tidbits:
         docker rm $(docker ps -a | grep "Exited" | awk '{print $1 }')
         docker rmi $(docker images | grep "none" | awk '{print $3}')
 
-* remove all container && images
+* remove all container
 
         docker container prune -f
 

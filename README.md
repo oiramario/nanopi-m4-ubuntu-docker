@@ -85,6 +85,7 @@ OS Image for development with the following tidbits:
 * build
 
         docker build -t rk3399 ./rk3399-docker
+        docker build --build-arg CORES=$(sed -n "N;/processor/p" /proc/cpuinfo|wc -l) -t rk3399 ./rk3399-docker
 
 * run
 

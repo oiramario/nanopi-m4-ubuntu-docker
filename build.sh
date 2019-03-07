@@ -1,4 +1,4 @@
-WORKPATH=/opt/rk3399
+WORKPATH=/opt
 rm -rf ${WORKPATH}
 sync
 
@@ -6,7 +6,7 @@ PACKAGES=${WORKPATH}/packages
 mkdir -p ${PACKAGES}
 sync
 
-OUTPUT=${WORKPATH}/output
+OUTPUT=${WORKPATH}/rk3399
 mkdir -p ${OUTPUT}
 sync
 
@@ -15,7 +15,7 @@ mkdir -p ${ROOTFS}
 sync
 
 echo -e "\e[32m Building images \033[0m"
-docker build --build-arg CORES=$(sed -n "N;/processor/p" /proc/cpuinfo|wc -l) -t rk3399 .
+docker build -t rk3399 .
 docker create -ti --name dummy rk3399 bash
 echo -e "\e[32m Copy tarball from docker container \033[0m"
 docker cp dummy:/boot.tar ${PACKAGES}/boot.tar
@@ -38,7 +38,7 @@ sync
 
 rm -rf ${PACKAGES} ${ROOTFS}
 echo -e "\e[33m Done. \e[0m"
-tree ${OUTPUT} -h
+ls ${OUTPUT} -lh
 
 #echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="2207", MODE="0666",GROUP="plugdev"' | sudo tee /etc/udev/rules.d/99-rk-rockusb.rules
 #sudo udevadm control --reload-rules
@@ -46,10 +46,10 @@ tree ${OUTPUT} -h
 
 # cd ${OUTPUT}
 
-#./rkdeveloptool db rk3399_loader_v1.18.118.bin
-#./rkdeveloptool ul rk3399_loader_v1.18.118.bin
+#./rkdeveloptool db MiniLoaderAll.bin
+#./rkdeveloptool ul MiniLoaderAll.bin
 
-#./rkdeveloptool gpt parameter_gpt.txt
+#./rkdeveloptool gpt parameter
 
 #./rkdeveloptool wl 0x40    idbloader.img
 #./rkdeveloptool wl 0x4000  uboot.img

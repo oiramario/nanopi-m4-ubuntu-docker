@@ -4,31 +4,31 @@ Build own ubuntu 18.04 base minimal image for RK3399 (NanoPi M4 / T4 / NEO4)
 
 OS Image for development with the following tidbits:
 
-* Kernel 4.4.y
 * u-boot 2.0
-* overlay-firmware 2018.10
+* kernel 4.4.y
 * busybox 1.30.1
+* overlay-firmware 2018.10
 * libdrm 2.4.91
 * mali 14.0
 * libusb 1.0.22
-* librealsense2 2.18.1
+* librealsense 2.19.0
  
 # boot
-
-### kernel
-
-    git clone https://github.com/friendlyarm/kernel-rockchip.git --depth 1 -b nanopi4-linux-v4.4.y kernel
-    git clone https://github.com/rockchip-linux/kernel.git --depth 1 -b stable-4.4-rk3399-linux kernel
 
 ### u-boot
 
 * u-boot
 
-        git clone https://github.com/rockchip-linux/u-boot.git --depth 1 -b stable-4.4-rk3399-linux u-boot
+        git clone --depth 1 https://github.com/rockchip-linux/u-boot.git u-boot
 
 * rkbin
 
-        git clone https://github.com/rockchip-linux/rkbin.git --depth 1 rkbin
+        git clone --depth 1 https://github.com/rockchip-linux/rkbin.git rkbin
+
+### kernel
+
+    git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
+    git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/kernel.git kernel
 
 ### rootfs
 
@@ -61,13 +61,30 @@ OS Image for development with the following tidbits:
         git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1
 
 # howto
-    apt-get install docker git-lfs tree
-    git lfs clone https://github.com/oiramario/rk3399-docker.git
+    apt install docker-ce git-lfs
+    git lfs install
+    git clone https://github.com/oiramario/rk3399-docker.git
     cd rk3399-docker
     ./build.sh
 
 # tips
 ### docker
+* install
+
+        apt install apt-transport-https ca-certificates curl software-properties-common
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        apt update
+        apt install docker-ce
+
+* build
+
+        docker build -t rk3399 ./rk3399-docker
+
+* run
+
+        docker container run -it rk3399 /bin/bash
+
 * remove none images
 
         docker stop $(docker ps -a | grep "Exited" | awk '{print $1 }')
@@ -82,15 +99,6 @@ OS Image for development with the following tidbits:
 
         docker rmi $(docker images -q)
 
-* build
-
-        docker build -t rk3399 ./rk3399-docker
-        docker build --build-arg CORES=$(sed -n "N;/processor/p" /proc/cpuinfo|wc -l) -t rk3399 ./rk3399-docker
-
-* run
-
-        docker container run -it rk3399 /bin/bash
-
 ### git
 * faster git clone
 
@@ -100,6 +108,8 @@ OS Image for development with the following tidbits:
 
 * avoid getting asked for credentials every time
 
+        git config --global user.name "alex"
+        git config --global user.email alex@example.com
         git config --global credential.helper wincred
 
 * git-lfs upload

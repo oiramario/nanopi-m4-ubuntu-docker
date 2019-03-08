@@ -43,18 +43,3 @@ ls ${OUTPUT} -lh
 #echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="2207", MODE="0666",GROUP="plugdev"' | sudo tee /etc/udev/rules.d/99-rk-rockusb.rules
 #sudo udevadm control --reload-rules
 #sudo udevadm trigger
-
-# cd ${OUTPUT}
-
-#./rkdeveloptool db MiniLoaderAll.bin
-#./rkdeveloptool ul MiniLoaderAll.bin
-
-#./rkdeveloptool gpt parameter
-
-#./rkdeveloptool wl 0x40    idbloader.img
-#./rkdeveloptool wl 0x4000  uboot.img
-#./rkdeveloptool wl 0x6000  trust.img
-#./rkdeveloptool wl 0x8000  boot.img
-#./rkdeveloptool wl 0x40000 rootfs.img
-
-#./rkdeveloptool rd

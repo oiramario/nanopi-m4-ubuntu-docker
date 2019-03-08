@@ -52,31 +52,27 @@ RUN apt-get install -y \
                     bc libssl-dev liblz4-tool python
 
 ENV BOOT "/opt/boot"
-RUN mkdir -p "${BOOT}"
+RUN mkdir -p ${BOOT}
 
-# http://opensource.rock-chips.com/wiki_Boot_option
-#+--------+----------------+----------+-------------+---------+
-#| Boot   | Terminology #1 | Actual   | Rockchip    | Image   |
-#| stage  |                | program  |  Image      | Location|
-#| number |                | name     |   Name      | (sector)|
-#+--------+----------------+----------+-------------+---------+
-#| 1      |  Primary       | ROM code | BootRom     |         |
-#|        |  Program       |          |             |         |
-#|        |  Loader        |          |             |         |
-#|        |                |          |             |         |
-#| 2      |  Secondary     | U-Boot   |idbloader.img| 0x40    | pre-loader
-#|        |  Program       | TPL/SPL  |             |         |
-#|        |  Loader (SPL)  |          |             |         |
-#|        |                |          |             |         |
-#| 3      |  -             | U-Boot   | u-boot.itb  | 0x4000  | including u-boot and atf
-#|        |                |          | uboot.img   |         | only used with miniloader
-#|        |                |          |             |         |
-#|        |                | ATF/TEE  | trust.img   | 0x6000  | only used with miniloader
-#|        |                |          |             |         |
-#| 4      |  -             | kernel   | boot.img    | 0x8000  |
-#|        |                |          |             |         |
-#| 5      |  -             | rootfs   | rootfs.img  | 0x40000 |
-#+--------+----------------+----------+-------------+---------+
+#----------------------------------------------------------------------------------------------------------------#
+
+#+----------------------------+---------------------+-------------------+--------------------+----------------+--------------------------------------+
+#| Partition                  |     Start Sector    | Number of Sectors |   Partition Size   | PartNum in GPT | Requirements                         |
+#+----------------------------+----------+----------+--------+----------+--------------------+----------------+--------------------------------------+
+#| MBR                        |        0 | 00000000 |      1 | 00000001 |       512 |  0.5KB |                |                                      |
+#| Primary GPT                |        1 | 00000001 |     63 | 0000003F |     32256 | 31.5KB |                |                                      |
+#| loader1                    |       64 | 00000040 |   7104 | 00001BC0 |   4096000 |  2.5MB |        1       | preloader (miniloader or U-Boot SPL) |
+#| Vendor Storage             |     7168 | 00001C00 |    512 | 00000200 |    262144 |  256KB |                | SN, MAC and etc.                     |
+#| Reserved Space             |     7680 | 00001E00 |    384 | 00000180 |    196608 |  192KB |                | Not used                             |
+#| reserved1                  |     8064 | 00001F80 |    128 | 00000080 |     65536 |   64KB |                | legacy DRM key                       |
+#| U-Boot ENV                 |     8128 | 00001FC0 |     64 | 00000040 |     32768 |   32KB |                |                                      |
+#| reserved2                  |     8192 | 00002000 |   8192 | 00002000 |   4194304 |    4MB |                | legacy parameter                     |
+#| loader2                    |    16384 | 00004000 |   8192 | 00002000 |   4194304 |    4MB |        2       | U-Boot or UEFI                       |
+#| trust                      |    24576 | 00006000 |   8192 | 00002000 |   4194304 |    4MB |        3       | trusted-os like ATF, OP-TEE          |
+#| boot(bootable must be set) |    32768 | 00008000 | 229376 | 00038000 | 117440512 |  112MB |        4       | kernel, dtb, extlinux.conf, ramdisk  |
+#| rootfs                     |   262144 | 00040000 |    -   |     -    |     -     |    -MB |        5       | Linux system                         |
+#| Secondary GPT              | 16777183 | 00FFFFDF |     33 | 00000021 |     16896 | 16.5KB |                |                                      |
+#+----------------------------+----------+----------+--------+----------+-----------+--------+----------------+--------------------------------------+
 
 # GPT parameter
 RUN echo "\
@@ -99,8 +95,9 @@ mtdparts=rk29xxnand:\
 0x00002000@0x00002000(reserved2),\
 0x00002000@0x00004000(uboot),\
 0x00002000@0x00006000(trust),\
-0x00038000@0x00008000(boot),\
--@0x00040000(rootfs)" > "${BOOT}/parameter"
+0x00038000@0x00008000(boot:bootable),\
+-@0x00040000(rootfs)\
+" > "${BOOT}/parameter"
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -136,9 +133,7 @@ RUN set -x \
     && tools/trust_merger ${IMG_SIZE} ${PATH_FIXUP} RKTRUST/RK3399TRUST.ini \
 \
     # copy content
-    && cp rk3399_loader_*.bin uboot.img trust.img idbloader.img ${BOOT} \
-    # copy flash tool
-    && cp tools/rkdeveloptool "${BOOT}"
+    && cp rk3399_loader_*.bin idbloader.img uboot.img trust.img "${BOOT}"
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -158,12 +153,31 @@ RUN set -x \
 RUN set -x \
     && cd kernel-rockchip \
     && make nanopi4_linux_defconfig \
-    # make images
-    && make nanopi4-images nanopi4-bootimg -j$(nproc)
+    && make -j$(nproc)
 
 # copy content
-RUN cd kernel-rockchip \
-    && cp kernel.img resource.img boot.img zboot.img "${BOOT}"
+RUN set -x \
+    && cd kernel-rockchip \
+    && export KERNEL="${BOOT}/kernel" \
+    && export EXTLINUX="${KERNEL}/extlinux" \
+    && mkdir -p ${EXTLINUX} \
+    # nanopc-t4:   rk3399-nanopi4-rev00.dtb
+    # nanopi-m4:   rk3399-nanopi4-rev01.dtb
+    # nanopi-neo4: rk3399-nanopi4-rev04.dtb
+    && cp arch/arm64/boot/Image arch/arm64/boot/dts/rockchip/rk3399-nanopi4-*.dtb ${KERNEL} \
+    && echo "\
+label kernel-4.4\n\
+    kernel /Image\n\
+    fdt /rk3399-nanopi4-rev01.dtb\n\
+    append earlyprintk console=ttyFIQ0,1500000n8 rw root=/dev/mmcblk1p7 rootfstype=ext4 init=/sbin/init\
+" > "${KERNEL}/extlinux/extlinux.conf"
+
+# copy tools
+RUN set -x \
+    && cd kernel-rockchip/scripts \
+    && export TOOLS="${BOOT}/tools" \
+    && mkdir -p "${TOOLS}" \
+    && cp mkkrnlimg resource_tool mkbootimg "${TOOLS}"
 
 #----------------------------------------------------------------------------------------------------------------#
 

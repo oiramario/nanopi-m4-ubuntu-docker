@@ -24,20 +24,13 @@ deb ${SOURCES} bionic-backports main restricted universe multiverse" > /etc/apt/
     && apt-get update
 
 RUN apt-get install -y \
-                    gcc \
-                    gcc-8-aarch64-linux-gnu g++-8-aarch64-linux-gnu \
+                    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
                     make \
-                    patch \
-                    git
+                    patch
 
 # setup build environment
 ENV CROSS_COMPILE "aarch64-linux-gnu-"
 ENV ARCH arm64
-
-RUN cd /usr/bin \
-    && ln -s aarch64-linux-gnu-gcc-8 aarch64-linux-gnu-gcc \
-    && ln -s aarch64-linux-gnu-g++-8 aarch64-linux-gnu-g++ \
-    && ln -s aarch64-linux-gnu-cpp-8 aarch64-linux-gnu-cpp
 
 ENV BUILD "/opt/build"
 WORKDIR ${BUILD}
@@ -49,7 +42,7 @@ RUN apt-get install -y \
                     # u-boot
                     bison flex \
                     # kernel
-                    bc libssl-dev liblz4-tool python
+                    bc libssl-dev
 
 ENV BOOT "/opt/boot"
 RUN mkdir -p ${BOOT}
@@ -74,9 +67,13 @@ RUN mkdir -p ${BOOT}
 #| Secondary GPT              | 16777183 | 00FFFFDF |     33 | 00000021 |     16896 | 16.5KB |                |                                      |
 #+----------------------------+----------+----------+--------+----------+-----------+--------+----------------+--------------------------------------+
 
+# nanopc-t4:   rk3399-nanopi4-rev00.dtb
+# nanopi-m4:   rk3399-nanopi4-rev01.dtb
+# nanopi-neo4: rk3399-nanopi4-rev04.dtb
+
 # GPT parameter
 RUN echo "\
-FIRMWARE_VER: 6.0.1\n\
+FIRMWARE_VER: 6.0.0\n\
 MACHINE_MODEL: RK3399\n\
 MACHINE_ID: 007\n\
 MANUFACTURER: RK3399\n\
@@ -85,9 +82,11 @@ ATAG: 0x00200800\n\
 MACHINE: 3399\n\
 CHECK_MASK: 0x80\n\
 PWR_HLD: 0,0,A,0,1\n\
+#uuid:rootfs=00000000-0000-0000-0000-00000000\n\
 #KERNEL_IMG: 0x00280000\n\
-#FDT_NAME: rk-kernel.dtb\n\
+FDT_NAME: rk3399-nanopi4-rev01.dtb\n\
 #RECOVER_KEY: 1,1,0,20,0\n\
+#in section; per section 512(0x200) bytes\n\
 CMDLINE: console=ttyFIQ0 root=/dev/mmcblk1p6 rw rootwait \
 mtdparts=rk29xxnand:\
 0x00001F40@0x00000040(idbloader),\
@@ -96,14 +95,14 @@ mtdparts=rk29xxnand:\
 0x00002000@0x00004000(uboot),\
 0x00002000@0x00006000(trust),\
 0x00038000@0x00008000(boot:bootable),\
--@0x00040000(rootfs)\
+-@0x00040000(rootfs:grow)\
 " > "${BOOT}/parameter"
 
 #----------------------------------------------------------------------------------------------------------------#
 
-    # git clone --depth 1 https://github.com/rockchip-linux/u-boot.git u-boot
+    # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/u-boot.git u-boot
 ADD "./packages/boot/u-boot.tar.xz" "${BUILD}"
-    # git clone --depth 1 https://github.com/rockchip-linux/rkbin.git rkbin
+    # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
 ADD "packages/boot/rkbin.tar.xz" "${BUILD}"
 
 # u-boot
@@ -137,47 +136,43 @@ RUN set -x \
 
 #----------------------------------------------------------------------------------------------------------------#
 
-    # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/kernel.git kernel
-ADD "packages/boot/kernel-rockchip.tar.xz" "${BUILD}"
+    # git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
+ADD "packages/boot/kernel.tar.xz" "${BUILD}"
     # copy patch
 COPY "./packages/patch/" "${BUILD}/patch/"
 
 # patch
 RUN set -x \
-    && cd kernel-rockchip \
+    && cd kernel \
     # realsense
     && export REALSENSE_PATCH=../patch/kernel/realsense \
     && for i in `ls ${REALSENSE_PATCH}`; do patch -p1 < ${REALSENSE_PATCH}/$i; done 
 
 # kernel
 RUN set -x \
-    && cd kernel-rockchip \
+    && cd kernel \
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
 
-# copy content
+# boot.img
+RUN apt-get install -y \
+                    # boot.img
+                    dosfstools mtools
+
 RUN set -x \
-    && cd kernel-rockchip \
-    && export KERNEL="${BOOT}/kernel" \
-    && export EXTLINUX="${KERNEL}/extlinux" \
-    && mkdir -p ${EXTLINUX} \
-    # nanopc-t4:   rk3399-nanopi4-rev00.dtb
-    # nanopi-m4:   rk3399-nanopi4-rev01.dtb
-    # nanopi-neo4: rk3399-nanopi4-rev04.dtb
-    && cp arch/arm64/boot/Image arch/arm64/boot/dts/rockchip/rk3399-nanopi4-*.dtb ${KERNEL} \
     && echo "\
 label kernel-4.4\n\
     kernel /Image\n\
     fdt /rk3399-nanopi4-rev01.dtb\n\
     append earlyprintk console=ttyFIQ0,1500000n8 rw root=/dev/mmcblk1p7 rootfstype=ext4 init=/sbin/init\
-" > "${KERNEL}/extlinux/extlinux.conf"
-
-# copy tools
-RUN set -x \
-    && cd kernel-rockchip/scripts \
-    && export TOOLS="${BOOT}/tools" \
-    && mkdir -p "${TOOLS}" \
-    && cp mkkrnlimg resource_tool mkbootimg "${TOOLS}"
+" > "extlinux.conf" \
+    && mkfs.vfat -n "boot" -S 512 -C ${BOOT}/boot.img $((20 * 1024)) \
+    && mmd -i ${BOOT}/boot.img ::/extlinux \
+    && mcopy -i ${BOOT}/boot.img -s extlinux.conf ::/extlinux/extlinux.conf \
+    && mcopy -i ${BOOT}/boot.img -s kernel/arch/arm64/boot/Image :: \
+    && mcopy -i ${BOOT}/boot.img -s kernel/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb :: \
+    && rm extlinux.conf \
+    && sync
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -186,13 +181,11 @@ RUN mkdir -p "${ROOTFS}" \
     && cd "${ROOTFS}" \
     && mkdir dev etc lib usr var proc tmp home root mnt sys
 
-# busybox
-ENV BUSYBOX_VERSION 1.30.1
-    # wget https://github.com/mirror/busybox/archive/1_30_1.tar.gz
-ADD "./packages/rootfs/busybox-${BUSYBOX_VERSION}.tar.xz" "${BUILD}"
+    # git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
+ADD "./packages/boot/busybox.tar.xz" "${BUILD}"
 
 RUN set -x \
-    && cd "busybox-${BUSYBOX_VERSION}" \
+    && cd "busybox" \
     && make defconfig \
     && make -j$(nproc) \
     && make CONFIG_PREFIX="${ROOTFS}" install \

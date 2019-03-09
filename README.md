@@ -1,17 +1,23 @@
 rk3399-docker
 =============
-Build own ubuntu 18.04 base minimal image for RK3399 (NanoPi M4 / T4 / NEO4)
+Build minimal image for RK3399 (NanoPi M4 / T4 / NEO4)
 
 OS Image for development with the following tidbits:
 
-* u-boot 2.0
-* kernel 4.4.y
-* busybox 1.30.1
+* boot
+    * loader1          1.17.115
+        * miniloader   1.15
+        * usbplug      1.15
+        * ddr          1.17
+    * loader2          1.17.115
+    * trust            1.24
+* kernel           4.4.y
+* busybox          1.30.1
 * overlay-firmware 2018.10
-* libdrm 2.4.91
-* mali 14.0
-* libusb 1.0.22
-* librealsense 2.19.0
+* libdrm           2.4.91
+* mali             14.0
+* libusb           1.0.22
+* librealsense     2.19.0
  
 # boot
 
@@ -19,16 +25,15 @@ OS Image for development with the following tidbits:
 
 * u-boot
 
-        git clone --depth 1 https://github.com/rockchip-linux/u-boot.git u-boot
+        git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/u-boot.git u-boot
 
 * rkbin
 
-        git clone --depth 1 https://github.com/rockchip-linux/rkbin.git rkbin
+        git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
 
 ### kernel
 
     git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
-    git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/kernel.git kernel
 
 ### rootfs
 
@@ -48,9 +53,9 @@ OS Image for development with the following tidbits:
 
         wget https://github.com/libusb/libusb/archive/v1.0.22.tar.gz
 
-* librealsense2
+* librealsense
 
-        wget https://github.com/IntelRealSense/librealsense/archive/v2.18.1.tar.gz
+        wget https://github.com/IntelRealSense/librealsense/archive/v2.19.0.tar.gz
 
 * busybox
 
@@ -79,7 +84,7 @@ OS Image for development with the following tidbits:
 
 * build
 
-        docker build -t rk3399 ./rk3399-docker
+        docker build -t rk3399 .
 
 * run
 
@@ -100,10 +105,13 @@ OS Image for development with the following tidbits:
         docker rmi $(docker images -q)
 
 ### git
-* faster git clone
+* speed up git
 
-        echo '151.101.72.249 github.global.ssl.fastly.net' >> /etc/hosts
-        echo '192.30.253.112 github.com' >> /etc/hosts
+        echo '192.30.253.118  gist.github.com' >> /etc/hosts
+        echo '192.30.255.113  github.com' >> /etc/hosts
+        echo '192.30.255.113  www.github.com' >> /etc/hosts
+        echo '151.101.185.194 github.global.ssl.fastly.net' >> /etc/hosts
+        echo '52.216.236.115  github-cloud.s3.amazonaws.com' >> /etc/hosts
         /etc/init.d/networking restart
 
 * avoid getting asked for credentials every time

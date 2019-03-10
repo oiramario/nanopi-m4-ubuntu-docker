@@ -9,8 +9,6 @@ mkdir -p ${OUTPUT}
 
 ROOTFS=${OUTPUT}/rootfs
 
-BOOT=${OUTPUT}/kernel
-
 echo -e "\e[32m Building images \033[0m"
 docker build -t rk3399 .
 docker create -ti --name dummy rk3399 bash

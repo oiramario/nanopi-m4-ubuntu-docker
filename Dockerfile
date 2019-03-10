@@ -132,7 +132,16 @@ RUN set -x \
     && tools/trust_merger ${IMG_SIZE} ${PATH_FIXUP} RKTRUST/RK3399TRUST.ini \
 \
     # copy content
-    && cp rk3399_loader_*.bin idbloader.img uboot.img trust.img "${BOOT}"
+    && cp rk3399_loader_*.bin idbloader.img uboot.img trust.img "${BOOT}" \
+\
+    # copy flash tool
+    && cp tools/rkdeveloptool "${BOOT}" \
+    && echo "\
+SUBSYSTEM!=\"usb\", GOTO=\"end_rules\"\n\
+# RK3399\n\
+ATTRS{idVendor}==\"2207\", ATTRS{idProduct}==\"330c\", MODE=\"0666\", GROUP=\"users\"\n\
+LABEL=\"end_rules\"\
+" > "${BOOT}/99-rk-rockusb.rules"
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -165,7 +174,7 @@ label kernel-4.4\n\
     kernel /Image\n\
     fdt /rk3399-nanopi4-rev01.dtb\n\
     append earlyprintk console=ttyFIQ0,1500000n8 rw root=/dev/mmcblk1p7 rootfstype=ext4 init=/sbin/init\
-" > "extlinux.conf" \
+" > extlinux.conf \
     && mkfs.vfat -n "boot" -S 512 -C ${BOOT}/boot.img $((20 * 1024)) \
     && mmd -i ${BOOT}/boot.img ::/extlinux \
     && mcopy -i ${BOOT}/boot.img -s extlinux.conf ::/extlinux/extlinux.conf \

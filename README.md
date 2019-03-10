@@ -11,13 +11,13 @@ OS Image for development with the following tidbits:
         * ddr          1.17
     * loader2          1.17.115
     * trust            1.24
-* kernel           4.4.y
-* busybox          1.30.1
-* overlay-firmware 2018.10
-* libdrm           2.4.91
-* mali             14.0
-* libusb           1.0.22
-* librealsense     2.19.0
+* kernel               4.4.y
+* busybox              1.30.1
+* overlay-firmware     2018.10
+* libdrm               2.4.91
+* mali                 14.0
+* libusb               1.0.22
+* librealsense         2.19.0
  
 # boot
 
@@ -36,6 +36,14 @@ OS Image for development with the following tidbits:
     git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
 
 ### rootfs
+
+* busybox
+
+        git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
+
+* nanopi4-overlay-firmware
+
+        git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1
 
 * libdrm
 
@@ -56,14 +64,6 @@ OS Image for development with the following tidbits:
 * librealsense
 
         wget https://github.com/IntelRealSense/librealsense/archive/v2.19.0.tar.gz
-
-* busybox
-
-        wget https://github.com/mirror/busybox/archive/1_30_1.tar.gz
-
-* nanopi4-overlay-firmware
-
-        git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1
 
 # howto
     apt install docker-ce git-lfs
@@ -96,7 +96,7 @@ OS Image for development with the following tidbits:
         docker rm $(docker ps -a | grep "Exited" | awk '{print $1 }')
         docker rmi $(docker images | grep "none" | awk '{print $3}')
 
-* remove all container
+* remove all containers
 
         docker container prune -f
 

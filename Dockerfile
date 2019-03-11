@@ -42,7 +42,9 @@ RUN apt-get install -y \
                     # u-boot
                     bison flex \
                     # kernel
-                    bc libssl-dev
+                    bc libssl-dev \
+                    # boot.img
+                    python
 
 ENV BOOT "/opt/boot"
 RUN mkdir -p ${BOOT}
@@ -84,7 +86,7 @@ CHECK_MASK: 0x80\n\
 PWR_HLD: 0,0,A,0,1\n\
 #uuid:rootfs=00000000-0000-0000-0000-00000000\n\
 #KERNEL_IMG: 0x00280000\n\
-FDT_NAME: rk3399-nanopi4-rev01.dtb\n\
+#FDT_NAME: rk-kernel.dtb\n\
 #RECOVER_KEY: 1,1,0,20,0\n\
 #in section; per section 512(0x200) bytes\n\
 CMDLINE: console=ttyFIQ0 root=/dev/mmcblk1p6 rw rootwait \
@@ -101,9 +103,9 @@ mtdparts=rk29xxnand:\
 #----------------------------------------------------------------------------------------------------------------#
 
     # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/u-boot.git u-boot
-ADD "./packages/boot/u-boot.tar.xz" "${BUILD}"
+ADD "packages/u-boot.tar.xz" "${BUILD}"
     # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
-ADD "packages/boot/rkbin.tar.xz" "${BUILD}"
+ADD "packages/rkbin.tar.xz" "${BUILD}"
 
 # u-boot
 RUN set -x \
@@ -115,7 +117,6 @@ RUN set -x \
 RUN set -x \
     && cd rkbin \
     && export SYS_TEXT_BASE=0x00200000 \
-    && export IMG_SIZE="--size 1024 2" \
     && export PATH_FIXUP="--replace tools/rk_tools/ ./" \
 \
     # loader
@@ -126,13 +127,14 @@ RUN set -x \
     && cat $(find bin/rk33/ -name "rk3399_miniloader_v*.bin") >> idbloader.img \
 \
     # uboot.img
-    && tools/loaderimage --pack --uboot ../u-boot/u-boot-dtb.bin uboot.img ${SYS_TEXT_BASE} ${IMG_SIZE} \
+    && tools/loaderimage --pack --uboot ../u-boot/u-boot.bin uboot.img ${SYS_TEXT_BASE} \
 \
     # trust.img
-    && tools/trust_merger ${IMG_SIZE} ${PATH_FIXUP} RKTRUST/RK3399TRUST.ini \
+    && tools/trust_merger ${PATH_FIXUP} RKTRUST/RK3399TRUST.ini \
 \
     # copy content
-    && cp rk3399_loader_*.bin idbloader.img uboot.img trust.img "${BOOT}" \
+    && cp idbloader.img uboot.img trust.img "${BOOT}" \
+    && cp rk3399_loader_*.bin "${BOOT}/MiniLoaderAll.bin" \
 \
     # copy flash tool
     && cp tools/rkdeveloptool "${BOOT}" \
@@ -146,11 +148,10 @@ LABEL=\"end_rules\"\
 #----------------------------------------------------------------------------------------------------------------#
 
     # git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
-ADD "packages/boot/kernel.tar.xz" "${BUILD}"
-    # copy patch
-COPY "./packages/patch/" "${BUILD}/patch/"
+ADD "packages/kernel.tar.xz" "${BUILD}"
 
 # patch
+COPY "patch/" "${BUILD}/patch/"
 RUN set -x \
     && cd kernel \
     # realsense
@@ -163,25 +164,17 @@ RUN set -x \
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
 
-# boot.img
-RUN apt-get install -y \
-                    # boot.img
-                    dosfstools mtools
-
+    # copy patch
+COPY "logo.bmp" "${BUILD}/kernel/"
+COPY "logo_kernel.bmp" "${BUILD}/kernel/"
 RUN set -x \
-    && echo "\
-label kernel-4.4\n\
-    kernel /Image\n\
-    fdt /rk3399-nanopi4-rev01.dtb\n\
-    append earlyprintk console=ttyFIQ0,1500000n8 rw root=/dev/mmcblk1p7 rootfstype=ext4 init=/sbin/init\
-" > extlinux.conf \
-    && mkfs.vfat -n "boot" -S 512 -C ${BOOT}/boot.img $((20 * 1024)) \
-    && mmd -i ${BOOT}/boot.img ::/extlinux \
-    && mcopy -i ${BOOT}/boot.img -s extlinux.conf ::/extlinux/extlinux.conf \
-    && mcopy -i ${BOOT}/boot.img -s kernel/arch/arm64/boot/Image :: \
-    && mcopy -i ${BOOT}/boot.img -s kernel/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb :: \
-    && rm extlinux.conf \
-    && sync
+    && cd kernel \
+    # resource.img
+    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev*.dtb . \
+    && ln -s rk3399-nanopi4-rev01.dtb rk-kernel.dtb \
+    && scripts/resource_tool --dtbname *.dtb logo.bmp logo_kernel.bmp \
+    # boot.img
+    && scripts/mkbootimg --kernel arch/arm64/boot/Image --second resource.img -o "${BOOT}/boot.img"
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -191,7 +184,7 @@ RUN mkdir -p "${ROOTFS}" \
     && mkdir dev etc lib usr var proc tmp home root mnt sys
 
     # git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
-ADD "./packages/boot/busybox.tar.xz" "${BUILD}"
+ADD "packages/busybox.tar.xz" "${BUILD}"
 
 RUN set -x \
     && cd "busybox" \

@@ -9,7 +9,7 @@ OS Image for development with the following tidbits:
         * miniloader   1.15
         * usbplug      1.15
         * ddr          1.17
-    * loader2          1.17.115
+    * u-boot           2017.09
     * trust            1.24
 * kernel               4.4.y
 * busybox              1.30.1

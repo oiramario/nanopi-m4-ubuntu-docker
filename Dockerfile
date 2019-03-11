@@ -84,12 +84,7 @@ ATAG: 0x00200800\n\
 MACHINE: 3399\n\
 CHECK_MASK: 0x80\n\
 PWR_HLD: 0,0,A,0,1\n\
-#uuid:rootfs=00000000-0000-0000-0000-00000000\n\
-#KERNEL_IMG: 0x00280000\n\
-#FDT_NAME: rk-kernel.dtb\n\
-#RECOVER_KEY: 1,1,0,20,0\n\
-#in section; per section 512(0x200) bytes\n\
-CMDLINE: console=ttyFIQ0 root=/dev/mmcblk1p6 rw rootwait \
+CMDLINE: console=ttyS2,115200n8 rw root=/dev/mmcblk1p7 rootwait rootfstype=ext4 init=/sbin/init \
 mtdparts=rk29xxnand:\
 0x00001F40@0x00000040(idbloader),\
 0x00000080@0x00001F80(reserved1),\
@@ -164,7 +159,7 @@ RUN set -x \
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
 
-    # copy patch
+    # copy content
 COPY "logo.bmp" "${BUILD}/kernel/"
 COPY "logo_kernel.bmp" "${BUILD}/kernel/"
 RUN set -x \
@@ -179,9 +174,6 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 
 ENV ROOTFS "${BOOT}/rootfs"
-RUN mkdir -p "${ROOTFS}" \
-    && cd "${ROOTFS}" \
-    && mkdir dev etc lib usr var proc tmp home root mnt sys
 
     # git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
 ADD "packages/busybox.tar.xz" "${BUILD}"
@@ -190,8 +182,35 @@ RUN set -x \
     && cd "busybox" \
     && make defconfig \
     && make -j$(nproc) \
-    && make CONFIG_PREFIX="${ROOTFS}" install \
-    && cp -r examples/bootfloppy/etc/* "${ROOTFS}/etc"
+    && make CONFIG_PREFIX="${ROOTFS}" install
+
+RUN cd ${ROOTFS} \
+    && mkdir dev etc lib proc tmp sys etc/init.d \
+\
+    && echo "\
+mount -t proc proc /proc\n\
+mount -t sysfs sysfs /sys\n\
+echo /sbin/mdev > /proc/sys/kernel/hotplug\n\
+mount -t tmpfs devtmpfs /dev\n\
+mkdir /dev/pts\n\
+mount -t devpts devpts /dev/pts\n\
+mdev –s\
+" > etc/init.d/rcS \
+    && chmod +x etc/init.d/rcS \
+\
+    && echo "\
+proc  /proc proc  defaults  0 0\n\
+none  /tmp  ramfs defaults  0 0\n\
+mdev  /dev  ramfs defaults  0 0\n\
+sysfs  /sys  sysfs defaults  0 0\
+" > etc/fstab \
+\
+    && echo "\
+::sysinit:/etc/init.d/rcS\n\
+::respawn:-/bin/sh\n\
+::restart:/sbin/init\n\
+::ctrlaltdel:/sbin/reboot\
+" > etc/inittab
 
 #----------------------------------------------------------------------------------------------------------------#
 

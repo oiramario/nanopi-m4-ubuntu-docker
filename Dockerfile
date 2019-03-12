@@ -21,16 +21,15 @@ deb ${SOURCES} bionic-updates main restricted universe multiverse \n\
 deb ${SOURCES} bionic-proposed main restricted universe multiverse \n\
 deb ${SOURCES} bionic-backports main restricted universe multiverse" > /etc/apt/sources.list \
     # reuses the cache
-    && apt-get update
-
-RUN apt-get install -y \
+    && apt-get update \
+    && apt-get install -y \
                     gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
                     make \
                     patch
 
 # setup build environment
-ENV CROSS_COMPILE "aarch64-linux-gnu-"
-ENV ARCH arm64
+ENV CROSS_COMPILE="aarch64-linux-gnu-" \
+    ARCH=arm64
 
 ENV BUILD "/root/build"
 WORKDIR ${BUILD}
@@ -52,8 +51,6 @@ RUN apt-get install -y \
 
 ENV BOOT "/root/boot"
 RUN mkdir -p ${BOOT}
-
-#----------------------------------------------------------------------------------------------------------------#
 
 #+----------------------------+---------------------+-------------------+--------------------+----------------+--------------------------------------+
 #| Partition                  |     Start Sector    | Number of Sectors |   Partition Size   | PartNum in GPT | Requirements                         |
@@ -100,7 +97,7 @@ CMDLINE: mtdparts=rk29xxnand:\
 
 #----------------------------------------------------------------------------------------------------------------#
 
-    # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/u-boot.git u-boot
+    # git clone --depth 1 https://github.com/u-boot/u-boot.git u-boot
 ADD "packages/u-boot.tar.xz" "${BUILD}"
     # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
 ADD "packages/rkbin.tar.xz" "${BUILD}"
@@ -108,8 +105,7 @@ ADD "packages/rkbin.tar.xz" "${BUILD}"
 # u-boot
 RUN set -x \
     && cd u-boot \
-    && echo "CONFIG_DISTRO_DEFAULTS=y" >> ./configs/rk3399_defconfig \
-    && make rk3399_defconfig \
+    && make evb-rk3399_defconfig \
     && make -j$(nproc)
 
 COPY "boot.cmd" "${BUILD}/u-boot/"
@@ -240,5 +236,8 @@ sysfs  /sys  sysfs defaults  0 0\
 
 RUN cd "${BOOT}" \
     && tar cf /boot.tar *
+
+# remove unused lists
+RUN rm -rf /var/lib/apt/lists/*
 
 #----------------------------------------------------------------------------------------------------------------#

@@ -1,5 +1,5 @@
-sources
-build
+sources/
+build/
 
 *.sh
 

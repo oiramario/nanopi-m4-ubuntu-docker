@@ -32,7 +32,7 @@ RUN apt-get install -y \
 ENV CROSS_COMPILE "aarch64-linux-gnu-"
 ENV ARCH arm64
 
-ENV BUILD "/opt/build"
+ENV BUILD "/root/build"
 WORKDIR ${BUILD}
 
 #----------------------------------------------------------------------------------------------------------------#
@@ -44,9 +44,13 @@ RUN apt-get install -y \
                     # kernel
                     bc libssl-dev \
                     # boot.img
-                    python
+                    python \
+                    # initrd.img
+                    cpio \
+                    # boot2.img
+                    genext2fs
 
-ENV BOOT "/opt/boot"
+ENV BOOT "/root/boot"
 RUN mkdir -p ${BOOT}
 
 #----------------------------------------------------------------------------------------------------------------#
@@ -84,8 +88,7 @@ ATAG: 0x00200800\n\
 MACHINE: 3399\n\
 CHECK_MASK: 0x80\n\
 PWR_HLD: 0,0,A,0,1\n\
-CMDLINE: console=ttyS2,115200n8 rw root=/dev/mmcblk1p7 rootwait rootfstype=ext4 init=/sbin/init \
-mtdparts=rk29xxnand:\
+CMDLINE: mtdparts=rk29xxnand:\
 0x00001F40@0x00000040(idbloader),\
 0x00000080@0x00001F80(reserved1),\
 0x00002000@0x00002000(reserved2),\
@@ -105,8 +108,14 @@ ADD "packages/rkbin.tar.xz" "${BUILD}"
 # u-boot
 RUN set -x \
     && cd u-boot \
+    && echo "CONFIG_DISTRO_DEFAULTS=y" >> ./configs/rk3399_defconfig \
     && make rk3399_defconfig \
     && make -j$(nproc)
+
+COPY "boot.cmd" "${BUILD}/u-boot/"
+RUN set -x \
+    && cd u-boot \
+    && tools/mkimage -C none -A arm -T script -d boot.cmd boot.scr
 
 # make images
 RUN set -x \
@@ -159,6 +168,11 @@ RUN set -x \
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
 
+    # git clone --depth 1 https://github.com/54shady/firefly_rk3399_ramdisk.git initrd
+ADD "packages/initrd.tar.xz" "${BUILD}"
+RUN set -x \
+    && find ./initrd/ | cpio -H newc -ov | gzip > "kernel/initrd.img"
+
     # copy content
 COPY "logo.bmp" "${BUILD}/kernel/"
 COPY "logo_kernel.bmp" "${BUILD}/kernel/"
@@ -169,7 +183,17 @@ RUN set -x \
     && ln -s rk3399-nanopi4-rev01.dtb rk-kernel.dtb \
     && scripts/resource_tool --dtbname *.dtb logo.bmp logo_kernel.bmp \
     # boot.img
-    && scripts/mkbootimg --kernel arch/arm64/boot/Image --second resource.img -o "${BOOT}/boot.img"
+    && scripts/mkbootimg --kernel arch/arm64/boot/Image --ramdisk initrd.img --second resource.img -o "${BOOT}/boot.img"
+
+RUN set -x \
+    && cd kernel \
+    && mkdir boot \
+    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb boot/ \
+    && ln -s rk3399-nanopi4-rev01.dtb dtb \
+    && cp arch/arm64/boot/Image boot/ \
+    && cp initrd.img boot/ \
+    && cp ../u-boot/boot.scr boot/ \
+    && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d boot/ -i 8192 -U "${BOOT}/boot2.img"
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -185,7 +209,7 @@ RUN set -x \
     && make CONFIG_PREFIX="${ROOTFS}" install
 
 RUN cd ${ROOTFS} \
-    && mkdir dev etc lib proc tmp sys etc/init.d \
+    && mkdir dev etc proc tmp sys etc/init.d \
 \
     && echo "\
 mount -t proc proc /proc\n\

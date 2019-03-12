@@ -22,7 +22,7 @@ echo -e "\e[36m 0x6000 trust.img \e[0m"
 sleep 1
 
 echo -e "\e[36m 0x8000 boot.img \e[0m"
-./rkdeveloptool wl 0x8000  boot.img
+./rkdeveloptool wl 0x8000  boot2.img
 sleep 1
 
 echo -e "\e[36m 0x40000 rootfs.img \e[0m"

@@ -1,2 +1,5 @@
-sources/
-build/
+# gitignore
+
+sources
+
+build

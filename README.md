@@ -9,9 +9,9 @@ OS Image for development with the following tidbits:
         * miniloader   1.15
         * usbplug      1.15
         * ddr          1.17
-    * u-boot           2017.09
+    * u-boot           2019.04-rc3
     * trust            1.24
-* kernel               4.4.y
+* kernel               4.4.154
 * busybox              1.30.1
 * overlay-firmware     2018.10
 * libdrm               2.4.91
@@ -25,7 +25,7 @@ OS Image for development with the following tidbits:
 
 * u-boot
 
-        git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/u-boot.git u-boot
+        git clone --depth 1 https://github.com/u-boot/u-boot.git u-boot
 
 * rkbin
 

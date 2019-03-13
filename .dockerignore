@@ -1,6 +1,10 @@
-sources/
-build/
+# dockerignore
+.git
+.gitattributes
+.gitignore
+
+sources
+build
 
 *.sh
-
 *.md

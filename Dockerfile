@@ -97,6 +97,25 @@ CMDLINE: mtdparts=rk29xxnand:\
 
 #----------------------------------------------------------------------------------------------------------------#
 
+    # git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
+ADD "packages/kernel.tar.xz" "${BUILD}"
+
+# patch
+COPY "patch/" "${BUILD}/patch/"
+RUN set -x \
+    && cd kernel \
+    # realsense
+    && export REALSENSE_PATCH=../patch/kernel/realsense \
+    && for i in `ls ${REALSENSE_PATCH}`; do patch -p1 < ${REALSENSE_PATCH}/$i; done 
+
+# kernel
+RUN set -x \
+    && cd kernel \
+    && make nanopi4_linux_defconfig \
+    && make -j$(nproc)
+
+#----------------------------------------------------------------------------------------------------------------#
+
     # git clone --depth 1 https://github.com/u-boot/u-boot.git u-boot
 ADD "packages/u-boot.tar.xz" "${BUILD}"
     # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
@@ -108,10 +127,20 @@ RUN set -x \
     && make evb-rk3399_defconfig \
     && make -j$(nproc)
 
-COPY "boot.cmd" "${BUILD}/u-boot/"
+#----------------------------------------------------------------------------------------------------------------#
+
+ENV ROOTFS "${BOOT}/rootfs"
+
+    # git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
+ADD "packages/busybox.tar.xz" "${BUILD}"
+
 RUN set -x \
-    && cd u-boot \
-    && tools/mkimage -C none -A arm -T script -d boot.cmd boot.scr
+    && cd "busybox" \
+    && make defconfig \
+    && make -j$(nproc) \
+    && make CONFIG_PREFIX="${ROOTFS}" install
+
+#----------------------------------------------------------------------------------------------------------------#
 
 # make images
 RUN set -x \
@@ -147,97 +176,56 @@ LABEL=\"end_rules\"\
 
 #----------------------------------------------------------------------------------------------------------------#
 
-    # git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
-ADD "packages/kernel.tar.xz" "${BUILD}"
-
-# patch
-COPY "patch/" "${BUILD}/patch/"
-RUN set -x \
-    && cd kernel \
-    # realsense
-    && export REALSENSE_PATCH=../patch/kernel/realsense \
-    && for i in `ls ${REALSENSE_PATCH}`; do patch -p1 < ${REALSENSE_PATCH}/$i; done 
-
-# kernel
-RUN set -x \
-    && cd kernel \
-    && make nanopi4_linux_defconfig \
-    && make -j$(nproc)
-
     # git clone --depth 1 https://github.com/54shady/firefly_rk3399_ramdisk.git initrd
 ADD "packages/initrd.tar.xz" "${BUILD}"
 RUN set -x \
     && find ./initrd/ | cpio -H newc -ov | gzip > "kernel/initrd.img"
 
-    # copy content
-COPY "logo.bmp" "${BUILD}/kernel/"
-COPY "logo_kernel.bmp" "${BUILD}/kernel/"
-RUN set -x \
-    && cd kernel \
-    # resource.img
-    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev*.dtb . \
-    && ln -s rk3399-nanopi4-rev01.dtb rk-kernel.dtb \
-    && scripts/resource_tool --dtbname *.dtb logo.bmp logo_kernel.bmp \
-    # boot.img
-    && scripts/mkbootimg --kernel arch/arm64/boot/Image --ramdisk initrd.img --second resource.img -o "${BOOT}/boot.img"
+#----------------------------------------------------------------------------------------------------------------#
 
+# boot.img
 RUN set -x \
+    && export BOOTIMG=${BUILD}/boot \
+    && mkdir -p "${BOOTIMG}/extlinux" \
     && cd kernel \
-    && mkdir boot \
-    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb boot/ \
-    && ln -s rk3399-nanopi4-rev01.dtb dtb \
-    && cp arch/arm64/boot/Image boot/ \
-    && cp initrd.img boot/ \
-    && cp ../u-boot/boot.scr boot/ \
-    && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d boot/ -i 8192 -U "${BOOT}/boot2.img"
+    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb "${BOOTIMG}/" \
+    && cp initrd.img "${BOOTIMG}/" \
+    && cp arch/arm64/boot/Image "${BOOTIMG}/" \
+    && echo "\
+label kernel-4.4\n\
+    kernel /Image\n\
+    fdt /rk3399-nanopi4-rev01.dtb\n\
+    initrd /initrd.img\n\
+    append earlyprintk root=/dev/mmcblk1p7 rw rootfstype=ext4 rootwait fsck.repair=yes panic=10 no_console_suspend consoleblank=0\
+" > "${BOOTIMG}/extlinux/extlinux.conf" \
+    && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d ${BOOTIMG} -i 8192 -U ${BOOT}/boot.img \
+    && e2fsck -p -f ${BOOT}/boot.img \
+    && resize2fs -M ${BOOT}/boot.img
 
 #----------------------------------------------------------------------------------------------------------------#
 
-ENV ROOTFS "${BOOT}/rootfs"
-
-    # git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
-ADD "packages/busybox.tar.xz" "${BUILD}"
-
-RUN set -x \
-    && cd "busybox" \
-    && make defconfig \
-    && make -j$(nproc) \
-    && make CONFIG_PREFIX="${ROOTFS}" install
-
 RUN cd ${ROOTFS} \
-    && mkdir dev etc proc tmp sys etc/init.d \
-\
+    && mkdir proc sys \
+    && touch init \
+    && chmod +x init \
     && echo "\
-mount -t proc proc /proc\n\
-mount -t sysfs sysfs /sys\n\
-echo /sbin/mdev > /proc/sys/kernel/hotplug\n\
-mount -t tmpfs devtmpfs /dev\n\
-mkdir /dev/pts\n\
-mount -t devpts devpts /dev/pts\n\
-mdev –s\
-" > etc/init.d/rcS \
-    && chmod +x etc/init.d/rcS \
-\
-    && echo "\
-proc  /proc proc  defaults  0 0\n\
-none  /tmp  ramfs defaults  0 0\n\
-mdev  /dev  ramfs defaults  0 0\n\
-sysfs  /sys  sysfs defaults  0 0\
-" > etc/fstab \
-\
-    && echo "\
-::sysinit:/etc/init.d/rcS\n\
-::respawn:-/bin/sh\n\
-::restart:/sbin/init\n\
-::ctrlaltdel:/sbin/reboot\
-" > etc/inittab
+#!/bin/sh\n\
+echo '{==DBG==} INIT SCRIPT'\n\
+mkdir /tmp\n\
+mount -t proc none /proc\n\
+mount -t sysfs none /sys\n\
+mount -t debugfs none /sys/kernel/debug\n\
+mount -t tmpfs none /tmp\n\
+# insmod /xxx.ko # load ko\n\
+mdev -s # We need this to find /dev/sda later\n\
+echo -e \"{==DBG==} Boot took $(cut -d' ' -f1 /proc/uptime) seconds\"\n\
+setsid /bin/cttyhack setuidgid 1000 /bin/sh #normal user\n\
+# exec /bin/sh #root\
+" > init
 
 #----------------------------------------------------------------------------------------------------------------#
 
 RUN cd "${BOOT}" \
     && tar cf /boot.tar *
-
-# remove unused lists
-RUN rm -rf /var/lib/apt/lists/*
 
 #----------------------------------------------------------------------------------------------------------------#

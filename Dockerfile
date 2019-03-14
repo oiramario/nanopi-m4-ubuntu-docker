@@ -42,12 +42,8 @@ RUN apt-get install -y \
                     bison flex \
                     # kernel
                     bc libssl-dev \
-                    # boot.img
-                    python \
-                    # initrd.img
-                    cpio \
-                    # boot2.img
-                    genext2fs
+                    # lz4 boot.img
+                    liblz4-tool genext2fs
 
 ENV BOOT "/root/boot"
 RUN mkdir -p ${BOOT}
@@ -97,7 +93,7 @@ CMDLINE: mtdparts=rk29xxnand:\
 
 #----------------------------------------------------------------------------------------------------------------#
 
-    # git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
+    # git clone --depth 1 --single-branch -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
 ADD "packages/kernel.tar.xz" "${BUILD}"
 
 # patch
@@ -116,9 +112,9 @@ RUN set -x \
 
 #----------------------------------------------------------------------------------------------------------------#
 
-    # git clone --depth 1 https://github.com/u-boot/u-boot.git u-boot
+    # git clone --depth 1 --single-branch -b master https://github.com/u-boot/u-boot.git u-boot
 ADD "packages/u-boot.tar.xz" "${BUILD}"
-    # git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
+    # git clone --depth 1 --single-branch -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
 ADD "packages/rkbin.tar.xz" "${BUILD}"
 
 # u-boot
@@ -131,7 +127,7 @@ RUN set -x \
 
 ENV ROOTFS "${BOOT}/rootfs"
 
-    # git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
+    # git clone --depth 1 --single-branch -b 1_30_stable https://github.com/mirror/busybox.git busybox
 ADD "packages/busybox.tar.xz" "${BUILD}"
 
 RUN set -x \
@@ -148,7 +144,7 @@ RUN set -x \
     && export SYS_TEXT_BASE=0x00200000 \
     && export PATH_FIXUP="--replace tools/rk_tools/ ./" \
 \
-    # loader
+    # boot loader
     && tools/boot_merger ${PATH_FIXUP} RKBOOT/RK3399MINIALL.ini \
 \
     # idbloader.img
@@ -176,28 +172,20 @@ LABEL=\"end_rules\"\
 
 #----------------------------------------------------------------------------------------------------------------#
 
-    # git clone --depth 1 https://github.com/54shady/firefly_rk3399_ramdisk.git initrd
-ADD "packages/initrd.tar.xz" "${BUILD}"
-RUN set -x \
-    && find ./initrd/ | cpio -H newc -ov | gzip > "kernel/initrd.img"
-
-#----------------------------------------------------------------------------------------------------------------#
-
 # boot.img
 RUN set -x \
     && export BOOTIMG=${BUILD}/boot \
     && mkdir -p "${BOOTIMG}/extlinux" \
     && cd kernel \
     && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb "${BOOTIMG}/" \
-    && cp initrd.img "${BOOTIMG}/" \
     && cp arch/arm64/boot/Image "${BOOTIMG}/" \
     && echo "\
 label kernel-4.4\n\
     kernel /Image\n\
     fdt /rk3399-nanopi4-rev01.dtb\n\
-    initrd /initrd.img\n\
-    append earlyprintk root=/dev/mmcblk1p7 rw rootfstype=ext4 rootwait fsck.repair=yes panic=10 no_console_suspend consoleblank=0\
+    append earlyprintk noinitrd root=/dev/mmcblk1p7 init=/init earlycon=uart,1500000 rw rootfstype=ext4 rootwait fsck.repair=yes panic=10 no_console_suspend consoleblank=0\
 " > "${BOOTIMG}/extlinux/extlinux.conf" \
+\
     && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d ${BOOTIMG} -i 8192 -U ${BOOT}/boot.img \
     && e2fsck -p -f ${BOOT}/boot.img \
     && resize2fs -M ${BOOT}/boot.img
@@ -205,21 +193,20 @@ label kernel-4.4\n\
 #----------------------------------------------------------------------------------------------------------------#
 
 RUN cd ${ROOTFS} \
-    && mkdir proc sys \
+    && mkdir proc sys lib \
+\
+    && cp -a /usr/aarch64-linux-gnu/lib/* lib/ \
+\
     && touch init \
     && chmod +x init \
     && echo "\
 #!/bin/sh\n\
-echo '{==DBG==} INIT SCRIPT'\n\
-mkdir /tmp\n\
+echo 'let's go...\n\
 mount -t proc none /proc\n\
 mount -t sysfs none /sys\n\
 mount -t debugfs none /sys/kernel/debug\n\
 mount -t tmpfs none /tmp\n\
-# insmod /xxx.ko # load ko\n\
-mdev -s # We need this to find /dev/sda later\n\
 echo -e \"{==DBG==} Boot took $(cut -d' ' -f1 /proc/uptime) seconds\"\n\
-setsid /bin/cttyhack setuidgid 1000 /bin/sh #normal user\n\
 # exec /bin/sh #root\
 " > init
 

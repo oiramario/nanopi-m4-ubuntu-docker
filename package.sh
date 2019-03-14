@@ -9,7 +9,7 @@ do
     echo Packaging ...
     tar --exclude=.git -cf $package $i
     echo compressing ...
-    xz --compress --extreme --threads=0 --force $package
+    xz -zef --threads=0 $package
     echo -e "\e[36m $dir \e[0m"
     echo
 done

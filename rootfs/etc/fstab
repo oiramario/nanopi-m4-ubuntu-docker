@@ -1,0 +1,3 @@
+# UNCONFIGURED FSTAB FOR BASE SYSTEM
+/dev/mmcblk1p7    /             ext4      defaults,noatime,errors=remount-ro   0      1
+/dev/mmcklk1p4    /boot         vfat      defaults                             0      2

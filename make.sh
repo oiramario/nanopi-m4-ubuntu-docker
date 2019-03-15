@@ -15,7 +15,7 @@ sync
 
 
 echo -e "\e[36m Making rootfs.img \e[0m"
-dd if=/dev/zero of=${BUILD}/rootfs.img bs=1M count=512
+dd if=/dev/zero of=${BUILD}/rootfs.img bs=1M count=256
 mkfs.ext4 ${BUILD}/rootfs.img
 sync
 mount ${BUILD}/rootfs.img ${ROOTFS}

@@ -1,0 +1,3 @@
+SUBSYSTEM!="usb", GOTO="end_rules"
+ATTRS{idVendor}=="2207", ATTRS{idProduct}=="330c", MODE="0666", GROUP="users"
+LABEL="end_rules"

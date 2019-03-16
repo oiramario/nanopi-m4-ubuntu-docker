@@ -84,8 +84,6 @@ OS Image for development with the following tidbits:
         | Secondary GPT              | 16777183 | 00FFFFDF |     33 | 00000021 |     16896 | 16.5KB |                |                                      |
         +----------------------------+----------+----------+--------+----------+-----------+--------+----------------+--------------------------------------+
 
-
-
 # howto
     apt install docker-ce git-lfs
     git lfs install
@@ -102,12 +100,17 @@ OS Image for development with the following tidbits:
         add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         apt update
         apt install docker-ce
+        sudo groupadd docker
+        sudo gpasswd -a ${USER} docker
+        sudo service docker restart
+        newgrp - docker
 
 * build
 
         docker build -t rk3399 .
 
 * run
+
 
         docker container run -it rk3399 /bin/bash
 
@@ -119,41 +122,41 @@ OS Image for development with the following tidbits:
 
 * remove all containers
 
-        docker container prune -f
+    docker container prune -f
 
 * remove all images
 
-        docker rmi $(docker images -q)
+    docker rmi $(docker images -q)
 
 ### git
 * speed up git
 
-        echo '192.30.253.118  gist.github.com' >> /etc/hosts
-        echo '192.30.255.113  github.com' >> /etc/hosts
-        echo '192.30.255.113  www.github.com' >> /etc/hosts
-        echo '151.101.185.194 github.global.ssl.fastly.net' >> /etc/hosts
-        echo '52.216.236.115  github-cloud.s3.amazonaws.com' >> /etc/hosts
-        /etc/init.d/networking restart
+    echo '192.30.253.118  gist.github.com' >> /etc/hosts
+    echo '192.30.255.113  github.com' >> /etc/hosts
+    echo '192.30.255.113  www.github.com' >> /etc/hosts
+    echo '151.101.185.194 github.global.ssl.fastly.net' >> /etc/hosts
+    echo '52.216.236.115  github-cloud.s3.amazonaws.com' >> /etc/hosts
+    /etc/init.d/networking restart
 
 * avoid getting asked for credentials every time
 
-        git config --global user.name "alex"
-        git config --global user.email alex@example.com
-        git config --global credential.helper wincred
+    git config --global user.name "alex"
+    git config --global user.email alex@example.com
+    git config --global credential.helper wincred
 
 * git-lfs upload
     * move packages outside
 
-            git init
-            git lfs track "*.tar.xz"
-            git add .
-            git commit -m "first commit"
-            git remote add origin git@github.com:oiramario/rk3399-docker.git
-            git push -u origin master
+        git init
+        git lfs track "*.tar.xz"
+        git add .
+        git commit -m "first commit"
+        git remote add origin git@github.com:oiramario/rk3399-docker.git
+        git push -u origin master
 
     * move packages back
 
-            git add .
-            git commit -m "add packages"
-            git lfs ls-files
-            git push origin master
+        git add .
+        git commit -m "add packages"
+        git lfs ls-files
+        git push origin master

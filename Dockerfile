@@ -137,15 +137,12 @@ RUN mkdir -p "${BOOT}/extlinux"
 # extlinux.conf
 COPY "boot/extlinux.conf" "${BOOT}/extlinux"
 
-# nanopc-t4:   rk3399-nanopi4-rev00.dtb
-# nanopi-m4:   rk3399-nanopi4-rev01.dtb
-# nanopi-neo4: rk3399-nanopi4-rev04.dtb
-
 # boot.img
 RUN set -x \
     && cd kernel \
-    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb "${BOOT}/" \
-    && cp arch/arm64/boot/Image "${BOOT}/" \
+    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb \
+          arch/arm64/boot/Image \
+          "${BOOT}/" \
 \
     && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d ${BOOT} -i 8192 -U ${RK3399}/boot.img \
     && e2fsck -p -f ${RK3399}/boot.img \
@@ -156,12 +153,12 @@ RUN set -x \
 COPY "rootfs/" "${ROOTFS}"
 
 RUN cd ${ROOTFS} \
-    && mkdir -p root  bin  sbin  etc  dev  usr  lib  tmp  mnt  sys  proc  var boot \
-                usr/lib  usr/bin  usr/sbin \
+    && mkdir -p root dev etc boot tmp var sys proc lib mnt home usr \
                 etc/init.d \
-                var/log  var/lock  var/lib var/run \
+                usr/sbin usr/bin usr/lib usr/modules \
+                var/log var/lock var/lib var/run var/tmp \
                 proc/sys/kernel \
-                sys/dev \
+                dev/pts \
 \
     && cp -Pr /usr/aarch64-linux-gnu/lib/* lib/ \
     && chmod 0777 * -R

@@ -102,12 +102,17 @@ OS Image for development with the following tidbits:
         add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         apt update
         apt install docker-ce
+        sudo groupadd docker
+        sudo gpasswd -a ${USER} docker
+        sudo service docker restart
+        newgrp - docker
 
 * build
 
         docker build -t rk3399 .
 
 * run
+
 
         docker container run -it rk3399 /bin/bash
 

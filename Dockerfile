@@ -163,6 +163,16 @@ RUN cd ${ROOTFS} \
     && cp -Pr /usr/aarch64-linux-gnu/lib/* lib/ \
     && chmod 0777 * -R
 
+ADD "./packages/overlay-firmware.tar.xz" "${BUILD}"
+# git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1
+RUN set -x \
+    && cd "overlay-firmware" \
+    # bt,wifi,audio firmware
+    && mkdir -p "${ROOTFS}/system/lib/modules" \
+    && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan/" -name "*.ko" | \
+            xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
+    && cp -a * "${ROOTFS}"
+
 #----------------------------------------------------------------------------------------------------------------#
 
 RUN cd "${RK3399}" \

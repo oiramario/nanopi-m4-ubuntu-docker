@@ -86,14 +86,11 @@ RUN set -x \
 ENV ROOTFS "${RK3399}/rootfs"
 RUN mkdir -p ${ROOTFS}
 
-    # git clone --depth 1 --single-branch -b 1_30_stable https://github.com/mirror/busybox.git busybox
-ADD "packages/busybox.tar.xz" "${BUILD}"
+    # http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz
+ADD "packages/ubuntu-18.04.tar.xz" "${ROOTFS}"
 
 RUN set -x \
-    && cd "busybox" \
-    && make defconfig \
-    && make -j$(nproc) \
-    && make CONFIG_PREFIX="${ROOTFS}" install
+    && cd "${ROOTFS}" 
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -149,19 +146,6 @@ RUN set -x \
     && resize2fs -M ${RK3399}/boot.img
 
 #----------------------------------------------------------------------------------------------------------------#
-
-COPY "rootfs/" "${ROOTFS}"
-
-RUN cd ${ROOTFS} \
-    && mkdir -p root dev etc boot tmp var sys proc lib mnt home usr \
-                etc/init.d \
-                usr/sbin usr/bin usr/lib usr/modules \
-                var/log var/lock var/lib var/run var/tmp \
-                proc/sys/kernel \
-                dev/pts \
-\
-    && cp -Pr /usr/aarch64-linux-gnu/lib/* lib/ \
-    && chmod 0777 * -R
 
 ADD "./packages/overlay-firmware.tar.xz" "${BUILD}"
 # git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1

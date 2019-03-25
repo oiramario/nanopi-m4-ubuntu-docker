@@ -113,7 +113,6 @@ OS Image for development with the following tidbits:
 
 * run
 
-
         docker container run -it rk3399 /bin/bash
 
 * remove none images

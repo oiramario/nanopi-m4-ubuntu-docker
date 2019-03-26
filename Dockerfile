@@ -79,6 +79,7 @@ ADD "packages/rkbin.tar.xz" "${BUILD}"
 RUN set -x \
     && cd u-boot \
     && make evb-rk3399_defconfig \
+    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
     && make -j$(nproc)
 
 #----------------------------------------------------------------------------------------------------------------#
@@ -149,13 +150,13 @@ RUN set -x \
 
 ADD "./packages/overlay-firmware.tar.xz" "${BUILD}"
 # git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1
-RUN set -x \
-    && cd "overlay-firmware" \
+#RUN set -x \
+#    && cd "overlay-firmware" \
     # bt,wifi,audio firmware
-    && mkdir -p "${ROOTFS}/system/lib/modules" \
-    && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan/" -name "*.ko" | \
-            xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
-    && cp -a * "${ROOTFS}"
+#    && mkdir -p "${ROOTFS}/system/lib/modules" \
+#    && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan/" -name "*.ko" | \
+#            xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
+#    && cp -a * "${ROOTFS}"
 
 #----------------------------------------------------------------------------------------------------------------#
 

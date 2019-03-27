@@ -2,3 +2,4 @@
 ::askfirst:-/bin/sh
 ::ctrlaltdel:/sbin/reboot
 ::shutdown:/bin/umount -a -r 
+::once:/sbin/udhcpc >/dev/null 2>&1

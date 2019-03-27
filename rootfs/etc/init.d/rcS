@@ -4,3 +4,10 @@ echo /sbin/mdev > /proc/sys/kernel/hotplug
 /sbin/mdev -s
 
 /bin/hostname -F /etc/hostname
+
+hwclock --hctosys
+
+ifup -a
+
+ifconfig lo 127.0.0.1
+ifconfig eth0 192.168.0.111

@@ -45,6 +45,12 @@ trap finish EXIT
 # build ubuntu-rootfs
 cp /usr/bin/qemu-aarch64-static $ROOTFS_DIR/usr/bin
 echo "nameserver 8.8.8.8" > $ROOTFS_DIR/etc/resolv.conf
+cat > $ROOTFS_DIR/etc/apt/sources.list << EOF
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-updates main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-backports main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-security main restricted universe multiverse
+EOF
 
 mount -t proc /proc $ROOTFS_DIR/proc
 mount -t sysfs /sys $ROOTFS_DIR/sys
@@ -54,40 +60,35 @@ mount -o bind /dev/pts $ROOTFS_DIR/dev/pts
 cat << EOF | chroot $ROOTFS_DIR/
 #chroot $ROOTFS_DIR/
 
-#apt update
-#apt upgrade
-apt-get install -y udev sudo ssh language-pack-en-base --no-install-recommends 
-apt-get install -y systemd --no-install-recommends 
+export LANGUAGE=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 
-# 必须安装systemd，否则系统无法挂载
-apt-get install -y ifupdown net-tools network-manager  ethtool --no-install-recommends 
-apt-get install -y vim rsyslog  bash-completion htop --no-install-recommends
-# 无线网络配置工具
-apt-get install -y wireless-tools wpasupplicant iputils-ping --no-install-recommends 
+apt update
+apt upgrade -y
 
-systemctl enable rockchip.service
+apt install -y --no-install-recommends language-pack-en-base
+locale-gen en_US.UTF-8
+update-locale en_US.UTF-8
+
+apt install -y --no-install-recommends udev sudo ssh rsyslog
+apt install -y --no-install-recommends wireless-tools wpasupplicant iputils-ping
+apt install -y --no-install-recommends ifupdown net-tools network-manager ethtool
+
 systemctl enable systemd-networkd
 systemctl enable systemd-resolved
 systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service
 
-HOST=oiramario
-echo "$HOST" > /etc/hostname
-
-echo "\
-127.0.0.1 $HOST
-127.0.0.1 localhost.localdomain localhost" > /etc/hosts
+echo "oiramario" > /etc/hostname
+echo "127.0.0.1 localhost" > /etc/hosts
+echo "root:x:0:" > /etc/group
+echo "root:x:0:0:root:/root:/bin/sh" > /etc/passwd
 
 mkdir -p /etc/network/interfaces.d
 echo "\
 auto eth0
 iface eth0 inet dhcp" > /etc/network/interfaces.d/eth0
-
-#echo "\
-#start on stopped rc or RUNLEVEL=[12345]
-#stop on RUNLEVEL [!12345]
-#respawn
-#exec /sbin/getty -L 115200 ttyS0 vt102" > /etc/init/ttyS0.conf
 
 EOF
 
@@ -100,7 +101,7 @@ sync
 
 
 # build rootfs.img
-dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=512
+dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=1024
 mkfs.ext4 $ROOTFS_IMG
 mkdir -p $ROOTFS_MNT
 mount $ROOTFS_IMG $ROOTFS_MNT

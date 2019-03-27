@@ -12,7 +12,7 @@ USER root
 #----------------------------------------------------------------------------------------------------------------#
 
 # cn sources
-RUN SOURCES="http://mirrors.163.com/ubuntu/" \
+RUN SOURCES="http://mirrors.aliyun.com/ubuntu/" \
     && cat << EOF > /etc/apt/sources.list \
     && echo "\
 deb ${SOURCES} bionic main restricted universe multiverse \n\

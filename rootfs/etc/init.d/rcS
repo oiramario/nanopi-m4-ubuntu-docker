@@ -1,13 +1,19 @@
-/bin/mount -a
+#!/bin/sh
 
-echo /sbin/mdev > /proc/sys/kernel/hotplug
+runlevel=S
+prevlevel=N
+umask 022
+export runlevel prevlevel
+
+/bin/mount -a
+/bin/mkdir -p /dev/pts
+/bin/mount -t devpts devpts /dev/pts
+/bin/echo /sbin/mdev > /proc/sys/kernel/hotplug
 /sbin/mdev -s
 
-/bin/hostname -F /etc/hostname
+/sbin/insmod /lib/modules/bcmdhd.ko
 
-hwclock --hctosys
+/bin/mkdir -p var/run
+/sbin/ifup -a
 
-ifup -a
-
-ifconfig lo 127.0.0.1
-ifconfig eth0 192.168.0.111
+/bin/hostname -F /etc/sysconfig/HOSTNAME

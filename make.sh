@@ -55,7 +55,7 @@ resize2fs -M $BOOT_IMG
 
 
 # build rootfs.img
-dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=16
+dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=128
 mkfs.ext4 $ROOTFS_IMG
 mkdir -p $ROOTFS_MNT
 mount $ROOTFS_IMG $ROOTFS_MNT

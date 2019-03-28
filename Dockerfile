@@ -52,8 +52,8 @@ RUN set -x \
 
 
 # u-boot
-ADD "packages/u-boot.tar.xz" "$BUILD"
-ADD "packages/rkbin.tar.xz" "$BUILD"
+ADD "packages/u-boot.tar.xz" "$BUILD/"
+ADD "packages/rkbin.tar.xz" "$BUILD/"
 RUN set -x \
     && cd u-boot \
     && make evb-rk3399_defconfig \
@@ -63,7 +63,7 @@ RUN set -x \
 
 
 # busybox
-ADD "packages/busybox.tar.xz" "$BUILD"
+ADD "packages/busybox.tar.xz" "$BUILD/"
 RUN set -x \
     && cd busybox \
     && make defconfig \
@@ -121,27 +121,21 @@ RUN set -x \
 
 
 # rootfs
-RUN set -x \
-    && cd busybox \
-    && make CONFIG_PREFIX="$ROOTFS" install
-
-#----------------------------------------------------------------------------------------------------------------#
-
 COPY "rootfs/" "$ROOTFS/"
-
-RUN cd "$ROOTFS" \
-    && mkdir -p root dev etc boot tmp var sys proc lib mnt home usr \
-                usr/sbin usr/bin usr/lib usr/modules \
-                var/log var/lock var/lib var/run var/tmp \
-                proc/sys/kernel \
-                dev/pts \
+ADD "packages/overlay-firmware.tar.xz" "$ROOTFS/"
+RUN set -x \
+    # busybox
+    && cd busybox \
+    && make CONFIG_PREFIX="$ROOTFS" install \
 \
+    # runtime
+    && cd "$ROOTFS" \
     && cp -Pr /usr/aarch64-linux-gnu/lib/* lib/ \
     && rm -f lib/*.a lib/*.o \
-    && chmod +x etc/init.d/rcS  usr/share/udhcpc/default.script
+\
+    # bt, wifi, audio
+    && find "$BUILD/kernel/drivers/net/wireless/rockchip_wlan/" -name "*.ko" | xargs -n1 -i cp {} "lib/modules"
 
-ADD "./packages/overlay-firmware.tar.xz" "$BUILD"
-# git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1
 #RUN set -x \
 #    && cd "overlay-firmware" \
     # bt,wifi,audio firmware

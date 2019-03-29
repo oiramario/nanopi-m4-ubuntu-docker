@@ -21,18 +21,30 @@ deb $SOURCES bionic-proposed main restricted universe multiverse \n\
 deb $SOURCES bionic-backports main restricted universe multiverse" > /etc/apt/sources.list \
     # reuses the cache
     && apt-get update \
-    && apt-get install -y \
+    && apt-get install -y apt-utils \
                     # compile
                     gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  make  patch \
                     # u-boot
                     bison  flex \
                     # kernel
-                    bc  libssl-dev
+                    bc  libssl-dev \
+                    # libdrm
+                    autoconf xutils-dev libtool pkg-config libpciaccess-dev \
+                    # mali librealsense2
+                    cmake \
+                    # eudev
+                    gperf
 
 # setup build environment
 ENV CROSS_COMPILE="aarch64-linux-gnu-" \
     ARCH="arm64" \
-    BUILD="/root/build"
+    HOST="aarch64-linux-gnu" \
+    BUILD="/root/build" \
+    REDIST="/root/redist"
+
+ENV BOOT="$REDIST/boot" \
+    ROOTFS="$REDIST/rootfs"
+RUN mkdir -p "$BUILD"  "$REDIST"  "$BOOT"  "$ROOTFS"
 
 WORKDIR "$BUILD"
 
@@ -69,13 +81,32 @@ RUN set -x \
     && make defconfig \
     && make -j$(nproc)
 
+
+ENV PREFIX="${ROOTFS}/usr/local"
+ENV PKG_CONFIG_PATH "${PREFIX}/lib/pkgconfig"
+
+
+# libdrm
+ADD "packages/libdrm.tar.xz" "${BUILD}"
+RUN set -x \
+    && cd libdrm \
+    && ./autogen.sh --prefix="${PREFIX}" --host="${HOST}" \
+                    --disable-intel --disable-vmwgfx --disable-radeon \
+                    --disable-amdgpu --disable-nouveau --disable-freedreno \
+                    --disable-vc4 --enable-rockchip-experimental-api \
+    && make -j$(nproc) \
+    && make install
+
+
+# libmali
+ADD "packages/libmali.tar.xz" "${BUILD}"
+RUN set -x \
+    && cd "libmali" \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+             -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
+    && make install
+
 #----------------------------------------------------------------------------------------------------------------#
-
-ENV REDIST="/root/redist"
-ENV BOOT="$REDIST/boot" \
-    ROOTFS="$REDIST/rootfs"
-RUN mkdir -p "$REDIST"  "$BOOT"  "$ROOTFS"
-
 
 # boot loader images
 RUN set -x \
@@ -136,8 +167,8 @@ ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
 RUN set -x \
     # bt, wifi, audio
     && find "$BUILD/kernel/drivers/net/wireless/rockchip_wlan/" \
-            -name "*.ko" | xargs -n1 -i cp {} "system/lib/modules" \
-    && cp -rf "$BUILD/overlay-firmware/*" "$ROOTFS/" \
+            -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/system/lib/modules" \
+    && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
     && cd "$ROOTFS/usr/bin/" \
     && mv brcm_patchram_plus1_64 brcm_patchram_plus1 \
     && rm brcm_patchram_plus1_32 \

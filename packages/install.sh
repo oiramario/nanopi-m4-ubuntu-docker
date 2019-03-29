@@ -93,6 +93,10 @@ do
             --exclude=lib/aarch64-linux-gnu/libmali-utgard-* \
             --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r9p0-* \
             --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r13p0-* \
+            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
+            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
+            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so \
+            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11-gbm.so \
             -cf $package $dir
     elif [ $dir = "rk-rootfs-build" ];then
         tar --exclude=usr/share/npu_fw -cf $package $dir/overlay-firmware

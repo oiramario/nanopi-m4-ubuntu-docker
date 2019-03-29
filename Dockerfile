@@ -122,7 +122,6 @@ RUN set -x \
 
 # rootfs
 COPY "rootfs/" "$ROOTFS/"
-ADD "packages/overlay-firmware.tar.xz" "$ROOTFS/"
 RUN set -x \
     # busybox
     && cd busybox \
@@ -130,19 +129,20 @@ RUN set -x \
 \
     # runtime
     && cd "$ROOTFS" \
-    && cp -Pr /usr/aarch64-linux-gnu/lib/* lib/ \
-    && rm -f lib/*.a lib/*.o \
-\
-    # bt, wifi, audio
-    && find "$BUILD/kernel/drivers/net/wireless/rockchip_wlan/" -name "*.ko" | xargs -n1 -i cp {} "lib/modules"
+    && cp -rf /usr/aarch64-linux-gnu/lib/* lib/ \
+    && rm -f lib/*.a lib/*.o
 
-#RUN set -x \
-#    && cd "overlay-firmware" \
-    # bt,wifi,audio firmware
-#    && mkdir -p "$ROOTFS/system/lib/modules" \
-#    && find "$BUILD/kernel/drivers/net/wireless/rockchip_wlan/" -name "*.ko" | \
-#            xargs -n1 -i cp {} "$ROOTFS/system/lib/modules" \
-#    && cp -a * "$ROOTFS"
+ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
+RUN set -x \
+    # bt, wifi, audio
+    && find "$BUILD/kernel/drivers/net/wireless/rockchip_wlan/" \
+            -name "*.ko" | xargs -n1 -i cp {} "system/lib/modules" \
+    && cp -rf "$BUILD/overlay-firmware/*" "$ROOTFS/" \
+    && cd "$ROOTFS/usr/bin/" \
+    && mv brcm_patchram_plus1_64 brcm_patchram_plus1 \
+    && rm brcm_patchram_plus1_32 \
+    && mv rk_wifi_init_64 rk_wifi_init \
+    && rm rk_wifi_init_32
 
 #----------------------------------------------------------------------------------------------------------------#
 

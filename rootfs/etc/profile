@@ -1,4 +1,0 @@
-export HOSTNAME=`/bin/hostname`
-export LD_LIBRARY_PATH=/lib:/usr/lib
-export PS1='\u@\h:\w\\$ '
-export PATH=/sbin:/bin:/usr/sbin:/usr/bin

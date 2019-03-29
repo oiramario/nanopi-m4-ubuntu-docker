@@ -3,7 +3,7 @@
 .gitattributes
 .gitignore
 
-sources
+packages/src
 redist
 
 *.sh

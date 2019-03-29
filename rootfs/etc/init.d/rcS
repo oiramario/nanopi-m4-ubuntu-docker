@@ -1,0 +1,19 @@
+#!/bin/sh
+
+runlevel=S
+prevlevel=N
+umask 022
+export runlevel prevlevel
+
+/bin/mount -a
+/bin/mkdir -p /dev/pts
+/bin/mount -t devpts devpts /dev/pts
+/bin/echo /sbin/mdev > /proc/sys/kernel/hotplug
+/sbin/mdev -s
+
+/sbin/insmod /lib/modules/bcmdhd.ko
+
+/bin/mkdir -p var/run
+/sbin/ifup -a
+
+/bin/hostname -F /etc/sysconfig/HOSTNAME

@@ -1,0 +1,19 @@
+# Startup the system
+::sysinit:/etc/init.d/rcS
+
+# Now invoke shell
+console::respawn:-/bin/sh
+
+# Logging junk
+null::sysinit:/bin/touch /var/log/messages
+null::respawn:/sbin/syslogd -n -m 0
+null::respawn:/sbin/klogd -n
+
+# Stuff to do for the 3-finger salute
+::ctrlaltdel:-/sbin/reboot
+
+# Stuff to do before rebooting
+null::shutdown:/usr/bin/killall klogd
+null::shutdown:/usr/bin/killall syslogd
+null::shutdown:/bin/umount -a -r
+null::shutdown:/sbin/swapoff -a

@@ -1,5 +1,7 @@
 # gitignore
 
+packages/*
+!packages/install.sh
 packages/src
 
 redist

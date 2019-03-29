@@ -85,15 +85,33 @@ OS Image for development with the following tidbits:
         +----------------------------+----------+----------+--------+----------+-----------+--------+----------------+--------------------------------------+
 
 
-
 # howto
-    apt install docker-ce git-lfs
-    git lfs install
+### pre-build
+
+    apt install docker-ce git git-lfs
     git clone https://github.com/oiramario/rk3399-docker.git
     cd rk3399-docker
     ./build.sh
 
+### build latest
+
+    apt install docker-ce git
+    git clone https://github.com/oiramario/rk3399-docker.git
+    cd rk3399-docker/packages
+    ./install.sh
+    cd ..
+    ./build.sh
+
 # tips
+### hosts
+* update
+
+        https://github.com/googlehosts/hosts/blob/master/hosts-files/hosts
+
+* restart
+
+        /etc/init.d/networking restart
+
 ### docker
 * install
 

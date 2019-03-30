@@ -7,9 +7,6 @@ LABEL author="oiramario" \
 # root
 USER root
 
-# silent installation for apt-get
-ENV DEBIAN_FRONTEND noninteractive
-
 # cn sources
 RUN SOURCES="http://mirrors.aliyun.com/ubuntu/" \
     && cat << EOF > /etc/apt/sources.list \
@@ -19,17 +16,19 @@ deb $SOURCES bionic-security main restricted universe multiverse \n\
 deb $SOURCES bionic-updates main restricted universe multiverse \n\
 deb $SOURCES bionic-proposed main restricted universe multiverse \n\
 deb $SOURCES bionic-backports main restricted universe multiverse" > /etc/apt/sources.list \
+    # silent installation for apt-get
+    && DEBIAN_FRONTEND=noninteractive \
     # reuses the cache
     && apt-get update \
-    && apt-get install -y apt-utils \
-                    # compile
+    && apt-get install -y \
+                     # compile
                     gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  make  patch \
                     # u-boot
                     bison  flex \
                     # kernel
                     bc  libssl-dev \
                     # libdrm
-                    autoconf xutils-dev libtool pkg-config libpciaccess-dev \
+                    autoconf  xutils-dev  libtool  pkg-config  libpciaccess-dev \
                     # mali librealsense2
                     cmake \
                     # eudev
@@ -45,6 +44,9 @@ ENV CROSS_COMPILE="aarch64-linux-gnu-" \
 ENV BOOT="$REDIST/boot" \
     ROOTFS="$REDIST/rootfs"
 RUN mkdir -p "$BUILD"  "$REDIST"  "$BOOT"  "$ROOTFS"
+
+ENV INSTALL_PREFIX="${ROOTFS}/usr/local"
+ENV PKG_CONFIG_PATH "${INSTALL_PREFIX}/lib/pkgconfig"
 
 WORKDIR "$BUILD"
 
@@ -79,18 +81,15 @@ ADD "packages/busybox.tar.xz" "$BUILD/"
 RUN set -x \
     && cd busybox \
     && make defconfig \
-    && make -j$(nproc)
-
-
-ENV PREFIX="${ROOTFS}/usr/local"
-ENV PKG_CONFIG_PATH "${PREFIX}/lib/pkgconfig"
+    && make -j$(nproc) \
+    && make CONFIG_PREFIX="$ROOTFS" install
 
 
 # libdrm
-ADD "packages/libdrm.tar.xz" "${BUILD}"
+ADD "packages/libdrm.tar.xz" "${BUILD}/"
 RUN set -x \
     && cd libdrm \
-    && ./autogen.sh --prefix="${PREFIX}" --host="${HOST}" \
+    && ./autogen.sh --prefix="${INSTALL_PREFIX}" --host="${HOST}" \
                     --disable-intel --disable-vmwgfx --disable-radeon \
                     --disable-amdgpu --disable-nouveau --disable-freedreno \
                     --disable-vc4 --enable-rockchip-experimental-api \
@@ -99,12 +98,61 @@ RUN set -x \
 
 
 # libmali
-ADD "packages/libmali.tar.xz" "${BUILD}"
+ADD "packages/libmali.tar.xz" "${BUILD}/"
 RUN set -x \
-    && cd "libmali" \
-    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+    && cd libmali \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX}" \
              -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
     && make install
+
+
+# eudev
+ADD "packages/eudev.tar.xz" "${BUILD}/"
+RUN set -x \ 
+    && cd eudev \
+    && autoreconf -vfi \
+    && ./configure --prefix="${INSTALL_PREFIX}" --host="${HOST}" \
+                   --disable-blkid --disable-kmod \
+    && make -j$(nproc) \
+    && make install
+
+
+# libusb
+ADD "packages/libusb.tar.xz" "${BUILD}/"
+RUN set -x \ 
+    && cd libusb \
+    && autoreconf -vfi \
+    && ./configure --prefix="${INSTALL_PREFIX}" --host="${HOST}" \
+                   CFLAGS="-I${INSTALL_PREFIX}/include" \
+                   LDFLAGS="-L${INSTALL_PREFIX}/lib" \
+    && make -j$(nproc) \
+    && make install
+
+
+# librealsense
+COPY "toolchain.cmake" "$BUILD/"
+ADD "packages/librealsense.tar.xz" "${BUILD}/"
+RUN set -x \
+    && cd librealsense \
+    && LDFLAGS="-L${INSTALL_PREFIX}/lib" \
+    cmake -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX}" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+          -DBUILD_WITH_TM2=false -DBUILD_GRAPHICAL_EXAMPLES=false \
+          -DBUILD_EXAMPLES=false -DHWM_OVER_XU=false \
+          -DBUILD_WITH_STATIC_CRT=false . \
+    && make -j$(nproc) \
+    && make install
+
+
+# gbm-drm-gles-cube
+ADD "packages/gbm-drm-gles-cube.tar.xz" "${BUILD}/"
+RUN set -x \
+    && cd gbm-drm-gles-cube \
+    && LDFLAGS="-L${INSTALL_PREFIX}/lib" \
+    cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+    && make -j$(nproc)
+
 
 #----------------------------------------------------------------------------------------------------------------#
 
@@ -154,10 +202,6 @@ RUN set -x \
 # rootfs
 COPY "rootfs/" "$ROOTFS/"
 RUN set -x \
-    # busybox
-    && cd busybox \
-    && make CONFIG_PREFIX="$ROOTFS" install \
-\
     # runtime
     && cd "$ROOTFS" \
     && cp -rf /usr/aarch64-linux-gnu/lib/* lib/ \
@@ -176,6 +220,11 @@ RUN set -x \
     && rm rk_wifi_init_32
 
 #----------------------------------------------------------------------------------------------------------------#
+
+# clean useless
+RUN cd "${INSTALL_PREFIX}" \
+    && rm -rf include \
+    && rm -rf lib/pkgconfig lib/cmake lib/*.a lib/*.la
 
 RUN cd "$REDIST" \
     && tar czf /redist.tar *

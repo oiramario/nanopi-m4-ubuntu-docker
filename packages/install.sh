@@ -1,4 +1,5 @@
-#set -x
+set -x
+
 if [ ! -d src ];then
     mkdir src
 fi
@@ -79,6 +80,51 @@ else
     cd ..
 fi
 echo -e "\e[32m done.\n \e[0m"
+
+
+echo -e "\e[34m checking eudev ... \e[0m"
+if [ ! -d eudev ];then
+    git clone --depth 1 -b master https://github.com/gentoo/eudev.git eudev
+else
+    cd eudev
+    git pull
+    cd ..
+fi
+echo -e "\e[32m done.\n \e[0m"
+
+
+echo -e "\e[34m checking libusb ... \e[0m"
+if [ ! -d libusb ];then
+    git clone --depth 1 -b master https://github.com/libusb/libusb.git libusb
+else
+    cd libusb
+    git pull
+    cd ..
+fi
+echo -e "\e[32m done.\n \e[0m"
+
+
+echo -e "\e[34m checking librealsense ... \e[0m"
+if [ ! -d librealsense ];then
+    git clone --depth 1 -b master https://github.com/IntelRealSense/librealsense.git librealsense
+else
+    cd librealsense
+    git pull
+    cd ..
+fi
+echo -e "\e[32m done.\n \e[0m"
+
+
+echo -e "\e[34m checking gbm-drm-gles-cube ... \e[0m"
+if [ ! -d gbm-drm-gles-cube ];then
+    git clone --depth 1 -b master https://github.com/oiramario/gbm-drm-gles-cube.git gbm-drm-gles-cube
+else
+    cd gbm-drm-gles-cube
+    git pull
+    cd ..
+fi
+echo -e "\e[32m done.\n \e[0m"
+
 
 echo
 sub_dirs=`ls -d *`

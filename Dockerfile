@@ -53,10 +53,10 @@ WORKDIR "$BUILD"
 #----------------------------------------------------------------------------------------------------------------#
 
 # kernel
-ADD "packages/kernel.tar.xz" "$BUILD/"
+ADD "packages/kernel-rockchip.tar.xz" "$BUILD/"
 COPY "patch/" "$BUILD/patch/"
 RUN set -x \
-    && cd kernel \
+    && cd kernel-rockchip \
     # patch
     && export REALSENSE_PATCH=../patch/kernel/realsense \
     && for i in `ls $REALSENSE_PATCH`; do patch -p1 < $REALSENSE_PATCH/$i; done \
@@ -86,9 +86,9 @@ RUN set -x \
 
 
 # libdrm
-ADD "packages/libdrm.tar.xz" "${BUILD}/"
+ADD "packages/libdrm-rockchip.tar.xz" "${BUILD}/"
 RUN set -x \
-    && cd libdrm \
+    && cd libdrm-rockchip \
     && ./autogen.sh --prefix="${INSTALL_PREFIX}" --host="${HOST}" \
                     --disable-intel --disable-vmwgfx --disable-radeon \
                     --disable-amdgpu --disable-nouveau --disable-freedreno \
@@ -193,7 +193,7 @@ COPY "boot/99-rk-rockusb.rules" "$REDIST/"
 # boot
 COPY "boot/extlinux.conf" "$BOOT/extlinux/"
 RUN set -x \
-    && cd kernel \
+    && cd kernel-rockchip \
     && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb \
           arch/arm64/boot/Image \
           "$BOOT/"
@@ -210,7 +210,7 @@ RUN set -x \
 ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
 RUN set -x \
     # bt, wifi, audio
-    && find "$BUILD/kernel/drivers/net/wireless/rockchip_wlan/" \
+    && find "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan/" \
             -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/system/lib/modules" \
     && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
     && cd "$ROOTFS/usr/bin/" \

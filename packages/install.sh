@@ -1,129 +1,37 @@
-set -x
+#set -x
 
 if [ ! -d src ];then
     mkdir src
 fi
 cd src
 
-echo -e "\e[34m checking rkbin ... \e[0m"
-if [ ! -d rkbin ];then
-    git clone --depth 1 -b master https://github.com/rockchip-linux/rkbin.git rkbin
-else
-    cd rkbin
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
+sources=(
+"master,https://github.com/rockchip-linux/rkbin.git,rkbin"
+"master,https://github.com/u-boot/u-boot.git,u-boot"
+"nanopi4-linux-v4.4.y,https://github.com/friendlyarm/kernel-rockchip.git,kernel-rockchip"
+"1_30_stable,https://github.com/mirror/busybox.git,busybox"
+"master,https://github.com/rockchip-linux/rk-rootfs-build.git,rk-rootfs-build"
+"rockchip,https://github.com/rockchip-linux/libmali.git,libmali"
+"rk33/mid/9.0/develop,https://github.com/rockchip-linux/libdrm-rockchip.git,libdrm-rockchip"
+"master,https://github.com/gentoo/eudev.git,eudev"
+"master,https://github.com/libusb/libusb.git,libusb"
+"master,https://github.com/IntelRealSense/librealsense.git,librealsense"
+"master,https://github.com/oiramario/gbm-drm-gles-cube.git,gbm-drm-gles-cube"
+)
+for src in ${sources[@]}; do
+    IFS=","
+    arr=($src)
 
-
-echo -e "\e[34m checking u-boot ... \e[0m"
-if [ ! -d u-boot ];then
-    git clone --depth 1 -b master https://github.com/u-boot/u-boot.git u-boot
-else
-    cd u-boot
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking kernel ... \e[0m"
-if [ ! -d kernel ];then
-    git clone --depth 1 -b nanopi4-linux-v4.4.y https://github.com/friendlyarm/kernel-rockchip.git kernel
-else
-    cd kernel
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking busybox ... \e[0m"
-if [ ! -d busybox ];then
-    git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
-else
-    cd busybox
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking rk-rootfs-build ... \e[0m"
-if [ ! -d rk-rootfs-build ];then
-    git clone --depth 1 -b master https://github.com/rockchip-linux/rk-rootfs-build.git rk-rootfs-build
-else
-    cd rk-rootfs-build
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking libmali ... \e[0m"
-if [ ! -d libmali ];then
-    git clone --depth 1 -b rockchip https://github.com/rockchip-linux/libmali.git libmali
-else
-    cd libmali
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking libdrm ... \e[0m"
-if [ ! -d libdrm ];then
-    git clone --depth 1 -b rk33/mid/9.0/develop https://github.com/rockchip-linux/libdrm-rockchip.git libdrm
-else
-    cd libdrm
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking eudev ... \e[0m"
-if [ ! -d eudev ];then
-    git clone --depth 1 -b master https://github.com/gentoo/eudev.git eudev
-else
-    cd eudev
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking libusb ... \e[0m"
-if [ ! -d libusb ];then
-    git clone --depth 1 -b master https://github.com/libusb/libusb.git libusb
-else
-    cd libusb
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking librealsense ... \e[0m"
-if [ ! -d librealsense ];then
-    git clone --depth 1 -b master https://github.com/IntelRealSense/librealsense.git librealsense
-else
-    cd librealsense
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
-
-
-echo -e "\e[34m checking gbm-drm-gles-cube ... \e[0m"
-if [ ! -d gbm-drm-gles-cube ];then
-    git clone --depth 1 -b master https://github.com/oiramario/gbm-drm-gles-cube.git gbm-drm-gles-cube
-else
-    cd gbm-drm-gles-cube
-    git pull
-    cd ..
-fi
-echo -e "\e[32m done.\n \e[0m"
+    echo -e "\e[34m checking ${arr[2]} ... \e[0m"
+    if [ ! -d ${arr[2]} ];then
+        git clone --depth 1 -b ${arr[0]} ${arr[1]} ${arr[2]}
+    else
+        cd ${arr[2]}
+        git pull
+        cd ..
+    fi
+    echo -e "\e[32m done.\n \e[0m"
+done
 
 
 echo

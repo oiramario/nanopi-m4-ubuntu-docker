@@ -18,9 +18,10 @@ sources=(
 "master,https://github.com/IntelRealSense/librealsense.git,librealsense"
 "master,https://github.com/oiramario/gbm-drm-gles-cube.git,gbm-drm-gles-cube"
 )
-for src in ${sources[@]}; do
+for i in ${sources[@]}
+do
     IFS=","
-    arr=($src)
+    arr=($i)
 
     echo -e "\e[34m checking ${arr[2]} ... \e[0m"
     if [ ! -d ${arr[2]} ];then
@@ -30,14 +31,8 @@ for src in ${sources[@]}; do
         git pull
         cd ..
     fi
-    echo -e "\e[32m done.\n \e[0m"
-done
 
-
-echo
-sub_dirs=`ls -d *`
-for dir in $sub_dirs
-do
+    dir=${arr[2]}
     package=../$dir.tar
     echo -e "\e[34m pack $dir ... \e[0m"
     if [ $dir = "libmali" ];then

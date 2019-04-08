@@ -42,8 +42,8 @@ trap finish EXIT
 
 
 # build boot.img
-dd if=/dev/zero of=$BOOT_IMG bs=1M count=24
-mkfs.ext2 $BOOT_IMG
+dd if=/dev/zero of=$BOOT_IMG bs=1M count=32
+mkfs.ext4 -F -b 4096 -E stride=2,stripe-width=1024 -L rootfs $BOOT_IMG
 mkdir -p $BOOT_MNT
 mount $BOOT_IMG $BOOT_MNT
 cp -a $BOOT_DIR/* $BOOT_MNT
@@ -56,7 +56,7 @@ resize2fs -M $BOOT_IMG
 
 # build rootfs.img
 dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=256
-mkfs.ext4 $ROOTFS_IMG
+mkfs.ext4 -F -b 4096 -E stride=2,stripe-width=1024 -L rootfs $ROOTFS_IMG
 mkdir -p $ROOTFS_MNT
 mount $ROOTFS_IMG $ROOTFS_MNT
 cp -a $ROOTFS_DIR/* $ROOTFS_MNT

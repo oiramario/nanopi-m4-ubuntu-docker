@@ -198,6 +198,14 @@ RUN set -x \
           arch/arm64/boot/Image \
           "$BOOT/"
 
+# modules
+#RUN apt-get install -y kmod
+#RUN set -x \
+#    && cd kernel-rockchip \
+#    && make modules \
+#    && make modules_install INSTALL_MOD_PATH="$ROOTFS/" \
+#    && find "$ROOTFS/lib/modules" -name source -or -name build -type l | xargs rm -f
+
 
 # rootfs
 COPY "rootfs/" "$ROOTFS/"
@@ -211,13 +219,19 @@ ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
 RUN set -x \
     # bt, wifi, audio
     && find "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan/" \
-            -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/system/lib/modules" \
+            -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
     && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
     && cd "$ROOTFS/usr/bin/" \
     && mv brcm_patchram_plus1_64 brcm_patchram_plus1 \
     && rm brcm_patchram_plus1_32 \
     && mv rk_wifi_init_64 rk_wifi_init \
     && rm rk_wifi_init_32
+
+
+RUN set -x \
+    && cd gbm-drm-gles-cube \
+    && cp gbm-drm-gles-cube "$ROOTFS/usr/local/bin/"
+
 
 #----------------------------------------------------------------------------------------------------------------#
 

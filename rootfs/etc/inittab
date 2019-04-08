@@ -3,6 +3,7 @@
 
 # Now invoke shell
 console::respawn:-/bin/sh
+tty1::respawn:/sbin/getty 38400 tty1
 
 # Logging junk
 null::sysinit:/bin/touch /var/log/messages

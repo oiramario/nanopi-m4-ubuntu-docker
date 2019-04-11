@@ -45,9 +45,6 @@ ENV BOOT="$REDIST/boot" \
     ROOTFS="$REDIST/rootfs"
 RUN mkdir -p "$BUILD"  "$REDIST"  "$BOOT"  "$ROOTFS"
 
-ENV INSTALL_PREFIX="${ROOTFS}/usr/local"
-ENV PKG_CONFIG_PATH "${INSTALL_PREFIX}/lib/pkgconfig"
-
 WORKDIR "$BUILD"
 
 #----------------------------------------------------------------------------------------------------------------#
@@ -73,6 +70,7 @@ RUN set -x \
     && make evb-rk3399_defconfig \
     # disable boot delay
     && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
+\
     && make -j$(nproc)
 
 
@@ -89,7 +87,7 @@ RUN set -x \
 ADD "packages/libdrm-rockchip.tar.xz" "${BUILD}/"
 RUN set -x \
     && cd libdrm-rockchip \
-    && ./autogen.sh --prefix="${INSTALL_PREFIX}" --host="${HOST}" \
+    && ./autogen.sh --prefix="${ROOTFS}/usr" --host="${HOST}" \
                     --disable-intel --disable-vmwgfx --disable-radeon \
                     --disable-amdgpu --disable-nouveau --disable-freedreno \
                     --disable-vc4 --enable-rockchip-experimental-api \
@@ -101,7 +99,7 @@ RUN set -x \
 ADD "packages/libmali.tar.xz" "${BUILD}/"
 RUN set -x \
     && cd libmali \
-    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX}" \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
              -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
     && make install
 
@@ -111,7 +109,7 @@ ADD "packages/eudev.tar.xz" "${BUILD}/"
 RUN set -x \ 
     && cd eudev \
     && autoreconf -vfi \
-    && ./configure --prefix="${INSTALL_PREFIX}" --host="${HOST}" \
+    && ./configure --prefix="${ROOTFS}" --host="${HOST}" \
                    --disable-blkid --disable-kmod \
     && make -j$(nproc) \
     && make install
@@ -122,35 +120,38 @@ ADD "packages/libusb.tar.xz" "${BUILD}/"
 RUN set -x \ 
     && cd libusb \
     && autoreconf -vfi \
-    && ./configure --prefix="${INSTALL_PREFIX}" --host="${HOST}" \
-                   CFLAGS="-I${INSTALL_PREFIX}/include" \
-                   LDFLAGS="-L${INSTALL_PREFIX}/lib" \
+    && CFLAGS="-I${ROOTFS}/include" LDFLAGS="-L${ROOTFS}/lib" \
+       ./configure --prefix="${ROOTFS}/usr" --host="${HOST}" \
     && make -j$(nproc) \
     && make install
 
 
 # librealsense
+RUN apt-get install -y sudo
 COPY "toolchain.cmake" "$BUILD/"
 ADD "packages/librealsense.tar.xz" "${BUILD}/"
 RUN set -x \
     && cd librealsense \
-    && LDFLAGS="-L${INSTALL_PREFIX}/lib" \
-    cmake -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX}" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-          -DBUILD_WITH_TM2=false -DBUILD_GRAPHICAL_EXAMPLES=false \
-          -DBUILD_EXAMPLES=false -DHWM_OVER_XU=false \
-          -DBUILD_WITH_STATIC_CRT=false . \
+    && cp config/99-realsense-libusb.rules "${ROOTFS}/etc/udev/rules.d/" \
+    && ./scripts/patch-realsense-ubuntu-lts.sh \
+    && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
+       cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
+             -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+             -DBUILD_WITH_TM2=false -DBUILD_GRAPHICAL_EXAMPLES=false \
+             -DBUILD_EXAMPLES=false -DHWM_OVER_XU=false \
+             -DBUILD_WITH_STATIC_CRT=false . \
     && make -j$(nproc) \
     && make install
 
 
 # gbm-drm-gles-cube
 ADD "packages/gbm-drm-gles-cube.tar.xz" "${BUILD}/"
+#COPY "packages/src/gbm-drm-gles-cube" "${BUILD}/gbm-drm-gles-cube/"
 RUN set -x \
     && cd gbm-drm-gles-cube \
-    && LDFLAGS="-L${INSTALL_PREFIX}/lib" \
-    cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+    && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
+       cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
     && make -j$(nproc)
 
 
@@ -215,6 +216,7 @@ RUN set -x \
     && cp -rf /usr/aarch64-linux-gnu/lib/* lib/ \
     && rm -f lib/*.a lib/*.o
 
+
 ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
 RUN set -x \
     # bt, wifi, audio
@@ -230,15 +232,16 @@ RUN set -x \
 
 RUN set -x \
     && cd gbm-drm-gles-cube \
-    && cp gbm-drm-gles-cube "$ROOTFS/usr/local/bin/"
+    && cp gbm-drm-gles-cube "$ROOTFS/usr/bin/"
 
 
 #----------------------------------------------------------------------------------------------------------------#
 
 # clean useless
-RUN cd "${INSTALL_PREFIX}" \
-    && rm -rf include \
-    && rm -rf lib/pkgconfig lib/cmake lib/*.a lib/*.la
+RUN cd "${ROOTFS}" \
+    && rm -rf include usr/include \
+    && rm -rf lib/pkgconfig lib/cmake lib/*.a lib/*.la \
+              usr/lib/pkgconfig usr/lib/cmake usr/lib/*.a usr/lib/*.la
 
 RUN cd "$REDIST" \
     && tar czf /redist.tar *

@@ -2,6 +2,7 @@
 .git
 .gitattributes
 .gitignore
+.vscode
 
 packages/src
 redist

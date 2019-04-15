@@ -2,8 +2,7 @@
 
 packages/*
 !packages/install.sh
-packages/src
 
 .vscode
 
-redist
+distro

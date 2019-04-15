@@ -1,7 +1,7 @@
-cd redist
+cd distro
 
 ./rkdeveloptool db MiniLoaderAll.bin
-sleep 1
+sleep 2
 
 #./rkdeveloptool ul MiniLoaderAll.bin
 #sleep 1

@@ -15,7 +15,8 @@ deb $SOURCES bionic main restricted universe multiverse \n\
 deb $SOURCES bionic-security main restricted universe multiverse \n\
 deb $SOURCES bionic-updates main restricted universe multiverse \n\
 deb $SOURCES bionic-proposed main restricted universe multiverse \n\
-deb $SOURCES bionic-backports main restricted universe multiverse" > /etc/apt/sources.list \
+deb $SOURCES bionic-backports main restricted universe multiverse\
+" > /etc/apt/sources.list \
     # silent installation for apt-get
     && DEBIAN_FRONTEND=noninteractive \
     # reuses the cache
@@ -27,6 +28,8 @@ deb $SOURCES bionic-backports main restricted universe multiverse" > /etc/apt/so
                     bison  flex \
                     # kernel
                     bc  libssl-dev \
+                    # initrd
+                    cpio \
                     # libdrm
                     autoconf  xutils-dev  libtool  pkg-config  libpciaccess-dev \
                     # mali librealsense2
@@ -38,12 +41,8 @@ deb $SOURCES bionic-backports main restricted universe multiverse" > /etc/apt/so
 ENV CROSS_COMPILE="aarch64-linux-gnu-" \
     ARCH="arm64" \
     HOST="aarch64-linux-gnu" \
-    BUILD="/root/build" \
-    REDIST="/root/redist"
-
-ENV BOOT="$REDIST/boot" \
-    ROOTFS="$REDIST/rootfs"
-RUN mkdir -p "$BUILD"  "$REDIST"  "$BOOT"  "$ROOTFS"
+    BUILD="/tmp" \
+    DISTRO="/root"
 
 WORKDIR "$BUILD"
 
@@ -54,6 +53,7 @@ ADD "packages/kernel-rockchip.tar.xz" "$BUILD/"
 COPY "patch/" "$BUILD/patch/"
 RUN set -x \
     && cd kernel-rockchip \
+\
     # patch
     && export REALSENSE_PATCH=../patch/kernel/realsense \
     && for i in `ls $REALSENSE_PATCH`; do patch -p1 < $REALSENSE_PATCH/$i; done \
@@ -75,10 +75,6 @@ RUN set -x \
     && make -j$(nproc)
 
 
-ENV RAMDISK="$REDIST/ramdisk"
-RUN mkdir -p "$RAMDISK"
-
-
 # busybox
 ADD "packages/busybox.tar.xz" "$BUILD/"
 RUN set -x \
@@ -89,7 +85,12 @@ RUN set -x \
     && sed -i "s:# CONFIG_STATIC is not set:CONFIG_STATIC=y:" .config \
 \
     && make -j$(nproc) \
-    && make CONFIG_PREFIX="$RAMDISK" install
+    && make install
+
+#----------------------------------------------------------------------------------------------------------------#
+
+ENV ROOTFS="$DISTRO/rootfs"
+RUN mkdir -p "$ROOTFS"
 
 
 # libdrm
@@ -168,7 +169,7 @@ RUN set -x \
 
 #----------------------------------------------------------------------------------------------------------------#
 
-# boot loader images
+# boot
 RUN set -x \
     && cd rkbin \
     && export PATH_FIXUP="--replace tools/rk_tools/ ./" \
@@ -187,44 +188,50 @@ RUN set -x \
     && tools/trust_merger $PATH_FIXUP RKTRUST/RK3399TRUST.ini \
 \
     # copy content
-    && cp idbloader.img uboot.img trust.img "$REDIST/" \
-    && cp rk3399_loader_*.bin "$REDIST/MiniLoaderAll.bin" \
-\
-    # copy flash tool
-    && cp tools/rkdeveloptool "$REDIST/"
+    && cp idbloader.img uboot.img trust.img "$DISTRO/" \
+    && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
-# GPT partition table
-COPY "boot/parameter" "$REDIST/"
-
-
-# rkdeveloptool rockusb.rules
-COPY "boot/99-rk-rockusb.rules" "$REDIST/"
-
-
-# boot
-COPY "boot/extlinux.conf" "$BOOT/extlinux/"
+# kernel
+RUN apt-get install -y device-tree-compiler
+ENV BOOT="$DISTRO/boot"
+COPY "boot/" "$BOOT/"
 RUN set -x \
-    && cd kernel-rockchip \
-    && cp arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev01.dtb \
-          arch/arm64/boot/Image \
-          "$BOOT/"
-
-# modules
-#RUN apt-get install -y kmod
-#RUN set -x \
-#    && cd kernel-rockchip \
-#    && make modules \
-#    && make modules_install INSTALL_MOD_PATH="$ROOTFS/" \
-#    && find "$ROOTFS/lib/modules" -name source -or -name build -type l | xargs rm -f
+    # kernel
+    && cd "$BUILD/kernel-rockchip/arch/arm64/boot" \
+    && cp ./Image ./Image.gz ./dts/rockchip/rk3399-nanopi4-rev0*.dtb "$BOOT/" \
+#    && $BUILD/u-boot/tools/mkimage -n "Kernel Image" -A arm64 -O linux -T kernel \
+#                                   -a 0x20008000 -e 0x20008040 -C none -d ./Image "$BOOT/Image" \
+\
+    # nanopc-t4:     rk3399-nanopi4-rev00.dtb
+    # nanopi-m4:     rk3399-nanopi4-rev01.dtb
+    # nanopi-neo4:   rk3399-nanopi4-rev04.dtb
+    # nanopi-rock64: rk3399-nanopi4-rev06.dtb
+    && cd "$BOOT" \
+    && ln -s rk3399-nanopi4-rev01.dtb rk3399.dtb \
+\
+    # initrd
+    && cd "$BOOT/initrd" \
+    && cp -R $BUILD/busybox/_install/* . \
+    && rm linuxrc \
+    && find . | cpio -o -H newc | gzip > "$BOOT/ramdisk.cpio.gz" \
+    && cd .. \
+    && rm -rf "$BOOT/initrd" \
+#    && $BUILD/u-boot/tools/mkimage -n "Ramdisk Image" -A arm64 -O linux -T ramdisk \
+#                                   -C gzip -d "$BUILD/initrd.cpio.gz" "$BOOT/initrd.ub"
+\
+    && $BUILD/u-boot/tools/mkimage -f rk3399.its rk3399.itb
 
 
 # rootfs
-COPY "rootfs/" "$RAMDISK/"
-
-
-#ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
-#RUN set -x \
+ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
+COPY "rootfs/" "$ROOTFS/"
+RUN set -x \
+    && cd "$ROOTFS" \
+    && cp -R $BUILD/busybox/_install/* . 
+#    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
+#    && rm -f lib/*.a lib/*.o \
+\
     # bt, wifi, audio
 #    && find "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan/" \
 #            -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
@@ -235,6 +242,13 @@ COPY "rootfs/" "$RAMDISK/"
 #    && mv rk_wifi_init_64 rk_wifi_init \
 #    && rm rk_wifi_init_32
 
+# modules
+#RUN apt-get install -y kmod
+#RUN set -x \
+#    && cd kernel-rockchip \
+#    && make modules \
+#    && make modules_install INSTALL_MOD_PATH="$ROOTFS/" \
+#    && find "$ROOTFS/lib/modules" -name source -or -name build -type l | xargs rm -f
 
 #RUN set -x \
 #    && cd gbm-drm-gles-cube \
@@ -249,7 +263,7 @@ COPY "rootfs/" "$RAMDISK/"
 #    && rm -rf lib/pkgconfig lib/cmake lib/*.a lib/*.la \
 #              usr/lib/pkgconfig usr/lib/cmake usr/lib/*.a usr/lib/*.la
 
-RUN cd "$REDIST" \
-    && tar czf /redist.tar *
+RUN cd "$DISTRO" \
+    && tar czf /distro.tar *
 
 #----------------------------------------------------------------------------------------------------------------#

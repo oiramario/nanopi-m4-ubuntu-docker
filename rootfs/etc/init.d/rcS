@@ -5,15 +5,14 @@ prevlevel=N
 umask 022
 export runlevel prevlevel
 
-/bin/mount -a
-/bin/mkdir -p /dev/pts
-/bin/mount -t devpts devpts /dev/pts
-/bin/echo /sbin/mdev > /proc/sys/kernel/hotplug
-/sbin/mdev -s
+mount -a
+mount -t devpts devpts /dev/pts
+echo mdev > /proc/sys/kernel/hotplug
+mdev -s
 
-#/sbin/insmod /lib/modules/bcmdhd.ko
+#insmod /lib/modules/bcmdhd.ko
 
-/bin/mkdir -p var/run
-/sbin/ifup -a
+mkdir -p var/run
+#ifup -a
 
-/bin/hostname -F /etc/sysconfig/HOSTNAME
+hostname -F /etc/sysconfig/HOSTNAME

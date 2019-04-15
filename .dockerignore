@@ -5,7 +5,7 @@
 .vscode
 
 packages/src
-redist
+distro
 
 *.sh
 *.md

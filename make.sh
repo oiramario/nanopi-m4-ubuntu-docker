@@ -7,10 +7,6 @@ if [ ! -e $DISTRO ]; then
     mkdir -p $DISTRO
 fi
 
-BOOT_DIR=$DISTRO/boot
-BOOT_MNT=$DISTRO/boot-mnt
-BOOT_IMG=$DISTRO/boot.img
-
 ROOTFS_DIR=$DISTRO/rootfs
 ROOTFS_MNT=$DISTRO/rootfs-mnt
 ROOTFS_IMG=$DISTRO/rootfs.img
@@ -33,28 +29,14 @@ finish () {
     rm -rf $ROOTFS_MNT
     rm -rf $ROOTFS_DIR
 
-    sudo umount $BOOT_MNT >/dev/null 2>&1
-    rm -rf $BOOT_MNT
-    rm -rf $BOOT_DIR
-
     sudo cp -f distro/99-rk-rockusb.rules /etc/udev/rules.d/
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
 
     echo "\n\e[36m Done. \e[0m"
     ls $DISTRO -lh
 }
 trap finish EXIT
-
-
-echo "\n\e[36m Build boot.img ... \e[0m"
-dd if=/dev/zero of=$BOOT_IMG bs=1M count=32
-mkfs.ext4 -F -b 4096 -E stride=2,stripe-width=1024 -L boot $BOOT_IMG
-mkdir -p $BOOT_MNT
-sudo mount $BOOT_IMG $BOOT_MNT
-sudo cp -R $BOOT_DIR/* $BOOT_MNT
-sync
-sudo umount $BOOT_MNT
-e2fsck -p -f $BOOT_IMG
-resize2fs -M $BOOT_IMG
 
 
 echo "\n\e[36m Build rootfs.img ... \e[0m"

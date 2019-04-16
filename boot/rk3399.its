@@ -5,114 +5,108 @@
     #address-cells = <1>;
   
     images {
-        kernel@1 {
+		kernel {
             description = "Linux Kernel";
-            data = /incbin/("./Image");
-            type = "kernel";
-            arch = "arm64";
-            os = "linux";
-            compression = "none";
-			load = <00000000>;
-			entry = <00000000>;
-            hash@1 {
-                algo = "sha1";
-            };
-        };
-
-		kernel@2 {
-            description = "Compressed Linux Kernel";
             data = /incbin/("./Image.gz");
             type = "kernel";
             arch = "arm64";
             os = "linux";
 			compression = "gzip";
-			load = <00000000>;
-			entry = <00000000>;
-			hash@1 {
-				algo = "sha1";
+			load = <0x00080000>;
+			entry = <0x00080000>;
+			hash_crc {
+				algo = "crc32";
 			};
 		};
 
-        ramdisk@1 {
-            description = "ramdisk";
-            data = /incbin/("./ramdisk.cpio.gz");
+        initrd {
+            description = "initrd";
+            data = /incbin/("./initrd.cpio.gz");
             type = "ramdisk";
             arch = "arm64";
             os = "linux";
 			compression = "gzip";
-			load = <00000000>;
-			entry = <00000000>;
-			hash@1 {
-				algo = "sha1";
+			load = <0x01400000>;
+			entry = <0x01400000>;
+			hash_crc {
+				algo = "crc32";
 			};
         };
 
-        fdt@1 {
+        fdt_t4 {
             description = "nanopc-t4";
             data = /incbin/("./rk3399-nanopi4-rev00.dtb");
             type = "flat_dt";
             arch = "arm64";
             compression = "none";
-            hash@1 {
-                algo = "sha1";
-            };
+			hash_crc {
+				algo = "crc32";
+			};
         };
 
-        fdt@2 {
+        fdt_m4 {
             description = "nanopi-m4";
             data = /incbin/("./rk3399-nanopi4-rev01.dtb");
             type = "flat_dt";
             arch = "arm64";
             compression = "none";
-            hash@1 {
-                algo = "sha1";
-            };
+			hash_crc {
+				algo = "crc32";
+			};
         };
 
-        fdt@3 {
+        fdt_neo4 {
             description = "nanopi-neo4";
             data = /incbin/("./rk3399-nanopi4-rev04.dtb");
             type = "flat_dt";
             arch = "arm64";
             compression = "none";
-            hash@1 {
-                algo = "sha1";
-            };
+			hash_crc {
+				algo = "crc32";
+			};
         };
 
-        fdt@4 {
+        fdt_rock64 {
             description = "nanopi-rock64";
             data = /incbin/("./rk3399-nanopi4-rev06.dtb");
             type = "flat_dt";
             arch = "arm64";
             compression = "none";
-            hash@1 {
-                algo = "sha1";
-            };
+			hash_crc {
+				algo = "crc32";
+			};
         };
     };
 
     configurations {
-        default = "conf@1";
+        default = "conf_m4";
 
-        conf@1 {
-            description = "nanopi-m4 kernel4.4.y";
-            kernel = "kernel@1";
-            fdt = "fdt@2";
-            ramdisk = "ramdisk@1";
-            hash@1 {
-                algo = "sha1";
-            };
+        conf_t4 {
+            description = "nanopc-t4 kernel4.4.y";
+            kernel = "kernel";
+            fdt = "fdt_t4";
+            ramdisk = "initrd";
         };
 
-        conf@2 {
-            description = "nanopi-m4 kernel4.4.y(compressed)";
-            kernel = "kernel@2";
-            fdt = "fdt@2";
-            ramdisk = "ramdisk@1";
-            hash@1 {
-                algo = "sha1";
-            };
+        conf_m4 {
+            description = "nanopi-m4 kernel4.4.y";
+            kernel = "kernel";
+            fdt = "fdt_m4";
+            ramdisk = "initrd";
+        };
+
+        conf_neo4 {
+            description = "nanopi-neo4 kernel4.4.y(compressed)";
+            kernel = "kernel";
+            fdt = "fdt_neo4";
+            ramdisk = "initrd";
+        };
+
+        conf_rock64 {
+            description = "nanopi-rock64 kernel4.4.y(compressed)";
+            kernel = "kernel";
+            fdt = "fdt_rock64";
+            ramdisk = "initrd";
         };
     };
 };

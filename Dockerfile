@@ -30,6 +30,10 @@ deb $SOURCES bionic-backports main restricted universe multiverse\
                     bc  libssl-dev \
                     # initrd
                     cpio \
+                    # FIT(Flattened uImage Tree)
+                    device-tree-compiler \
+                    # boot.img
+                    genext2fs \
                     # libdrm
                     autoconf  xutils-dev  libtool  pkg-config  libpciaccess-dev \
                     # mali librealsense2
@@ -169,7 +173,7 @@ RUN mkdir -p "$ROOTFS"
 
 #----------------------------------------------------------------------------------------------------------------#
 
-# boot
+# boot loader
 RUN set -x \
     && cd rkbin \
     && export PATH_FIXUP="--replace tools/rk_tools/ ./" \
@@ -192,35 +196,29 @@ RUN set -x \
     && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
-# kernel
-RUN apt-get install -y device-tree-compiler
-ENV BOOT="$DISTRO/boot"
+# boot.img
+ENV BOOT="$BUILD/boot"
 COPY "boot/" "$BOOT/"
 RUN set -x \
-    # kernel
+    # kernel/dtb
     && cd "$BUILD/kernel-rockchip/arch/arm64/boot" \
-    && cp ./Image ./Image.gz ./dts/rockchip/rk3399-nanopi4-rev0*.dtb "$BOOT/" \
-#    && $BUILD/u-boot/tools/mkimage -n "Kernel Image" -A arm64 -O linux -T kernel \
-#                                   -a 0x20008000 -e 0x20008040 -C none -d ./Image "$BOOT/Image" \
-\
-    # nanopc-t4:     rk3399-nanopi4-rev00.dtb
-    # nanopi-m4:     rk3399-nanopi4-rev01.dtb
-    # nanopi-neo4:   rk3399-nanopi4-rev04.dtb
-    # nanopi-rock64: rk3399-nanopi4-rev06.dtb
-    && cd "$BOOT" \
-    && ln -s rk3399-nanopi4-rev01.dtb rk3399.dtb \
+    && cp ./Image.gz ./dts/rockchip/rk3399-nanopi4-rev0*.dtb "$BOOT/" \
 \
     # initrd
     && cd "$BOOT/initrd" \
     && cp -R $BUILD/busybox/_install/* . \
     && rm linuxrc \
-    && find . | cpio -o -H newc | gzip > "$BOOT/ramdisk.cpio.gz" \
-    && cd .. \
-    && rm -rf "$BOOT/initrd" \
-#    && $BUILD/u-boot/tools/mkimage -n "Ramdisk Image" -A arm64 -O linux -T ramdisk \
-#                                   -C gzip -d "$BUILD/initrd.cpio.gz" "$BOOT/initrd.ub"
+    && find . | cpio -o -H newc | gzip > "$BOOT/initrd.cpio.gz" \
 \
-    && $BUILD/u-boot/tools/mkimage -f rk3399.its rk3399.itb
+    # make image
+    && mkdir -p $BOOT/image \
+    && cd $BUILD/u-boot/tools \
+    && ./mkimage -f $BOOT/rk3399.its $BOOT/image/rk3399.itb \
+    && ./mkimage -C none -A arm64 -T script -d $BOOT/boot.cmd $BOOT/image/boot.scr \
+    && export BOOT_IMG=$DISTRO/boot.img \
+    && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d $BOOT/image -i 8192 -U $BOOT_IMG \
+    && e2fsck -p -f $BOOT_IMG \
+    && resize2fs -M $BOOT_IMG
 
 
 # rootfs
@@ -228,10 +226,10 @@ ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
 COPY "rootfs/" "$ROOTFS/"
 RUN set -x \
     && cd "$ROOTFS" \
-    && cp -R $BUILD/busybox/_install/* . 
-#    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
-#    && rm -f lib/*.a lib/*.o \
-\
+    && cp -R $BUILD/busybox/_install/* . \
+    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
+    && rm -f lib/*.a lib/*.o 
+
     # bt, wifi, audio
 #    && find "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan/" \
 #            -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \

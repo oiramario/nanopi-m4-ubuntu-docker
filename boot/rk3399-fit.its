@@ -6,7 +6,7 @@
   
     images {
 		kernel {
-            description = "Linux Kernel";
+            description = "kernel aarch64 4.4.y";
             data = /incbin/("./Image.gz");
             type = "kernel";
             arch = "arm64";
@@ -19,9 +19,9 @@
 			};
 		};
 
-        initrd {
-            description = "initrd";
-            data = /incbin/("./initrd.cpio.gz");
+        initramfs {
+            description = "busybox ramdisk";
+            data = /incbin/("./initramfs.cpio.gz");
             type = "ramdisk";
             arch = "arm64";
             os = "linux";
@@ -34,44 +34,48 @@
         };
 
         fdt_t4 {
-            description = "nanopc-t4";
+            description = "nanopc-t4 fdt";
             data = /incbin/("./rk3399-nanopi4-rev00.dtb");
             type = "flat_dt";
             arch = "arm64";
-            compression = "none";
+			compression = "none";
+			load = <0x01700000>;
 			hash_crc {
 				algo = "crc32";
 			};
         };
 
         fdt_m4 {
-            description = "nanopi-m4";
+            description = "nanopi-m4 fdt";
             data = /incbin/("./rk3399-nanopi4-rev01.dtb");
             type = "flat_dt";
             arch = "arm64";
-            compression = "none";
+			compression = "none";
+			load = <0x01700000>;
 			hash_crc {
 				algo = "crc32";
 			};
         };
 
         fdt_neo4 {
-            description = "nanopi-neo4";
+            description = "nanopi-neo4 fdt";
             data = /incbin/("./rk3399-nanopi4-rev04.dtb");
             type = "flat_dt";
             arch = "arm64";
             compression = "none";
+			load = <0x01700000>;
 			hash_crc {
 				algo = "crc32";
 			};
         };
 
         fdt_rock64 {
-            description = "nanopi-rock64";
+            description = "nanopi-rock64 fdt";
             data = /incbin/("./rk3399-nanopi4-rev06.dtb");
             type = "flat_dt";
             arch = "arm64";
-            compression = "none";
+			compression = "none";
+			load = <0x01700000>;
 			hash_crc {
 				algo = "crc32";
 			};
@@ -82,31 +86,31 @@
         default = "conf_m4";
 
         conf_t4 {
-            description = "nanopc-t4 kernel4.4.y";
+            description = "nanopc-t4";
             kernel = "kernel";
+            ramdisk = "initramfs";
             fdt = "fdt_t4";
-            ramdisk = "initrd";
         };
 
         conf_m4 {
-            description = "nanopi-m4 kernel4.4.y";
+            description = "nanopi-m4";
             kernel = "kernel";
+            ramdisk = "initramfs";
             fdt = "fdt_m4";
-            ramdisk = "initrd";
         };
 
         conf_neo4 {
-            description = "nanopi-neo4 kernel4.4.y(compressed)";
+            description = "nanopi-neo4";
             kernel = "kernel";
+            ramdisk = "initramfs";
             fdt = "fdt_neo4";
-            ramdisk = "initrd";
         };
 
         conf_rock64 {
-            description = "nanopi-rock64 kernel4.4.y(compressed)";
+            description = "nanopi-rock64";
             kernel = "kernel";
+            ramdisk = "initramfs";
             fdt = "fdt_rock64";
-            ramdisk = "initrd";
         };
     };
 };

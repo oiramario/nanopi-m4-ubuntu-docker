@@ -30,7 +30,7 @@ deb $SOURCES bionic-backports main restricted universe multiverse\
                     bc  libssl-dev \
                     # initrd
                     cpio \
-                    # FIT(Flattened uImage Tree)
+                    # FIT(Flattened Image Tree)
                     device-tree-compiler \
                     # boot.img
                     genext2fs \
@@ -173,7 +173,7 @@ RUN mkdir -p "$ROOTFS"
 
 #----------------------------------------------------------------------------------------------------------------#
 
-# boot loader
+# uboot
 RUN set -x \
     && cd rkbin \
     && export PATH_FIXUP="--replace tools/rk_tools/ ./" \
@@ -196,25 +196,26 @@ RUN set -x \
     && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
-# boot.img
+# kernel
 ENV BOOT="$BUILD/boot"
 COPY "boot/" "$BOOT/"
 RUN set -x \
-    # kernel/dtb
     && cd "$BUILD/kernel-rockchip/arch/arm64/boot" \
+    # image, dtb
     && cp ./Image.gz ./dts/rockchip/rk3399-nanopi4-rev0*.dtb "$BOOT/" \
 \
-    # initrd
-    && cd "$BOOT/initrd" \
+    # initramfs
+    && cd "$BOOT/initramfs" \
     && cp -R $BUILD/busybox/_install/* . \
     && rm linuxrc \
-    && find . | cpio -o -H newc | gzip > "$BOOT/initrd.cpio.gz" \
+    && find . | cpio -o -H newc | gzip > "$BOOT/initramfs.cpio.gz" \
 \
-    # make image
+    # FIT
     && mkdir -p $BOOT/image \
     && cd $BUILD/u-boot/tools \
-    && ./mkimage -f $BOOT/rk3399.its $BOOT/image/rk3399.itb \
     && ./mkimage -C none -A arm64 -T script -d $BOOT/boot.cmd $BOOT/image/boot.scr \
+    && ./mkimage -f $BOOT/rk3399-fit.its $BOOT/image/fit.itb \
+    # make image
     && export BOOT_IMG=$DISTRO/boot.img \
     && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d $BOOT/image -i 8192 -U $BOOT_IMG \
     && e2fsck -p -f $BOOT_IMG \
@@ -226,9 +227,9 @@ ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
 COPY "rootfs/" "$ROOTFS/"
 RUN set -x \
     && cd "$ROOTFS" \
-    && cp -R $BUILD/busybox/_install/* . \
-    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
-    && rm -f lib/*.a lib/*.o 
+    && cp -R $BUILD/busybox/_install/* . 
+#    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
+#    && rm -f lib/*.a lib/*.o 
 
     # bt, wifi, audio
 #    && find "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan/" \

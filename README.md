@@ -5,31 +5,31 @@ Build minimal image for RK3399 (NanoPi M4 / T4 / NEO4)
 OS Image for development with the following tidbits:
 
 * boot
-    * loader1          1.17.115
-        * miniloader   1.15
-        * usbplug      1.15
-        * ddr          1.17
-    * u-boot           2019.04-rc3
-    * trust            1.24
-* kernel               4.4.154
-* busybox              1.30.1
-* overlay-firmware     2018.10
-* libdrm               2.4.91
-* mali                 14.0
-* libusb               1.0.22
-* librealsense         2.19.0
+    * loader1
+        * miniloader
+        * usbplug
+        * ddr
+    * u-boot
+    * trust
+* kernel
+* busybox
+* overlay-firmware
+* libdrm
+* mali
+* libusb
+* librealsense
  
 # boot
 
 ### u-boot
 
-* u-boot
-
-        git clone --depth 1 https://github.com/u-boot/u-boot.git u-boot
-
 * rkbin
 
         git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/rkbin.git rkbin
+
+* u-boot
+
+        git clone --depth 1 https://github.com/u-boot/u-boot.git u-boot
 
 ### kernel
 
@@ -112,6 +112,9 @@ OS Image for development with the following tidbits:
 
         /etc/init.d/networking restart
 
+### qemu
+        apt-get install binfmt-support qemu qemu-user-static debootstrap
+
 ### docker
 * install
 
@@ -150,11 +153,28 @@ OS Image for development with the following tidbits:
 ### git
 * speed up git
 
-        echo '192.30.253.118  gist.github.com' >> /etc/hosts
-        echo '192.30.255.113  github.com' >> /etc/hosts
-        echo '192.30.255.113  www.github.com' >> /etc/hosts
-        echo '151.101.185.194 github.global.ssl.fastly.net' >> /etc/hosts
-        echo '52.216.236.115  github-cloud.s3.amazonaws.com' >> /etc/hosts
+        echo "
+        # Github Start
+        151.101.72.249 github.global.ssl.fastly.net
+        #192.30.253.112 github.com 
+        #192.30.253.112 www.github.com 
+        140.82.118.4 github.com
+        140.82.118.4 www.github.com
+        151.101.112.133 assets-cdn.github.com 
+        151.101.184.133 assets-cdn.github.com 
+        185.199.108.153 documentcloud.github.com 
+        192.30.253.118 gist.github.com
+        185.199.108.153 help.github.com 
+        192.30.253.120 nodeload.github.com 
+        151.101.112.133 raw.github.com 
+        23.21.63.56 status.github.com 
+        192.30.253.1668 training.github.com 
+        151.101.13.194 github.global.ssl.fastly.net 
+        151.101.12.133 avatars0.githubusercontent.com 
+        151.101.112.133 avatars1.githubusercontent.com
+        52.216.236.115  github-cloud.s3.amazonaws.com
+        # Github End
+        " >> /etc/hosts
         /etc/init.d/networking restart
 
 * avoid getting asked for credentials every time
@@ -179,3 +199,10 @@ OS Image for development with the following tidbits:
             git commit -m "add packages"
             git lfs ls-files
             git push origin master
+
+* shadowsocks
+
+        wget https://github.com/shadowsocks/shadowsocks-qt5/releases/download/v3.0.1/Shadowsocks-Qt5-3.0.1-x86_64.AppImage
+        
+        git config --global http.proxy socks5://127.0.0.1:1080
+        git config --global https.proxy socks5://127.0.0.1:1080

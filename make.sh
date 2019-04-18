@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 #
-set -x
+#set -x
 
 DISTRO=$PWD/distro
 sudo rm -rf $DISTRO

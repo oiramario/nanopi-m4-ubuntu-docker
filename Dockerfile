@@ -196,25 +196,28 @@ RUN set -x \
     && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
-# kernel
+# boot.img
 ENV BOOT="$BUILD/boot"
 COPY "boot/" "$BOOT/"
 RUN set -x \
     && cd "$BUILD/kernel-rockchip/arch/arm64/boot" \
-    # image, dtb
-    && cp ./Image.gz ./dts/rockchip/rk3399-nanopi4-rev0*.dtb "$BOOT/" \
+    # kernel
+    && cp ./Image.gz "$BOOT/kernel.gz" \
+    # dtb
+    && cp ./dts/rockchip/rk3399-nanopi4-rev0*.dtb "$BOOT/" \
 \
     # initramfs
     && cd "$BOOT/initramfs" \
     && cp -R $BUILD/busybox/_install/* . \
     && rm linuxrc \
-    && find . | cpio -o -H newc | gzip > "$BOOT/initramfs.cpio.gz" \
+    && find . | cpio -o -H newc | gzip > "$BOOT/ramdisk.cpio.gz" \
 \
     # FIT
     && mkdir -p $BOOT/image \
     && cd $BUILD/u-boot/tools \
     && ./mkimage -C none -A arm64 -T script -d $BOOT/boot.cmd $BOOT/image/boot.scr \
     && ./mkimage -f $BOOT/rk3399-fit.its $BOOT/image/fit.itb \
+\
     # make image
     && export BOOT_IMG=$DISTRO/boot.img \
     && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d $BOOT/image -i 8192 -U $BOOT_IMG \
@@ -227,27 +230,23 @@ ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
 COPY "rootfs/" "$ROOTFS/"
 RUN set -x \
     && cd "$ROOTFS" \
-    && cp -R $BUILD/busybox/_install/* . 
-#    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
-#    && rm -f lib/*.a lib/*.o 
+    && cp -R $BUILD/busybox/_install/* . \
+\
+    # runtime
+    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
+    && rm -f lib/*.a lib/*.o \
+\
+    # modules: bt, wifi, audio
+    && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
+    && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
+\
+    # firmware
+    && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
+    && cd "$ROOTFS/usr/bin/" \
+    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
+    && mv -f rk_wifi_init_64 rk_wifi_init \
+    && rm -f brcm_patchram_plus1_32 rk_wifi_init_32
 
-    # bt, wifi, audio
-#    && find "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan/" \
-#            -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
-#    && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
-#    && cd "$ROOTFS/usr/bin/" \
-#    && mv brcm_patchram_plus1_64 brcm_patchram_plus1 \
-#    && rm brcm_patchram_plus1_32 \
-#    && mv rk_wifi_init_64 rk_wifi_init \
-#    && rm rk_wifi_init_32
-
-# modules
-#RUN apt-get install -y kmod
-#RUN set -x \
-#    && cd kernel-rockchip \
-#    && make modules \
-#    && make modules_install INSTALL_MOD_PATH="$ROOTFS/" \
-#    && find "$ROOTFS/lib/modules" -name source -or -name build -type l | xargs rm -f
 
 #RUN set -x \
 #    && cd gbm-drm-gles-cube \

@@ -1,3 +1,5 @@
+#!/bin/sh
+#
 #set -x
 
 if [ ! -d src ];then
@@ -34,7 +36,7 @@ do
 
     dir=${arr[2]}
     package=../$dir.tar
-    echo -e "\e[34m pack $dir ... \e[0m"
+    echo -e "\e[34m packing $dir ... \e[0m"
     if [ $dir = "libmali" ];then
         tar --exclude=.git \
             --exclude=lib/arm-linux-gnueabihf \

@@ -6,8 +6,8 @@
   
     images {
 		kernel {
-            description = "kernel aarch64 4.4.y";
-            data = /incbin/("./Image.gz");
+            description = "kernel 4.4.y";
+            data = /incbin/("./kernel.gz");
             type = "kernel";
             arch = "arm64";
             os = "linux";
@@ -20,8 +20,8 @@
 		};
 
         initramfs {
-            description = "busybox ramdisk";
-            data = /incbin/("./initramfs.cpio.gz");
+            description = "busybox";
+            data = /incbin/("./ramdisk.cpio.gz");
             type = "ramdisk";
             arch = "arm64";
             os = "linux";
@@ -34,7 +34,7 @@
         };
 
         fdt_t4 {
-            description = "nanopc-t4 fdt";
+            description = "nanopc-t4";
             data = /incbin/("./rk3399-nanopi4-rev00.dtb");
             type = "flat_dt";
             arch = "arm64";
@@ -46,7 +46,7 @@
         };
 
         fdt_m4 {
-            description = "nanopi-m4 fdt";
+            description = "nanopi-m4";
             data = /incbin/("./rk3399-nanopi4-rev01.dtb");
             type = "flat_dt";
             arch = "arm64";
@@ -58,7 +58,7 @@
         };
 
         fdt_neo4 {
-            description = "nanopi-neo4 fdt";
+            description = "nanopi-neo4";
             data = /incbin/("./rk3399-nanopi4-rev04.dtb");
             type = "flat_dt";
             arch = "arm64";
@@ -70,7 +70,7 @@
         };
 
         fdt_rock64 {
-            description = "nanopi-rock64 fdt";
+            description = "nanopi-rock64";
             data = /incbin/("./rk3399-nanopi4-rev06.dtb");
             type = "flat_dt";
             arch = "arm64";

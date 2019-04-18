@@ -1,18 +1,21 @@
 #!/bin/sh
-
+#
 runlevel=S
 prevlevel=N
 umask 022
 export runlevel prevlevel
 
 mount -a
-mount -t devpts devpts /dev/pts
 echo mdev > /proc/sys/kernel/hotplug
 mdev -s
 
-#insmod /lib/modules/bcmdhd.ko
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts
 
-mkdir -p var/run
-#ifup -a
+mkdir -p /var/run
+
+insmod /lib/modules/bcmdhd.ko
+
+ifup -a
 
 hostname -F /etc/sysconfig/HOSTNAME

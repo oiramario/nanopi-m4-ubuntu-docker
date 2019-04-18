@@ -1,7 +1,8 @@
 # gitignore
 
 packages/*
-!packages/install.sh
+!packages/mk-gits.sh
+!packages/mk-rootfs.sh
 
 .vscode
 

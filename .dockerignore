@@ -6,6 +6,7 @@
 
 packages/src
 distro
+tools
 
 *.sh
 *.md

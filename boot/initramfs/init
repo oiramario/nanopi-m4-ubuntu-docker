@@ -1,21 +1,10 @@
 #!/bin/sh
 #
-echo "exec initramfs init"
-echo "mounting proc and sys"
-
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 
-echo "detect and export hardware info"
 mdev -s
 
-#echo "start /bin/sh"
-exec /bin/sh
-
-echo "Mount real rootfs to /mnt/sysroot..."
 mkdir -p /mnt/sysroot
-mount -t ext4 /dev/mmcblk1p9 /mnt/sysroot
-
-echo "Switch to read rootfs..."
+mount -t ext4 /dev/mmcblk1p6 /mnt/sysroot
 exec switch_root /mnt/sysroot /sbin/init
-

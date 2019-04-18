@@ -1,16 +1,14 @@
 #!/bin/sh
 #
-#set -x
+set -x
 
 DISTRO=$PWD/distro
-if [ ! -e $DISTRO ]; then
-    mkdir -p $DISTRO
-fi
+sudo rm -rf $DISTRO
+mkdir -p $DISTRO
 
-ROOTFS_DIR=$DISTRO/rootfs
-ROOTFS_MNT=$DISTRO/rootfs-mnt
+ROOTFS_DIR=$DISTRO/ubuntu-rootfs
+ROOTFS_IMG=$DISTRO/ubuntu-mnt
 ROOTFS_IMG=$DISTRO/rootfs.img
-
 
 # build docker
 echo "\n\e[36m Building images \e[0m"
@@ -23,21 +21,13 @@ tar xf $DISTRO/distro.tar -C $DISTRO
 rm $DISTRO/distro.tar
 sync
 
-
 finish () {
-    sudo umount $ROOTFS_MNT >/dev/null 2>&1
-    rm -rf $ROOTFS_MNT
-    rm -rf $ROOTFS_DIR
-
-    sudo cp -f distro/99-rk-rockusb.rules /etc/udev/rules.d/
-    sudo udevadm control --reload-rules
-    sudo udevadm trigger
+    #rm -rf $ROOTFS_DIR
 
     echo "\n\e[36m Done. \e[0m"
     ls $DISTRO -lh
 }
 trap finish EXIT
-
 
 echo "\n\e[36m Build rootfs.img ... \e[0m"
 dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=256

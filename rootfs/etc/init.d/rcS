@@ -14,8 +14,8 @@ mount -t devpts devpts /dev/pts
 
 mkdir -p /var/run
 
-insmod /lib/modules/bcmdhd.ko
+hostname -F /etc/sysconfig/HOSTNAME
+
+#insmod /lib/modules/bcmdhd.ko
 
 ifup -a
-
-hostname -F /etc/sysconfig/HOSTNAME

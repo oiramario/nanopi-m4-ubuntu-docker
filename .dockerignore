@@ -5,6 +5,7 @@
 .vscode
 
 packages/src
+packages/ubuntu-rootfs
 distro
 tools
 

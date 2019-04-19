@@ -79,6 +79,16 @@ RUN set -x \
     && make -j$(nproc)
 
 
+# u-boot
+ADD "packages/uboot-rockchip.tar.xz" "$BUILD/"
+RUN set -x \
+    && cd uboot-rockchip \
+\
+    && make rk3399_linux_defconfig \
+\
+    && make -j$(nproc)
+
+
 # busybox
 ADD "packages/busybox.tar.xz" "$BUILD/"
 RUN set -x \
@@ -196,6 +206,12 @@ RUN set -x \
     && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
+#RUN set -x \
+#    && cd uboot-rockchip \
+#    && cp uboot.img trust.img "$DISTRO/" \
+#    && cp rk3399_loader_v*.bin "$DISTRO/MiniLoaderAll.bin"
+
+
 # boot.img
 ENV BOOT="$BUILD/boot"
 COPY "boot/" "$BOOT/"
@@ -227,21 +243,19 @@ RUN set -x \
 
 # rootfs
 ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
-COPY "rootfs/" "$ROOTFS/"
+ADD "packages/ubuntu-rootfs.tar.xz" "$BUILD/"
+#COPY "rootfs/" "$ROOTFS/"
 RUN set -x \
     && cd "$ROOTFS" \
-    && cp -R $BUILD/busybox/_install/* . \
-\
-    # runtime
-    && cp -R /usr/aarch64-linux-gnu/lib/* lib/ \
-    && rm -f lib/*.a lib/*.o \
+    && cp -R $BUILD/ubuntu-rootfs/* . \
 \
     # modules: bt, wifi, audio
     && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
+    && mkdir -p "$ROOTFS/lib/modules" \
     && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
 \
     # firmware
-    && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
+    && cp -R $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
     && cd "$ROOTFS/usr/bin/" \
     && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
     && mv -f rk_wifi_init_64 rk_wifi_init \

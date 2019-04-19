@@ -21,7 +21,7 @@ deb $SOURCES bionic-backports main restricted universe multiverse\
     && DEBIAN_FRONTEND=noninteractive \
     # reuses the cache
     && apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends install \
                      # compile
                     gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  make  patch \
                     # u-boot
@@ -34,12 +34,8 @@ deb $SOURCES bionic-backports main restricted universe multiverse\
                     device-tree-compiler \
                     # boot.img
                     genext2fs \
-                    # libdrm
-                    autoconf  xutils-dev  libtool  pkg-config  libpciaccess-dev \
                     # mali librealsense2
-                    cmake \
-                    # eudev
-                    gperf
+                    cmake
 
 # setup build environment
 ENV CROSS_COMPILE="aarch64-linux-gnu-" \
@@ -79,16 +75,6 @@ RUN set -x \
     && make -j$(nproc)
 
 
-# u-boot
-ADD "packages/uboot-rockchip.tar.xz" "$BUILD/"
-RUN set -x \
-    && cd uboot-rockchip \
-\
-    && make rk3399_linux_defconfig \
-\
-    && make -j$(nproc)
-
-
 # busybox
 ADD "packages/busybox.tar.xz" "$BUILD/"
 RUN set -x \
@@ -104,22 +90,23 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 
 ENV ROOTFS="$DISTRO/rootfs"
-RUN mkdir -p "$ROOTFS"
 
-
-# libdrm
-#ADD "packages/libdrm-rockchip.tar.xz" "${BUILD}/"
-#RUN set -x \
-#    && cd libdrm-rockchip \
-#    && ./autogen.sh --prefix="${ROOTFS}/usr" --host="${HOST}" \
-#                    --disable-dependency-tracking --disable-static --enable-shared --disable-cairo-tests --disable-manpages \
-#                    --disable-intel --disable-radeon --disable-amdgpu --disable-nouveau --disable-vmwgfx \
-#                    --disable-omap-experimental-api --disable-etnaviv-experimental-api --disable-exynos-experimental-api \
-#                    --disable-freedreno --disable-tegra-experimental-api --disable-vc4 --enable-rockchip-experimental-api \
-#                    --enable-udev --disable-valgrind --enable-install-test-programs \
-#    && make -j$(nproc) \
-#    && make install
-
+# rootfs
+ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
+ADD "packages/rootfs.tar.xz" "$DISTRO/"
+#COPY "rootfs/" "$ROOTFS/"
+RUN set -x \
+    # modules: bt, wifi, audio
+    && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
+    && mkdir -p "$ROOTFS/lib/modules" \
+    && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
+\
+    # firmware
+    && cp -R $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
+    && cd "$ROOTFS/usr/bin/" \
+    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
+    && mv -f rk_wifi_init_64 rk_wifi_init \
+    && rm -f brcm_patchram_plus1_32 rk_wifi_init_32 
 
 # libmali
 #ADD "packages/libmali.tar.xz" "${BUILD}/"
@@ -206,12 +193,6 @@ RUN set -x \
     && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
-#RUN set -x \
-#    && cd uboot-rockchip \
-#    && cp uboot.img trust.img "$DISTRO/" \
-#    && cp rk3399_loader_v*.bin "$DISTRO/MiniLoaderAll.bin"
-
-
 # boot.img
 ENV BOOT="$BUILD/boot"
 COPY "boot/" "$BOOT/"
@@ -241,27 +222,6 @@ RUN set -x \
     && resize2fs -M $BOOT_IMG
 
 
-# rootfs
-ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
-ADD "packages/ubuntu-rootfs.tar.xz" "$BUILD/"
-#COPY "rootfs/" "$ROOTFS/"
-RUN set -x \
-    && cd "$ROOTFS" \
-    && cp -R $BUILD/ubuntu-rootfs/* . \
-\
-    # modules: bt, wifi, audio
-    && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
-    && mkdir -p "$ROOTFS/lib/modules" \
-    && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
-\
-    # firmware
-    && cp -R $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
-    && cd "$ROOTFS/usr/bin/" \
-    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
-    && mv -f rk_wifi_init_64 rk_wifi_init \
-    && rm -f brcm_patchram_plus1_32 rk_wifi_init_32
-
-
 #RUN set -x \
 #    && cd gbm-drm-gles-cube \
 #    && cp gbm-drm-gles-cube "$ROOTFS/usr/bin/"
@@ -269,8 +229,12 @@ RUN set -x \
 
 #----------------------------------------------------------------------------------------------------------------#
 
-# clean useless
-#RUN cd "${ROOTFS}" \
+# clean
+RUN set -x \
+    && apt -y autoremove \
+    && apt clean
+
+#    && cd "${ROOTFS}" \
 #    && rm -rf include usr/include \
 #    && rm -rf lib/pkgconfig lib/cmake lib/*.a lib/*.la \
 #              usr/lib/pkgconfig usr/lib/cmake usr/lib/*.a usr/lib/*.la

@@ -7,20 +7,20 @@ if [ ! `id -u` = 0 ] ; then
     exit
 fi
 
-if [ -d ubuntu-rootfs ]; then
-    rm -rf ubuntu-rootfs
+if [ -d rootfs ]; then
+    rm -rf rootfs
 fi
 
-if [ -f ubuntu-rootfs.* ]; then
-    rm -f ubuntu-rootfs.*
+if [ -f rootfs.* ]; then
+    rm -f rootfs.*
 fi
 
 echo -e "\e[34m making rootfs package ... \e[0m"
-qemu-debootstrap --arch=arm64 --variant=minbase --verbose --foreign bionic ubuntu-rootfs http://mirrors.aliyun.com/ubuntu-ports/
+qemu-debootstrap --arch=arm64 --variant=minbase --verbose --foreign bionic rootfs http://mirrors.aliyun.com/ubuntu-ports/
 
-if [ -d ubuntu-rootfs ]; then
-    echo -e "\e[34m chroot && update rootfs ... \e[0m"
-    cat << EOF | chroot ubuntu-rootfs /bin/bash
+if [ -d rootfs ]; then
+    echo -e "\e[34m switch rootfs ... \e[0m"
+    cat << EOF | chroot rootfs
 
     echo -e "
     deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse
@@ -29,42 +29,49 @@ if [ -d ubuntu-rootfs ]; then
     deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-security main restricted universe multiverse
     " >> /etc/apt/sources.list
 
-    export LANGUAGE=en_US.UTF-8
-    export LC_ALL=en_US.UTF-8
-    export LANG=en_US.UTF-8
+    USER=flagon
+    HOST=oiramario
 
-    apt update
-    apt upgrade -y
+    useradd -G sudo -m -s /bin/bash $USER
+    passwd $USER
 
-    #apt install -y --no-install-recommends language-pack-en-base
-    #locale-gen en_US.UTF-8
-    #update-locale en_US.UTF-8
+    echo $HOST > /etc/hostname
+    echo "127.0.0.1    localhost.localdomain localhost" > /etc/hosts
+    echo "127.0.0.1    $HOST" >> /etc/hosts
+    
+    echo "auto eth0" > /etc/network/interfaces.d/eth0
+    echo "iface eth0 inet dhcp" >> /etc/network/interfaces.d/eth0
+    echo "nameserver 127.0.1.1" > /etc/resolv.conf
 
-    #apt install -y --no-install-recommends udev ssh
-    #apt install -y --no-install-recommends wireless-tools wpasupplicant iputils-ping
-    #apt install -y --no-install-recommends ifupdown net-tools network-manager ethtool
+    DEBIAN_FRONTEND=noninteractive apt update && \
+                                   apt -y dist-upgrade && \
+                                   apt install -y --no-install-recommends 
+                                        sudo \
+                                        ssh \
+                                        udev \
+                                        libusb-1.0-0 \
+                                        ifupdown \
+                                        net-tools \
+                                        wireless-tools \
+                                        wpasupplicant \
+                                        network-manager \
+                                        rsyslog \
+                                        bash-completion
 
     #systemctl enable systemd-networkd
     #systemctl enable systemd-resolved
     #systemctl mask systemd-networkd-wait-online.service
     #systemctl mask NetworkManager-wait-online.service
 
-    echo -e "oiramario" > /etc/hostname
-    echo -e "127.0.0.1 localhost" > /etc/hosts
-    echo -e "root:x:0:" > /etc/group
-    echo -e "root:x:0:0:root:/root:/bin/sh" > /etc/passwd
-
-    #echo -e "\
-    #auto eth0
-    #iface eth0 inet dhcp" > /etc/network/interfaces.d/eth0
-
+    apt -y autoremove
+    apt clean
 EOF
 
     echo -e "\e[34m packing rootfs ... \e[0m"
-    tar -cf ubuntu-rootfs.tar ubuntu-rootfs/
+    tar -cf rootfs.tar rootfs/
 
     echo -e "\e[34m compressing rootfs ... \e[0m"
-    xz -zef --threads=0 ubuntu-rootfs.tar
+    xz -zef --threads=0 rootfs.tar
 
     echo -e "\e[32m done.\n \e[0m"
 fi

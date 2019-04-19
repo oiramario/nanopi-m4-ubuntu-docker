@@ -1,16 +1,10 @@
 #!/bin/bash
 #
-#set -x
-
-if [ ! -d src ];then
-    mkdir src
-fi
-cd src
+set -x
 
 gits=(
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/rkbin.git,rkbin"
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/u-boot.git,u-boot"
-"nanopi4-v2014.10_dev,https://github.com/friendlyarm/uboot-rockchip.git,uboot-rockchip"
 "nanopi4-linux-v4.4.y,https://github.com/friendlyarm/kernel-rockchip.git,kernel-rockchip"
 "1_30_stable,https://github.com/mirror/busybox.git,busybox"
 "master,https://github.com/friendlyarm/rk-rootfs-build.git,rk-rootfs-build"
@@ -23,24 +17,24 @@ do
     IFS=","
     arr=($i)
 
+    branch=${arr[0]}
+    url=${arr[1]}
     dir=${arr[2]}
-    prefix=.
-    if [ $dir = "rk-rootfs-build" ];then
-        prefix=..
-    fi
 
-    echo -e "\e[34m checking ${arr[2]} ... \e[0m"
-    if [ ! -d ${arr[2]} ];then
-        git clone --depth 1 -b ${arr[0]} ${arr[1]} $prefix/${arr[2]}
+    echo -e "\e[34m checking $dir ... \e[0m"
+    if [ ! -d $dir ];then
+        git clone --depth 1 -b $branch $url ${dir}
     else
-        cd $prefix/${arr[2]}
-        git pull
-        cd ..
+        if [[ `git -C $dir pull` =~ "Already up to date." ]];then
+            if [ -f $dir.tar.xz ]; then
+                continue
+            fi
+        fi
     fi
 
     if [ ! $dir = "rk-rootfs-build" ];then
-        package=../$dir.tar
         echo -e "\e[34m packing $dir ... \e[0m"
+        package=$dir.tar
         if [ $dir = "libmali" ];then
             tar --exclude=.git \
                 --exclude=lib/arm-linux-gnueabihf \

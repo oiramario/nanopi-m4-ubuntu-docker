@@ -4,8 +4,10 @@
 .gitignore
 .vscode
 
-packages/src
-packages/ubuntu-rootfs
+packages/*
+!packages/*.tar.xz
+!packages/rootfs
+
 distro
 tools
 

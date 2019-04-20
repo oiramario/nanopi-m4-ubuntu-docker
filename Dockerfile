@@ -8,8 +8,8 @@ LABEL author="oiramario" \
 USER root
 
 # cn sources
-RUN SOURCES="http://mirrors.aliyun.com/ubuntu/" \
-    && cat << EOF > /etc/apt/sources.list \
+RUN cat << EOF > /etc/apt/sources.list \
+    && SOURCES="http://mirrors.aliyun.com/ubuntu/" \
     && echo "\
 deb $SOURCES bionic main restricted universe multiverse \n\
 deb $SOURCES bionic-security main restricted universe multiverse \n\
@@ -21,7 +21,7 @@ deb $SOURCES bionic-backports main restricted universe multiverse\
     && DEBIAN_FRONTEND=noninteractive \
     # reuses the cache
     && apt-get update \
-    && apt-get install -y --no-install-recommends install \
+    && apt-get install -y \
                      # compile
                     gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  make  patch \
                     # u-boot
@@ -91,52 +91,13 @@ RUN set -x \
 
 ENV ROOTFS="$DISTRO/rootfs"
 
-# rootfs
-ADD "packages/rk-rootfs-build.tar.xz" "$BUILD/"
-ADD "packages/rootfs.tar.xz" "$DISTRO/"
-#COPY "rootfs/" "$ROOTFS/"
-RUN set -x \
-    # modules: bt, wifi, audio
-    && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
-    && mkdir -p "$ROOTFS/lib/modules" \
-    && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/lib/modules/" \
-\
-    # firmware
-    && cp -R $BUILD/rk-rootfs-build/overlay-firmware/* $ROOTFS/ \
-    && cd "$ROOTFS/usr/bin/" \
-    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
-    && mv -f rk_wifi_init_64 rk_wifi_init \
-    && rm -f brcm_patchram_plus1_32 rk_wifi_init_32 
-
 # libmali
-#ADD "packages/libmali.tar.xz" "${BUILD}/"
-#RUN set -x \
-#    && cd libmali \
-#    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
-#             -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
-#    && make install
-
-
-# eudev
-#ADD "packages/eudev.tar.xz" "${BUILD}/"
-#RUN set -x \ 
-#    && cd eudev \
-#    && autoreconf -vfi \
-#    && ./configure --prefix="${ROOTFS}" --host="${HOST}" \
-#                   --disable-blkid --disable-kmod \
-#    && make -j$(nproc) \
-#    && make install
-
-
-# libusb
-#ADD "packages/libusb.tar.xz" "${BUILD}/"
-#RUN set -x \ 
-#    && cd libusb \
-#    && autoreconf -vfi \
-#    && CFLAGS="-I${ROOTFS}/include" LDFLAGS="-L${ROOTFS}/lib" \
-#       ./configure --prefix="${ROOTFS}/usr" --host="${HOST}" \
-#    && make -j$(nproc) \
-#    && make install
+ADD "packages/libmali.tar.xz" "${BUILD}/"
+RUN set -x \
+    && cd libmali \
+    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
+             -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
+    && make install
 
 
 # librealsense
@@ -222,6 +183,14 @@ RUN set -x \
     && resize2fs -M $BOOT_IMG
 
 
+# rootfs
+COPY "packages/rootfs/" "$ROOTFS/"
+RUN set -x \
+    # modules: bt, wifi, audio
+    && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
+    && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/system/lib/modules/"
+
+
 #RUN set -x \
 #    && cd gbm-drm-gles-cube \
 #    && cp gbm-drm-gles-cube "$ROOTFS/usr/bin/"
@@ -231,8 +200,9 @@ RUN set -x \
 
 # clean
 RUN set -x \
-    && apt -y autoremove \
-    && apt clean
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get -y autoremove \
+    && apt-get clean
 
 #    && cd "${ROOTFS}" \
 #    && rm -rf include usr/include \

@@ -1,10 +1,9 @@
 # gitignore
 
-packages/*
+packages
 !packages/mk-gits.sh
 !packages/mk-rootfs.sh
 
 .vscode
 
 distro
-tools

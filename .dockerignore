@@ -4,7 +4,7 @@
 .gitignore
 .vscode
 
-packages/*
+packages
 !packages/*.tar.xz
 !packages/rootfs
 

@@ -10,6 +10,17 @@ ROOTFS_DIR=$DISTRO/rootfs
 ROOTFS_MNT=$DISTRO/rootfs-mnt
 ROOTFS_IMG=$DISTRO/rootfs.img
 
+finish () {
+    sudo umount $ROOTFS_MNT >/dev/null 2>&1
+    rm -rf $ROOTFS_MNT
+    rm -rf $ROOTFS_DIR
+
+    echo -e "\n\e[36m Done. \e[0m"
+    ls $DISTRO -lh
+}
+trap finish EXIT
+trap finish ERR
+
 # build docker
 echo -e "\n\e[36m Building images \e[0m"
 docker build -t rk3399 .
@@ -32,7 +43,3 @@ sync
 sudo umount $ROOTFS_MNT
 e2fsck -p -f $ROOTFS_IMG
 resize2fs -M $ROOTFS_IMG
-
-
-echo -e "\n\e[36m Done. \e[0m"
-ls $DISTRO -lh

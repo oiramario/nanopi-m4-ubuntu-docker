@@ -6,7 +6,6 @@
 
 packages
 !packages/*.tar.xz
-!packages/rootfs
 
 distro
 tools

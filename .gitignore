@@ -1,9 +1,7 @@
 # gitignore
+.vscode
 
 packages
-!packages/mk-gits.sh
-!packages/mk-rootfs.sh
-
-.vscode
+!packages/mk-update.sh
 
 distro

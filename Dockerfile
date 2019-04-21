@@ -184,9 +184,21 @@ RUN set -x \
 
 
 # rootfs
-COPY "packages/rootfs/" "$ROOTFS/"
+ADD "packages/rk-rootfs-build.tar.xz" "${BUILD}/"
 RUN set -x \
+    && cd rk-rootfs-build \
+\
+    # some configs
+    && cp -rf overlay/* $ROOTFS/ \
+    # firmware
+    && cp -rf overlay-firmware/* $ROOTFS/ \
+    && cd $ROOTFS/usr/bin \
+    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
+    && mv -f rk_wifi_init_64 rk_wifi_init \
+    && rm -f brcm_patchram_plus1_32  rk_wifi_init_32 \
+\
     # modules: bt, wifi, audio
+    && mkdir -p $ROOTFS/system/lib/modules/ \
     && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
     && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/system/lib/modules/"
 

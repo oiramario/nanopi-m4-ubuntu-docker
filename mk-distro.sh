@@ -53,8 +53,9 @@ sudo mount -o bind /dev/pts $ROOTFS_DIR/dev/pts
 cat << EOF | sudo chroot $ROOTFS_DIR/ /bin/bash
 
 set -x
+
 #------------------------------------------------------------------------
-echo -e "\033[36m configuration.................... \033[0m"
+echo -e "\033[36m apt update && upgrade.................... \033[0m"
 
 echo "nameserver 127.0.0.53" > /etc/resolv.conf
 
@@ -63,14 +64,44 @@ echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-updates main restricted
 echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-backports main restricted universe multiverse" >> /etc/apt/sources.list
 echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-security main restricted universe multiverse" >> /etc/apt/sources.list
 
+export DEBIAN_FRONTEND=noninteractive 
+
+apt update
+
+export LANGUAGE=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+#locale-gen en_US.UTF-8
+#dpkg-reconfigure locales
+
+#apt -y upgrade
+
+echo -e "\033[36m apt install packages.................... \033[0m"
+apt install -y --no-install-recommends \
+    language-pack-en-base \
+    sudo \
+    ssh \
+    net-tools \
+    ethtool \
+    wireless-tools \
+    ifupdown \
+    network-manager \
+    iputils-ping \
+    rsyslog \
+    bash-completion \
+    htop
+
+#------------------------------------------------------------------------
+echo -e "\033[36m configuration.................... \033[0m"
+
 passwd root
 root
 root
 
 useradd -G sudo -m -s /bin/bash flagon
 passwd flagon
-51211314
-51211314
+111
+111
 
 #echo "/dev/mmcblk1p6  /      ext4  defaults,noatime,errors=remount-ro  0  1" >> /etc/fstab
 
@@ -78,41 +109,18 @@ echo oiramario > /etc/hostname
 echo "127.0.0.1    localhost.localdomain localhost" > /etc/hosts
 echo "127.0.0.1    oiramario" >> /etc/hosts
 
-#------------------------------------------------------------------------
-echo -e "\033[36m apt update && upgrade.................... \033[0m"
-apt update
-
-#DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends locales apt-utils
-#export LANGUAGE=en_US.UTF-8
-#export LANG=en_US.UTF-8
-#export LC_ALL=en_US.UTF-8
-#locale-gen en_US.UTF-8
-#dpkg-reconfigure locales
-
-#apt -y upgrade
-
-echo -e "\033[36m apt install base.................... \033[0m"
-DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-     init \
-     udev
-#    systemd \
-#    rsyslog \
-
-#echo -e "\033[36m apt install network.................... \033[0m"
-#DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-#    net-tools 
-#    wireless-tools \
-#    wpasupplicant \
-#    network-manager
-
-#------------------------------------------------------------------------
-#echo -e "\033[36m setup network.................... \033[0m"
-
-#echo auto eth0 > etc/network/interfaces.d/eth0
-#echo iface eth0 inet dhcp >> etc/network/interfaces.d/eth0
+echo auto eth0 > /etc/network/interfaces.d/eth0
+echo iface eth0 inet dhcp >> /etc/network/interfaces.d/eth0
  
-#echo auto wlan0 > etc/network/interfaces.d/wlan0
-#echo iface wlan0 inet dhcp >> etc/network/interfaces.d/wlan0
+echo auto wlan0 > /etc/network/interfaces.d/wlan0
+echo iface wlan0 inet dhcp >> /etc/network/interfaces.d/wlan0
+
+apt install -y --no-install-recommends \
+    resolvconf \
+    tzdata
+
+dpkg-reconfigure resolvconf
+dpkg-reconfigure tzdata
 
 #------------------------------------------------------------------------
 #echo -e "\033[36m custom script.................... \033[0m"

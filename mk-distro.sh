@@ -97,8 +97,6 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
      udev
 #    systemd \
 #    rsyslog \
-#    init \
-#    udev
 
 #echo -e "\033[36m apt install network.................... \033[0m"
 #DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \

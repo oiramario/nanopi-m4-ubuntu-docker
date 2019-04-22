@@ -4,8 +4,8 @@
 .gitignore
 .vscode
 
-packages
-!packages/*.tar.xz
+packages/*
+!packages/*.tar.gz
 
 distro
 tools

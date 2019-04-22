@@ -1,7 +1,7 @@
 # gitignore
 .vscode
 
-packages
-!packages/mk-update.sh
+packages/*
+!packages/mk-packages.sh
 
 distro

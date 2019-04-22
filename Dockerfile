@@ -49,7 +49,7 @@ WORKDIR "$BUILD"
 #----------------------------------------------------------------------------------------------------------------#
 
 # kernel
-ADD "packages/kernel-rockchip.tar.xz" "$BUILD/"
+ADD "packages/kernel-rockchip.tar.gz" "$BUILD/"
 COPY "patch/" "$BUILD/patch/"
 RUN set -x \
     && cd kernel-rockchip \
@@ -63,8 +63,8 @@ RUN set -x \
 
 
 # u-boot
-ADD "packages/u-boot.tar.xz" "$BUILD/"
-ADD "packages/rkbin.tar.xz" "$BUILD/"
+ADD "packages/u-boot.tar.gz" "$BUILD/"
+ADD "packages/rkbin.tar.gz" "$BUILD/"
 RUN set -x \
     && cd u-boot \
 \
@@ -76,7 +76,7 @@ RUN set -x \
 
 
 # busybox
-ADD "packages/busybox.tar.xz" "$BUILD/"
+ADD "packages/busybox.tar.gz" "$BUILD/"
 RUN set -x \
     && cd busybox \
 \
@@ -92,18 +92,18 @@ RUN set -x \
 ENV ROOTFS="$DISTRO/rootfs"
 
 # libmali
-ADD "packages/libmali.tar.xz" "${BUILD}/"
-RUN set -x \
-    && cd libmali \
-    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
-             -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
-    && make install
+#ADD "packages/libmali.tar.gz" "${BUILD}/"
+#RUN set -x \
+#    && cd libmali \
+#    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
+#             -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
+#    && make install
 
 
 # librealsense
 #RUN apt-get install -y sudo
 #COPY "toolchain.cmake" "$BUILD/"
-#ADD "packages/librealsense.tar.xz" "${BUILD}/"
+#ADD "packages/librealsense.tar.gz" "${BUILD}/"
 #RUN set -x \
 #    && cd librealsense \
 #    && cp config/99-realsense-libusb.rules "${ROOTFS}/etc/udev/rules.d/" \
@@ -120,7 +120,7 @@ RUN set -x \
 
 
 # gbm-drm-gles-cube
-#ADD "packages/gbm-drm-gles-cube.tar.xz" "${BUILD}/"
+#ADD "packages/gbm-drm-gles-cube.tar.gz" "${BUILD}/"
 #COPY "packages/src/gbm-drm-gles-cube" "${BUILD}/gbm-drm-gles-cube/"
 #RUN set -x \
 #    && cd gbm-drm-gles-cube \
@@ -184,8 +184,9 @@ RUN set -x \
 
 
 # rootfs
-ADD "packages/rk-rootfs-build.tar.xz" "${BUILD}/"
+ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 RUN set -x \
+    && mkdir -p $ROOTFS \
     && cd rk-rootfs-build \
 \
     # some configs

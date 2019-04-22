@@ -1,4 +1,4 @@
-setenv bootargs "root=/dev/mmcblk1p6 rootfstype=ext4 rw rootwait"
+setenv bootargs root=/dev/mmcblk1p6 rootfstype=ext4 rw rootwait init=/init
 
 #               -start-       -size-               -padding-          -next-
 # origin        0x00000000    0x00080000 (512K)    0x00000000         0x00080000

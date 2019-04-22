@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-set -x
+#set -x
 
 DISTRO=$PWD/distro
 sudo rm -rf $DISTRO
@@ -72,7 +72,7 @@ passwd flagon
 51211314
 51211314
 
-#echo "/dev/mmcblk0p5  /  ext4  defaults,noatime,errors=remount-ro  0  1" >> /etc/fstab
+#echo "/dev/mmcblk1p6  /      ext4  defaults,noatime,errors=remount-ro  0  1" >> /etc/fstab
 
 echo oiramario > /etc/hostname
 echo "127.0.0.1    localhost.localdomain localhost" > /etc/hosts
@@ -89,11 +89,12 @@ apt update
 #locale-gen en_US.UTF-8
 #dpkg-reconfigure locales
 
-apt -y upgrade
+#apt -y upgrade
 
 echo -e "\033[36m apt install base.................... \033[0m"
 DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-     init
+     init \
+     udev
 #    systemd \
 #    rsyslog \
 #    init \
@@ -130,16 +131,16 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
 #------------------------------------------------------------------------
 #echo -e "\033[36m clean.................... \033[0m"
 
-#rm -rf /var/lib/apt/lists/*
-#apt -y autoremove
-#apt clean
+rm -rf /var/lib/apt/lists/*
+apt -y autoremove
+apt clean
 
 EOF
 unmount-rootfs
 sync
 
 dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=512
-mkfs.ext4 -F -b 4096 -E stride=2,stripe-width=1024 -L rootfs $ROOTFS_IMG
+mkfs.ext4 $ROOTFS_IMG
 mkdir -p $ROOTFS_MNT
 sudo mount $ROOTFS_IMG $ROOTFS_MNT
 sudo cp -rfp $ROOTFS_DIR/* $ROOTFS_MNT

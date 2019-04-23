@@ -68,9 +68,9 @@ ADD "packages/rkbin.tar.gz" "$BUILD/"
 RUN set -x \
     && cd u-boot \
 \
-    && make evb-rk3399_defconfig \
+    && make rk3399_defconfig \
     # disable boot delay
-    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
+#    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
 \
     && make -j$(nproc)
 

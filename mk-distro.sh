@@ -67,29 +67,19 @@ echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-security main restricte
 export DEBIAN_FRONTEND=noninteractive 
 
 apt update
-
-export LANGUAGE=en_US.UTF-8
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-#locale-gen en_US.UTF-8
-#dpkg-reconfigure locales
-
 #apt -y upgrade
 
-echo -e "\033[36m apt install packages.................... \033[0m"
-apt install -y --no-install-recommends \
-    language-pack-en-base \
-    sudo \
-    ssh \
-    net-tools \
-    ethtool \
-    wireless-tools \
-    ifupdown \
-    network-manager \
-    iputils-ping \
-    rsyslog \
-    bash-completion \
-    htop
+#------------------------------------------------------------------------
+#echo -e "\033[36m apt install packages.................... \033[0m"
+
+export LANGUAGE=en_US:en
+export LC_ALL=en_US.UTF-8
+apt install -y --no-install-recommends language-pack-en-base apt-utils
+update-locale LANG=en_US.UTF-8
+
+apt install -y --no-install-recommends init udev dbus rsyslog
+apt install -y --no-install-recommends net-tools ifupdown ethtool wireless-tools iputils-ping network-manager
+apt install -y --no-install-recommends sudo ssh bash-completion htop
 
 #------------------------------------------------------------------------
 echo -e "\033[36m configuration.................... \033[0m"
@@ -111,16 +101,16 @@ echo "127.0.0.1    oiramario" >> /etc/hosts
 
 echo auto eth0 > /etc/network/interfaces.d/eth0
 echo iface eth0 inet dhcp >> /etc/network/interfaces.d/eth0
- 
-echo auto wlan0 > /etc/network/interfaces.d/wlan0
-echo iface wlan0 inet dhcp >> /etc/network/interfaces.d/wlan0
 
-apt install -y --no-install-recommends \
-    resolvconf \
-    tzdata
+#echo auto wlan0 > /etc/network/interfaces.d/wlan0
+#echo iface wlan0 inet dhcp >> /etc/network/interfaces.d/wlan0
 
-dpkg-reconfigure resolvconf
-dpkg-reconfigure tzdata
+#apt install -y --no-install-recommends \
+#    resolvconf \
+#    tzdata
+
+#dpkg-reconfigure resolvconf
+#dpkg-reconfigure tzdata
 
 #------------------------------------------------------------------------
 #echo -e "\033[36m custom script.................... \033[0m"
@@ -138,8 +128,8 @@ dpkg-reconfigure tzdata
 #echo -e "\033[36m clean.................... \033[0m"
 
 rm -rf /var/lib/apt/lists/*
-apt -y autoremove
-apt clean
+#apt -y autoremove
+#apt clean
 
 EOF
 unmount-rootfs

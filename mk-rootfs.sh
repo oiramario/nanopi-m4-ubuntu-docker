@@ -73,10 +73,10 @@ echo -e "\033[36m apt update && upgrade.................... \033[0m"
 apt update
 apt -y upgrade
 
-#export LANGUAGE=en_US:en
-#export LC_ALL=en_US.UTF-8
-#DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends language-pack-en-base apt-utils
-#update-locale LANG=en_US.UTF-8
+export LANGUAGE=en_US:en
+export LC_ALL=en_US.UTF-8
+DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends language-pack-en-base apt-utils
+update-locale LANG=en_US.UTF-8
 
 echo -e "\033[36m apt install base.................... \033[0m"
 DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \

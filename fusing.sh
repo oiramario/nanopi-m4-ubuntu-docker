@@ -37,9 +37,9 @@ sleep 2
 #$TOOLS_DIR/rkdeveloptool wl 0x6000   $DISTRO_DIR/trust.img
 #sleep 1
 
-echo -e "\e[36m WriteLBA 0x8000 boot.img \e[0m"
-$TOOLS_DIR/rkdeveloptool wl 0x8000   $DISTRO_DIR/boot.img
-sleep 1
+#echo -e "\e[36m WriteLBA 0x8000 boot.img \e[0m"
+#$TOOLS_DIR/rkdeveloptool wl 0x8000   $DISTRO_DIR/boot.img
+#sleep 1
 
 echo -e "\e[36m WriteLBA 0x20000 rootfs.img \e[0m"
 $TOOLS_DIR/rkdeveloptool wl 0x20000  $DISTRO_DIR/rootfs.img

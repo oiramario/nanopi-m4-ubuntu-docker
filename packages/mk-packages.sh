@@ -51,7 +51,11 @@ do
         option="\
             --exclude=overlay-debug \
             --exclude=overlay-firmware/usr/share/npu_fw \
-            --exclude=packages \
+            --exclude=packages/armhf \
+            --exclude=packages/arm64/libmali \
+            --exclude=packages/arm64/others \
+            --exclude=packages/arm64/video \
+            --exclude=packages/arm64/xserver \
             --exclude=packages-patches \
             --exclude=ubuntu-build-service"
     fi

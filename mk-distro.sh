@@ -78,8 +78,14 @@ apt install -y --no-install-recommends language-pack-en-base apt-utils
 update-locale LANG=en_US.UTF-8
 
 apt install -y --no-install-recommends init udev dbus rsyslog
-apt install -y --no-install-recommends net-tools ifupdown ethtool wireless-tools iputils-ping network-manager
-apt install -y --no-install-recommends sudo ssh bash-completion htop
+apt install -y --no-install-recommends net-tools ifupdown iputils-ping network-manager
+#apt install -y --no-install-recommends sudo ssh bash-completion htop
+
+apt install -y --no-install-recommends resolvconf
+dpkg-reconfigure resolvconf
+
+dpkg -i /packages/libdrm/*.deb
+apt-get install -f -y
 
 #------------------------------------------------------------------------
 echo -e "\033[36m configuration.................... \033[0m"
@@ -105,29 +111,23 @@ echo iface eth0 inet dhcp >> /etc/network/interfaces.d/eth0
 #echo auto wlan0 > /etc/network/interfaces.d/wlan0
 #echo iface wlan0 inet dhcp >> /etc/network/interfaces.d/wlan0
 
-#apt install -y --no-install-recommends \
-#    resolvconf \
 #    tzdata
 
-#dpkg-reconfigure resolvconf
 #dpkg-reconfigure tzdata
 
 #------------------------------------------------------------------------
 #echo -e "\033[36m custom script.................... \033[0m"
 
-#systemctl enable systemd-networkd
-#systemctl enable systemd-resolved
-#systemctl enable rockchip.service
-#systemctl mask systemd-networkd-wait-online.service
-#systemctl mask NetworkManager-wait-online.service
-#rm /lib/systemd/system/wpa_supplicant@.service
-
-#systemctl mask systemd-backlight@backlight:acpi_video0
+systemctl enable rockchip.service
+systemctl mask systemd-networkd-wait-online.service
+systemctl mask NetworkManager-wait-online.service
+rm /lib/systemd/system/wpa_supplicant@.service
 
 #------------------------------------------------------------------------
 #echo -e "\033[36m clean.................... \033[0m"
 
 rm -rf /var/lib/apt/lists/*
+#rm -rf /packages
 #apt -y autoremove
 #apt clean
 

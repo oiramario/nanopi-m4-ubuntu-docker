@@ -189,6 +189,9 @@ RUN set -x \
     && mkdir -p $ROOTFS \
     && cd rk-rootfs-build \
 \
+    # packages
+    && cp -rf packages/arm64 $ROOTFS/packages/ \
+    && ls $ROOTFS/packages/ \
     # some configs
     && cp -rf overlay/* $ROOTFS/ \
     # firmware

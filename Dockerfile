@@ -68,7 +68,7 @@ ADD "packages/rkbin.tar.gz" "$BUILD/"
 RUN set -x \
     && cd u-boot \
 \
-    && make rk3399_defconfig \
+    && make evb-rk3399_defconfig \
     # disable boot delay
 #    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
 \
@@ -191,7 +191,6 @@ RUN set -x \
 \
     # packages
     && cp -rf packages/arm64 $ROOTFS/packages/ \
-    && ls $ROOTFS/packages/ \
     # some configs
     && cp -rf overlay/* $ROOTFS/ \
     # firmware

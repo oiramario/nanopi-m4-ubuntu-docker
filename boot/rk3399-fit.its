@@ -95,7 +95,6 @@
         conf_m4 {
             description = "nanopi-m4";
             kernel = "kernel";
-            ramdisk = "initramfs";
             fdt = "fdt_m4";
         };
 

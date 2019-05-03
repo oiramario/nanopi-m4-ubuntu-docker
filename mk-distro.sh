@@ -41,7 +41,7 @@ sync
 # build rootfs
 #------------------------------------------------------------------------
 echo -e "\n\e[36m Building rootfs \e[0m"
-#qemu-debootstrap --arch=arm64 --variant=minbase --verbose --foreign bionic rootfs http://mirrors.aliyun.com/ubuntu-ports/
+#sudo qemu-debootstrap --arch=arm64 --variant=minbase --verbose --include=locales,dbus --foreign bionic $ROOTFS_DIR http://mirrors.aliyun.com/ubuntu-ports/
 sudo tar xzf packages/ubuntu-rootfs.tar.gz -C $ROOTFS_DIR/
 sudo cp /usr/bin/qemu-aarch64-static $ROOTFS_DIR/usr/bin
 
@@ -59,15 +59,17 @@ echo -e "\033[36m apt update && upgrade.................... \033[0m"
 
 echo "nameserver 127.0.0.53" > /etc/resolv.conf
 
-echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse" > /etc/apt/sources.list
-echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-updates main restricted universe multiverse" >> /etc/apt/sources.list
-echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-backports main restricted universe multiverse" >> /etc/apt/sources.list
-echo "deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-security main restricted universe multiverse" >> /etc/apt/sources.list
+echo '
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-updates main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-backports main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-security main restricted universe multiverse
+' > /etc/apt/sources.list
 
 export DEBIAN_FRONTEND=noninteractive 
 
 apt update
-#apt -y upgrade
+apt -y upgrade
 
 #------------------------------------------------------------------------
 #echo -e "\033[36m apt install packages.................... \033[0m"
@@ -78,11 +80,8 @@ apt install -y --no-install-recommends language-pack-en-base apt-utils
 update-locale LANG=en_US.UTF-8
 
 apt install -y --no-install-recommends init udev dbus rsyslog
-apt install -y --no-install-recommends net-tools ifupdown iputils-ping network-manager
+apt install -y --no-install-recommends iproute2 iputils-ping network-manager
 #apt install -y --no-install-recommends sudo ssh bash-completion htop
-
-apt install -y --no-install-recommends resolvconf
-dpkg-reconfigure resolvconf
 
 dpkg -i /packages/libdrm/*.deb
 apt-get install -f -y
@@ -99,37 +98,36 @@ passwd flagon
 111
 111
 
-#echo "/dev/mmcblk1p6  /      ext4  defaults,noatime,errors=remount-ro  0  1" >> /etc/fstab
+echo "/dev/mmcblk1p6  /      ext4  noatime  0  0" >> /etc/fstab
 
 echo oiramario > /etc/hostname
 echo "127.0.0.1    localhost.localdomain localhost" > /etc/hosts
 echo "127.0.0.1    oiramario" >> /etc/hosts
 
-echo auto eth0 > /etc/network/interfaces.d/eth0
-echo iface eth0 inet dhcp >> /etc/network/interfaces.d/eth0
-
-#echo auto wlan0 > /etc/network/interfaces.d/wlan0
-#echo iface wlan0 inet dhcp >> /etc/network/interfaces.d/wlan0
-
-#    tzdata
-
-#dpkg-reconfigure tzdata
+mkdir -pv /etc/systemd/network
+echo '
+# Use DHCP
+[Match]
+Name=eth0
+[Network]
+DHCP=yes
+' > /etc/systemd/network/eth0.network
 
 #------------------------------------------------------------------------
-#echo -e "\033[36m custom script.................... \033[0m"
+echo -e "\033[36m custom script.................... \033[0m"
 
+systemctl enable systemd-networkd
+systemctl enable systemd-resolved
 systemctl enable rockchip.service
 systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service
 rm /lib/systemd/system/wpa_supplicant@.service
 
 #------------------------------------------------------------------------
-#echo -e "\033[36m clean.................... \033[0m"
+echo -e "\033[36m clean.................... \033[0m"
 
 rm -rf /var/lib/apt/lists/*
 #rm -rf /packages
-#apt -y autoremove
-#apt clean
 
 EOF
 unmount-rootfs

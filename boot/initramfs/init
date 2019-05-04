@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+mkdir -p /proc /sys /dev /etc /lib
+
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 

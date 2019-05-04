@@ -3,7 +3,7 @@
 #set -x
 
 DISTRO=$PWD/distro
-sudo rm -rf $DISTRO
+rm -rf $DISTRO
 mkdir -p $DISTRO
 
 ROOTFS_DIR=$DISTRO/rootfs
@@ -15,16 +15,19 @@ unmount-rootfs() {
     sudo umount $ROOTFS_DIR/sys >/dev/null 2>&1
     sudo umount $ROOTFS_DIR/dev/pts >/dev/null 2>&1
     sudo umount $ROOTFS_DIR/dev >/dev/null 2>&1
+
+    sudo umount $ROOTFS_MNT >/dev/null 2>&1
+}
+
+remove-rootfs() {
+    rm -rf $ROOTFS_MNT
+    sudo rm -rf $ROOTFS_DIR
 }
 
 finish () {
     unmount-rootfs
-
-    sudo umount $ROOTFS_MNT >/dev/null 2>&1
-    #rm -rf $ROOTFS_MNT
-    #sudo rm -rf $ROOTFS_DIR
+    remove-rootfs
 }
-trap finish EXIT
 trap finish ERR
 
 # build docker
@@ -57,13 +60,12 @@ set -x
 #------------------------------------------------------------------------
 echo -e "\033[36m apt update && upgrade.................... \033[0m"
 
-echo "nameserver 127.0.0.53" > /etc/resolv.conf
+echo "nameserver 223.5.5.5" > /etc/resolv.conf
+echo "nameserver 223.6.6.6" >> /etc/resolv.conf
 
 echo '
 deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse
 deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-updates main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-backports main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-security main restricted universe multiverse
 ' > /etc/apt/sources.list
 
 export DEBIAN_FRONTEND=noninteractive 
@@ -83,8 +85,8 @@ apt install -y --no-install-recommends init udev dbus rsyslog
 apt install -y --no-install-recommends iproute2 iputils-ping network-manager
 #apt install -y --no-install-recommends sudo ssh bash-completion htop
 
-dpkg -i /packages/libdrm/*.deb
-apt-get install -f -y
+#dpkg -i /packages/libdrm/*.deb
+#apt-get install -f -y
 
 #------------------------------------------------------------------------
 echo -e "\033[36m configuration.................... \033[0m"
@@ -127,7 +129,6 @@ rm /lib/systemd/system/wpa_supplicant@.service
 echo -e "\033[36m clean.................... \033[0m"
 
 rm -rf /var/lib/apt/lists/*
-#rm -rf /packages
 
 EOF
 unmount-rootfs
@@ -141,6 +142,9 @@ sudo cp -rfp $ROOTFS_DIR/* $ROOTFS_MNT
 sudo umount $ROOTFS_MNT
 e2fsck -p -f $ROOTFS_IMG
 resize2fs -M $ROOTFS_IMG
+
+sync
+remove-rootfs
 
 echo -e "\n\e[36m Done. \e[0m"
 ls $DISTRO -lh

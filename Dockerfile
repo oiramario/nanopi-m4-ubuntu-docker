@@ -9,26 +9,25 @@ USER root
 
 # cn sources
 RUN cat << EOF > /etc/apt/sources.list \
-    && SOURCES="http://mirrors.aliyun.com/ubuntu/" \
+    && SOURCES="http://mirrors.163.com/ubuntu/" \
     && echo "\
 deb $SOURCES bionic main restricted universe multiverse \n\
-deb $SOURCES bionic-security main restricted universe multiverse \n\
 deb $SOURCES bionic-updates main restricted universe multiverse \n\
-deb $SOURCES bionic-proposed main restricted universe multiverse \n\
-deb $SOURCES bionic-backports main restricted universe multiverse\
 " > /etc/apt/sources.list \
-    # silent installation for apt-get
-    && DEBIAN_FRONTEND=noninteractive \
+    # dns server
+    && echo "nameserver 223.5.5.5" > /etc/resolv.conf \
+    && echo "nameserver 223.6.6.6" >> /etc/resolv.conf \
     # reuses the cache
     && apt-get update \
-    && apt-get install -y \
+    && DEBIAN_FRONTEND=noninteractive \
+       apt-get install -y \
                      # compile
                     gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  make  patch \
                     # u-boot
                     bison  flex \
                     # kernel
-                    bc  libssl-dev \
-                    # initrd
+                    bc  libssl-dev  kmod \
+                    # initramfs
                     cpio \
                     # FIT(Flattened Image Tree)
                     device-tree-compiler \
@@ -53,13 +52,19 @@ ADD "packages/kernel-rockchip.tar.gz" "$BUILD/"
 COPY "patch/" "$BUILD/patch/"
 RUN set -x \
     && cd kernel-rockchip \
-\
     # patch
-    && export REALSENSE_PATCH=../patch/kernel/realsense \
-    && for i in `ls $REALSENSE_PATCH`; do patch -p1 < $REALSENSE_PATCH/$i; done \
-\
+    && export REALSENSE_PATCH="../patch/kernel/realsense" \
+    && for x in `ls $REALSENSE_PATCH`; do patch -p1 < $REALSENSE_PATCH/$x; done \
+    # make
     && make nanopi4_linux_defconfig \
-    && make -j$(nproc)
+    && make -j$(nproc) \
+\
+    # install modules
+    && export OUT="$BUILD/kmodules" \
+    && make INSTALL_MOD_PATH=$OUT modules_install \
+    && KREL=`make kernelrelease` \
+    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
+    && (cd $OUT && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
 
 
 # u-boot
@@ -67,11 +72,10 @@ ADD "packages/u-boot.tar.gz" "$BUILD/"
 ADD "packages/rkbin.tar.gz" "$BUILD/"
 RUN set -x \
     && cd u-boot \
-\
+    # make
     && make evb-rk3399_defconfig \
     # disable boot delay
-#    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
-\
+    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
     && make -j$(nproc)
 
 
@@ -79,20 +83,18 @@ RUN set -x \
 ADD "packages/busybox.tar.gz" "$BUILD/"
 RUN set -x \
     && cd busybox \
-\
+    # make
     && make defconfig \
     # static link
     && sed -i "s:# CONFIG_STATIC is not set:CONFIG_STATIC=y:" .config \
-\
-    && make -j$(nproc) \
-    && make install
+    && make -j$(nproc)
 
 #----------------------------------------------------------------------------------------------------------------#
 
 ENV ROOTFS="$DISTRO/rootfs"
 
 # libmali
-#ADD "packages/libmali.tar.gz" "${BUILD}/"
+#ADD "packages/libmali.tar.gz" "$BUILD/"
 #RUN set -x \
 #    && cd libmali \
 #    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
@@ -154,10 +156,11 @@ RUN set -x \
     && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
-# boot.img
-ENV BOOT="$BUILD/boot"
-COPY "boot/" "$BOOT/"
+# boot
+ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
+COPY "boot/" "$BUILD/boot/"
 RUN set -x \
+    && export BOOT="$BUILD/boot" \
     && cd "$BUILD/kernel-rockchip/arch/arm64/boot" \
     # kernel
     && cp ./Image.gz "$BOOT/kernel.gz" \
@@ -165,8 +168,24 @@ RUN set -x \
     && cp ./dts/rockchip/rk3399-nanopi4-rev0*.dtb "$BOOT/" \
 \
     # initramfs
-    && cd "$BOOT/initramfs" \
-    && cp -R $BUILD/busybox/_install/* . \
+    && export INITRAMFS="$BOOT/initramfs" \
+    && cd "$BUILD/busybox" \
+    && make CONFIG_PREFIX="$INITRAMFS" install \
+\
+    # kernel modules
+    && cp -rf $BUILD/kmodules/* $INITRAMFS/ \
+\
+    # firmware
+    && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $INITRAMFS/ \
+\
+    # clean
+    && cd "$INITRAMFS/usr/bin" \
+    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
+    && mv -f rk_wifi_init_64 rk_wifi_init \
+    && rm -f brcm_patchram_plus1_32  rk_wifi_init_3s2 \
+\
+    # cpio.gz
+    && cd "$INITRAMFS" \
     && rm linuxrc \
     && find . | cpio -o -H newc | gzip > "$BOOT/ramdisk.cpio.gz" \
 \
@@ -177,14 +196,13 @@ RUN set -x \
     && ./mkimage -f $BOOT/rk3399-fit.its $BOOT/image/fit.itb \
 \
     # make image
-    && export BOOT_IMG=$DISTRO/boot.img \
-    && genext2fs -b 32768 -B $((32*1024*1024/32768)) -d $BOOT/image -i 8192 -U $BOOT_IMG \
+    && export BOOT_IMG="$DISTRO/boot.img" \
+    && genext2fs -b 65536 -d $BOOT/image $BOOT_IMG \
     && e2fsck -p -f $BOOT_IMG \
     && resize2fs -M $BOOT_IMG
 
 
 # rootfs
-ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 RUN set -x \
     && mkdir -p $ROOTFS \
     && cd rk-rootfs-build \

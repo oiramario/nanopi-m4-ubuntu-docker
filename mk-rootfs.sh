@@ -120,7 +120,7 @@ passwd root
 root
 root
 
-useradd -G -m -s /bin/bash flagon
+useradd -m -s /bin/bash flagon
 passwd flagon
 111
 111

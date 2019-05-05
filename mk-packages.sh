@@ -2,6 +2,10 @@
 #
 #set -x
 
+PACKAGES_DIR=$PWD/packages
+mkdir -p $PACKAGES_DIR
+cd $PACKAGES_DIR
+
 gits=(
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/rkbin.git,rkbin"
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/u-boot.git,u-boot"

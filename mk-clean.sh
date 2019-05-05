@@ -10,3 +10,6 @@ else
     docker container prune -f
     docker rmi $(docker images -q)
 fi
+
+DISTRO=$PWD/distro
+rm -rf $DISTRO

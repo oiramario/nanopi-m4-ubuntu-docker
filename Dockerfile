@@ -201,34 +201,6 @@ RUN set -x \
     && e2fsck -p -f $BOOT_IMG \
     && resize2fs -M $BOOT_IMG
 
-
-# rootfs
-RUN set -x \
-    && mkdir -p $ROOTFS \
-    && cd rk-rootfs-build \
-\
-    # packages
-    && cp -rf packages/arm64 $ROOTFS/packages/ \
-    # some configs
-    && cp -rf overlay/* $ROOTFS/ \
-    # firmware
-    && cp -rf overlay-firmware/* $ROOTFS/ \
-    && cd $ROOTFS/usr/bin \
-    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
-    && mv -f rk_wifi_init_64 rk_wifi_init \
-    && rm -f brcm_patchram_plus1_32  rk_wifi_init_32 \
-\
-    # modules: bt, wifi, audio
-    && mkdir -p $ROOTFS/system/lib/modules/ \
-    && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
-    && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/system/lib/modules/"
-
-
-#RUN set -x \
-#    && cd gbm-drm-gles-cube \
-#    && cp gbm-drm-gles-cube "$ROOTFS/usr/bin/"
-
-
 #----------------------------------------------------------------------------------------------------------------#
 
 # clean
@@ -243,6 +215,6 @@ RUN set -x \
 #              usr/lib/pkgconfig usr/lib/cmake usr/lib/*.a usr/lib/*.la
 
 RUN cd "$DISTRO" \
-    && tar czf /distro.tar *
+    && tar czf /boot.tar *
 
 #----------------------------------------------------------------------------------------------------------------#

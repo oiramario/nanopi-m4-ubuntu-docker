@@ -2,6 +2,11 @@
 #
 #set -x
 
+if [ ! -d distro ]; then
+    echo -e "\e[5m run mk-boot.sh and mk-rootfs.sh first. \e[0m"
+    exit
+fi
+
 DISTRO_DIR=$PWD/distro
 TOOLS_DIR=$PWD/tools
 
@@ -45,7 +50,7 @@ do
     name=${name%%:*}
 
     if [ $name != "reserved" ];then
-        echo -e "\e[36m $name: addr=$addr size=$size \e[0m"
+        echo -e "\e[36m $name: address=$addr size=$size \e[0m"
         $TOOLS_DIR/rkdeveloptool wl $addr $DISTRO_DIR/$name.img
         sleep 1
     fi

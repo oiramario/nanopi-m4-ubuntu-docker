@@ -2,6 +2,11 @@
 #
 #set -x
 
+if [ ! -d packages ]; then
+    echo -e "\e[5m run mk-packages.sh first. \e[0m"
+    exit
+fi
+
 DISTRO=$PWD/distro
 mkdir -p $DISTRO
 
@@ -10,6 +15,7 @@ rm -f $DISTRO/idbloader.img
 rm -f $DISTRO/trust.img
 rm -f $DISTRO/uboot.img
 rm -f $DISTRO/boot.img
+rm -rf $DISTRO/rootfs
 
 echo -e "\n\e[36m Building boot images \e[0m"
 docker build -t rk3399 .

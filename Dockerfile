@@ -57,15 +57,7 @@ RUN set -x \
     && for x in `ls $REALSENSE_PATCH`; do patch -p1 < $REALSENSE_PATCH/$x; done \
     # make
     && make nanopi4_linux_defconfig \
-    && make -j$(nproc) \
-\
-    # install modules
-    && export OUT="$BUILD/kmodules" \
-    && make INSTALL_MOD_PATH=$OUT modules_install \
-    && KREL=`make kernelrelease` \
-    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
-    && (cd $OUT && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
-
+    && make -j$(nproc)
 
 # u-boot
 ADD "packages/u-boot.tar.gz" "$BUILD/"
@@ -92,6 +84,7 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 
 ENV ROOTFS="$DISTRO/rootfs"
+RUN mkdir -p $ROOTFS
 
 # libmali
 #ADD "packages/libmali.tar.gz" "$BUILD/"
@@ -156,6 +149,21 @@ RUN set -x \
     && cp rk3399_loader_*.bin "$DISTRO/MiniLoaderAll.bin"
 
 
+# kernel modules
+RUN set -x \
+    && cd kernel-rockchip \
+    && make INSTALL_MOD_PATH=$ROOTFS modules_install \
+    && KREL=`make kernelrelease` \
+    && rm -rf "$ROOTFS/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
+    && rm -rf "$ROOTFS/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
+    && (cd $ROOTFS && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded) \
+\
+    # modules: bt, wifi, audio
+    && mkdir -p $ROOTFS/system/lib/modules/ \
+    && cd "$BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan" \
+    && find . -name "*.ko" | xargs -n1 -i cp {} "$ROOTFS/system/lib/modules/"
+
+
 # boot
 ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
 COPY "boot/" "$BUILD/boot/"
@@ -172,17 +180,10 @@ RUN set -x \
     && cd "$BUILD/busybox" \
     && make CONFIG_PREFIX="$INITRAMFS" install \
 \
-    # kernel modules
-    && cp -rf $BUILD/kmodules/* $INITRAMFS/ \
-\
     # firmware
-    && cp -rf $BUILD/rk-rootfs-build/overlay-firmware/* $INITRAMFS/ \
-\
-    # clean
-    && cd "$INITRAMFS/usr/bin" \
-    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
-    && mv -f rk_wifi_init_64 rk_wifi_init \
-    && rm -f brcm_patchram_plus1_32  rk_wifi_init_3s2 \
+    && mkdir -p $INITRAMFS/lib/firmware \
+    && cd $BUILD/rk-rootfs-build/overlay-firmware/lib/firmware \
+    && cp -rf rockchip $INITRAMFS/lib/firmware/ \
 \
     # cpio.gz
     && cd "$INITRAMFS" \

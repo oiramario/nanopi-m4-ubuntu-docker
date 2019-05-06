@@ -7,6 +7,11 @@ if [ ! `id -u` = 0 ] ; then
     exit
 fi
 
+if [ ! -d packages ]; then
+    echo -e "\e[5m run mk-packages.sh first. \e[0m"
+    exit
+fi
+
 
 DISTRO=$PWD/distro
 mkdir -p $DISTRO
@@ -52,29 +57,42 @@ trap test EXIT
 
 # build rootfs
 #------------------------------------------------------------------------
-echo -e "\n\e[36m Extract image \e[0m"
-
+echo -e "\e[36m Extract image \e[0m"
 rm -rf $ROOTFS_DIR
 mkdir -p $ROOTFS_DIR
-
 #qemu-debootstrap --arch=arm64 --variant=minbase --verbose --include=locales,dbus --foreign bionic $ROOTFS_DIR http://mirrors.aliyun.com/ubuntu-ports/
 tar xzf packages/ubuntu-rootfs.tar.gz -C $ROOTFS_DIR/
 cp /usr/bin/qemu-aarch64-static $ROOTFS_DIR/usr/bin
+echo -e "\e[32m Done \e[0m\n"
 
-echo -e "\n\e[36m Copy overlay to rootfs \e[0m"
+echo -e "\e[36m Copy kernel modules and firmwares \e[0m"
+cp -rf $DISTRO/rootfs/* $ROOTFS_DIR/
+echo -e "\e[32m Done \e[0m\n"
+
 tar xzf packages/rk-rootfs-build.tar.gz -C /tmp/
 mkdir -p $ROOTFS_DIR/packages
+echo -e "\e[32m Done \e[0m\n"
 
+echo -e "\e[36m Copy packages \e[0m"
 RK_ROOTFS=/tmp/rk-rootfs-build
 cp -rf $RK_ROOTFS/packages/arm64/* $ROOTFS_DIR/packages/
-# some configs
+echo -e "\e[32m Done \e[0m\n"
+
+echo -e "\e[36m Copy overlay \e[0m"
 cp -rf $RK_ROOTFS/overlay/* $ROOTFS_DIR/
-# firmware
+chmod +x $ROOTFS_DIR/etc/rc.local
+echo -e "\e[32m Done \e[0m\n"
+
+echo -e "\e[36m Copy firmware \e[0m"
 cp -rf $RK_ROOTFS/overlay-firmware/* $ROOTFS_DIR/
 mv -f $ROOTFS_DIR/usr/bin/brcm_patchram_plus1_64 $ROOTFS_DIR/usr/bin/brcm_patchram_plus1
 mv -f $ROOTFS_DIR/usr/bin/rk_wifi_init_64 $ROOTFS_DIR/usr/bin/rk_wifi_init
 rm -f $ROOTFS_DIR/usr/bin/brcm_patchram_plus1_32  $ROOTFS_DIR/usr/bin/rk_wifi_init_32
+# for wifi_chip save
+mkdir -p $ROOTFS_DIR/data
+echo -e "\e[32m Done \e[0m\n"
 
+echo -e "\e[36m Config ubuntu \e[0m"
 mount -t proc /proc $ROOTFS_DIR/proc
 mount -t sysfs /sys $ROOTFS_DIR/sys
 mount -o bind /dev $ROOTFS_DIR/dev
@@ -106,9 +124,9 @@ update-locale LANG=en_US.UTF-8
 
 apt -y upgrade
 
-apt install -y --no-install-recommends init udev dbus rsyslog
+apt install -y --no-install-recommends init udev dbus rsyslog module-init-tools
 apt install -y --no-install-recommends iproute2 iputils-ping network-manager
-#apt install -y --no-install-recommends ssh bash-completion htop
+apt install -y --no-install-recommends ssh bash-completion htop
 
 #dpkg -i /packages/libdrm/*.deb
 #apt-get install -f -y
@@ -140,6 +158,12 @@ Name=eth0
 DHCP=yes
 ' > /etc/systemd/network/eth0.network
 
+# TODO update modules.dep
+# depmod
+
+# TODO free rootfs size
+# resize2fs /dev/mmcblk1p6
+
 #------------------------------------------------------------------------
 echo -e "\033[36m custom script.................... \033[0m"
 
@@ -154,6 +178,8 @@ rm /lib/systemd/system/wpa_supplicant@.service
 echo -e "\033[36m clean.................... \033[0m"
 
 rm -rf /var/lib/apt/lists/*
+apt autoremove
+apt clean
 
 EOF
 
@@ -163,6 +189,7 @@ umount $ROOTFS_DIR/dev/pts
 umount $ROOTFS_DIR/dev
 sync
 
+echo -e "\e[36m Make rootfs.img \e[0m"
 dd if=/dev/zero of=$ROOTFS_IMG bs=1M count=512
 mkfs.ext4 $ROOTFS_IMG
 mkdir -p $ROOTFS_MNT
@@ -176,5 +203,5 @@ sync
 rm -rf $ROOTFS_MNT
 rm -rf $ROOTFS_DIR
 
-echo -e "\n\e[36m Done. \e[0m"
+echo -e "\e[32m Done \e[0m\n"
 ls $DISTRO -lh

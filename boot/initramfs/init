@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-mkdir -p /proc /sys /dev /etc /lib
+mkdir -p /proc /sys /dev
 
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys

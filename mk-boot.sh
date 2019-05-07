@@ -8,7 +8,9 @@ if [ ! -d packages ]; then
 fi
 
 DISTRO=$PWD/distro
-mkdir -p $DISTRO
+if [ ! -d $DISTRO ]; then
+    mkdir -p $DISTRO
+fi
 
 rm -f $DISTRO/MiniLoaderAll.bin
 rm -f $DISTRO/idbloader.img

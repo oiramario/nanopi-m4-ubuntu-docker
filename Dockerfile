@@ -86,46 +86,6 @@ RUN set -x \
 ENV ROOTFS="$DISTRO/rootfs"
 RUN mkdir -p $ROOTFS
 
-# libmali
-#ADD "packages/libmali.tar.gz" "$BUILD/"
-#RUN set -x \
-#    && cd libmali \
-#    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
-#             -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
-#    && make install
-
-
-# librealsense
-#RUN apt-get install -y sudo
-#COPY "toolchain.cmake" "$BUILD/"
-#ADD "packages/librealsense.tar.gz" "${BUILD}/"
-#RUN set -x \
-#    && cd librealsense \
-#    && cp config/99-realsense-libusb.rules "${ROOTFS}/etc/udev/rules.d/" \
-#    && ./scripts/patch-realsense-ubuntu-lts.sh \
-#    && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
-#       cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
-#             -DCMAKE_BUILD_TYPE=Release \
-#             -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-#             -DBUILD_WITH_TM2=false -DBUILD_GRAPHICAL_EXAMPLES=false \
-#             -DBUILD_EXAMPLES=false -DHWM_OVER_XU=false \
-#             -DBUILD_WITH_STATIC_CRT=false . \
-#    && make -j$(nproc) \
-#    && make install
-
-
-# gbm-drm-gles-cube
-#ADD "packages/gbm-drm-gles-cube.tar.gz" "${BUILD}/"
-#COPY "packages/src/gbm-drm-gles-cube" "${BUILD}/gbm-drm-gles-cube/"
-#RUN set -x \
-#    && cd gbm-drm-gles-cube \
-#    && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
-#       cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-#    && make -j$(nproc)
-
-
-#----------------------------------------------------------------------------------------------------------------#
-
 # uboot
 RUN set -x \
     && cd rkbin \
@@ -201,6 +161,47 @@ RUN set -x \
     && genext2fs -b 65536 -d $BOOT/image $BOOT_IMG \
     && e2fsck -p -f $BOOT_IMG \
     && resize2fs -M $BOOT_IMG
+
+#----------------------------------------------------------------------------------------------------------------#
+
+# libmali
+#ADD "packages/libmali.tar.gz" "$BUILD/"
+#RUN set -x \
+#    && cd libmali \
+#    && mv include/midgard/arm/winsys_dummy include/midgard/arm/winsys_x11 \
+#    && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
+#             -DTARGET_SOC=rk3399 -DDP_FEATURE=x11 . \
+#    && make install
+
+
+# librealsense
+#RUN apt-get install -y sudo
+#COPY "toolchain.cmake" "$BUILD/"
+#ADD "packages/librealsense.tar.gz" "${BUILD}/"
+#RUN set -x \
+#    && cd librealsense \
+#    && cp config/99-realsense-libusb.rules "${ROOTFS}/etc/udev/rules.d/" \
+#    && ./scripts/patch-realsense-ubuntu-lts.sh \
+#    && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
+#       cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr" \
+#             -DCMAKE_BUILD_TYPE=Release \
+#             -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+#             -DBUILD_WITH_TM2=false -DBUILD_GRAPHICAL_EXAMPLES=false \
+#             -DBUILD_EXAMPLES=false -DHWM_OVER_XU=false \
+#             -DBUILD_WITH_STATIC_CRT=false . \
+#    && make -j$(nproc) \
+#    && make install
+
+
+# gbm-drm-gles-cube
+#ADD "packages/gbm-drm-gles-cube.tar.gz" "${BUILD}/"
+#COPY "packages/src/gbm-drm-gles-cube" "${BUILD}/gbm-drm-gles-cube/"
+#RUN set -x \
+#    && cd gbm-drm-gles-cube \
+#    && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
+#       cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+#    && make -j$(nproc)
+
 
 #----------------------------------------------------------------------------------------------------------------#
 

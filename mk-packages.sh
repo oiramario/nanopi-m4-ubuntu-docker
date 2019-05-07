@@ -49,14 +49,12 @@ do
             --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r13p0-* \
             --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
             --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
-            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so \
-            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11-gbm.so"
+            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
     elif [ $dir = "rk-rootfs-build" ];then
         option="\
             --exclude=overlay-debug \
             --exclude=overlay-firmware/usr/share/npu_fw \
             --exclude=packages/armhf \
-            --exclude=packages/arm64/libmali \
             --exclude=packages/arm64/others \
             --exclude=packages/arm64/video \
             --exclude=packages/arm64/xserver \

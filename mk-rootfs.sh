@@ -63,26 +63,30 @@ mkdir -p $ROOTFS_DIR
 #qemu-debootstrap --arch=arm64 --variant=minbase --verbose --include=locales,dbus --foreign bionic $ROOTFS_DIR http://mirrors.aliyun.com/ubuntu-ports/
 tar xzf packages/ubuntu-rootfs.tar.gz -C $ROOTFS_DIR/
 cp /usr/bin/qemu-aarch64-static $ROOTFS_DIR/usr/bin
+# rockchip rootfs
+RK_ROOTFS=/tmp/rk-rootfs-build
+rm -rf $RK_ROOTFS
+tar xzf packages/rk-rootfs-build.tar.gz -C /tmp/
 echo -e "\e[32m Done \e[0m\n"
 
+# kernel modules
 echo -e "\e[36m Copy kernel modules and firmwares \e[0m"
 cp -rf $DISTRO/rootfs/* $ROOTFS_DIR/
 echo -e "\e[32m Done \e[0m\n"
 
-tar xzf packages/rk-rootfs-build.tar.gz -C /tmp/
-mkdir -p $ROOTFS_DIR/packages
-echo -e "\e[32m Done \e[0m\n"
-
+# rockchip packages
 echo -e "\e[36m Copy packages \e[0m"
-RK_ROOTFS=/tmp/rk-rootfs-build
+mkdir -p $ROOTFS_DIR/packages
 cp -rf $RK_ROOTFS/packages/arm64/* $ROOTFS_DIR/packages/
 echo -e "\e[32m Done \e[0m\n"
 
+# rockchip overlay
 echo -e "\e[36m Copy overlay \e[0m"
 cp -rf $RK_ROOTFS/overlay/* $ROOTFS_DIR/
 chmod +x $ROOTFS_DIR/etc/rc.local
 echo -e "\e[32m Done \e[0m\n"
 
+# rockchip firmware
 echo -e "\e[36m Copy firmware \e[0m"
 cp -rf $RK_ROOTFS/overlay-firmware/* $ROOTFS_DIR/
 mv -f $ROOTFS_DIR/usr/bin/brcm_patchram_plus1_64 $ROOTFS_DIR/usr/bin/brcm_patchram_plus1
@@ -127,8 +131,15 @@ apt -y upgrade
 apt install -y --no-install-recommends init udev dbus rsyslog module-init-tools
 apt install -y --no-install-recommends iproute2 iputils-ping network-manager
 apt install -y --no-install-recommends ssh bash-completion htop
+# glmark2-es2
 
 #dpkg -i /packages/libdrm/*.deb
+#apt-get install -f -y
+
+#dpkg -i /packages/libmali/libmali-rk-midgard-t86x-r14p0_1.6-2_arm64.deb
+#apt-get install -f -y
+
+#dpkg -i /packages/libmali/libmali-rk-dev_1.6-2_arm64.deb
 #apt-get install -f -y
 
 #------------------------------------------------------------------------

@@ -2,27 +2,6 @@
 #
 #set -x
 
-rm -f ${DISTRO}/MiniLoaderAll.bin
-rm -f ${DISTRO}/idbloader.img
-rm -f ${DISTRO}/trust.img
-rm -f ${DISTRO}/uboot.img
-rm -f ${DISTRO}/boot.img
-
-BOOT=/tmp/boot
-if [ -d ${BOOT} ]; then
-    rm -rf ${BOOT}
-fi
-mkdir -p ${BOOT}
-
-
-pack_loader_image()
-{
-    cd ${BUILD}/rkbin
-    cp -f idbloader.img uboot.img trust.img ${DISTRO}/
-    cp -f rk3399_loader_*.bin ${DISTRO}/MiniLoaderAll.bin
-}
-
-
 pack_initramfs_image()
 {
     local path=/tmp/initramfs
@@ -36,12 +15,10 @@ pack_initramfs_image()
     cp -rf ${BUILD}/initramfs/* ${path}/
 
     # dptx.bin
-    cd /tmp
-    local dptx_src=rk-rootfs-build/overlay-firmware/lib/firmware/rockchip/dptx.bin
-    tar xzf ${HOME}/packages/rk-rootfs-build.tar.gz ${dptx}
+    local dptx_src=${BUILD}/rk-rootfs-build/overlay-firmware/lib/firmware/rockchip/dptx.bin
     local dptx_dst=${path}/lib/firmware/rockchip/dptx.bin
     mkdir -p ${dptx_dst}
-    cp /tmp/${dptx_src} ${dptx_dst}
+    cp ${dptx_src} ${dptx_dst}
 
     # ramdisk.cpio.gz
     cd ${path}
@@ -53,6 +30,16 @@ pack_initramfs_image()
 
 pack_boot_image()
 {
+    # clean
+    rm -f ${DISTRO}/boot.img
+
+    BOOT=/tmp/boot
+    if [ -d ${BOOT} ]; then
+        rm -rf ${BOOT}
+    fi
+    mkdir -p ${BOOT}
+
+    # initramfs
     pack_initramfs_image
 
     cd ${BUILD}/kernel-rockchip/arch/arm64/boot
@@ -90,6 +77,5 @@ finish()
 }
 
 
-pack_loader_image
 pack_boot_image
 finish

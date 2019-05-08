@@ -91,24 +91,6 @@ RUN set -x \
     && make -j$(nproc)
 
 
-RUN set -x \
-    && cd rkbin \
-    && export PATH_FIXUP="--replace tools/rk_tools/ ./" \
-\
-    # boot loader
-    && tools/boot_merger $PATH_FIXUP RKBOOT/RK3399MINIALL.ini \
-\
-    # idbloader.img
-    && ../u-boot/tools/mkimage -T rksd -n rk3399 -d $(find bin/rk33/ -name "rk3399_ddr_800MHz_v*.bin") idbloader.img \
-    && cat $(find bin/rk33/ -name "rk3399_miniloader_v*.bin") >> idbloader.img \
-\
-    # uboot.img
-    && tools/loaderimage --pack --uboot ../u-boot/u-boot.bin uboot.img 0x00200000 \
-\
-    # trust.img
-    && tools/trust_merger $PATH_FIXUP RKTRUST/RK3399TRUST.ini
-
-
 # busybox
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/busybox.tar.gz" "$BUILD/"
@@ -123,9 +105,21 @@ RUN set -x \
     && export OUT="$BUILD/initramfs" \
     && make CONFIG_PREFIX=$OUT install
 
-# ready to go
+
+# rockchip rootfs
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
+
+
+# ubuntu bionic
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/"
+
+
+# here we go
 #----------------------------------------------------------------------------------------------------------------#
 
 ENV DISTRO /root/distro
+ENV PATH ${PATH}:/root/archives/scripts
 
 WORKDIR /root

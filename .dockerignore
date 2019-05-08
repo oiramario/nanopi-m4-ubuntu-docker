@@ -4,10 +4,9 @@
 .gitignore
 .vscode
 
-packages/*
-!packages/*.tar.gz
-
+archives
 distro
+gits
 tools
 
 *.sh

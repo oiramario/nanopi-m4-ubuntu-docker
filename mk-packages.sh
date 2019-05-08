@@ -2,9 +2,18 @@
 #
 #set -x
 
+GITS_DIR=$PWD/gits
 PACKAGES_DIR=$PWD/packages
-mkdir -p $PACKAGES_DIR
-cd $PACKAGES_DIR
+
+if [ ! -d $GITS_DIR ]; then
+    mkdir -p $GITS_DIR
+fi
+
+if [ ! -d $PACKAGES_DIR ]; then
+    mkdir -p $PACKAGES_DIR
+fi
+
+cd $GITS_DIR
 
 gits=(
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/rkbin.git,rkbin"
@@ -31,7 +40,7 @@ do
     else
         if [[ `git -C $dir pull` =~ "Already up to date." ]];then
             echo up-to-date sources.
-            if [ -f $dir.tar.gz ]; then
+            if [ -f $PACKAGES_DIR/$dir.tar.gz ]; then
                 echo up-to-date package.
                 continue
             fi
@@ -62,14 +71,14 @@ do
             --exclude=ubuntu-build-service"
     fi
 
-    eval tar --exclude-vcs $option -czf $dir.tar.gz $dir
+    eval tar --exclude-vcs $option -czf $PACKAGES_DIR/$dir.tar.gz $dir
 
     echo -e "\e[32m done.\n \e[0m"
 done
 
 echo -e "\e[34m checking ubuntu-rootfs ... \e[0m"
-if [ ! -f ubuntu-rootfs.tar.gz ]; then
-    wget -O ubuntu-rootfs.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz
+if [ ! -f $PACKAGES_DIR/ubuntu-rootfs.tar.gz ]; then
+    wget -O $PACKAGES_DIR/ubuntu-rootfs.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz
 else
     echo ubuntu-rootfs exists.
 fi

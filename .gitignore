@@ -1,6 +1,7 @@
 # gitignore
 .vscode
 
+gits
 packages
 distro
 tools/log

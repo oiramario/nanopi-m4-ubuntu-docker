@@ -65,30 +65,10 @@ OS Image for development with the following tidbits:
 
         wget https://github.com/IntelRealSense/librealsense/archive/v2.19.0.tar.gz
 
-### parameter
-        +----------------------------+---------------------+-------------------+--------------------+----------------+--------------------------------------+
-        | Partition                  |     Start Sector    | Number of Sectors |   Partition Size   | PartNum in GPT | Requirements                         |
-        +----------------------------+----------+----------+--------+----------+--------------------+----------------+--------------------------------------+
-        | MBR                        |        0 | 00000000 |      1 | 00000001 |       512 |  0.5KB |                |                                      |
-        | Primary GPT                |        1 | 00000001 |     63 | 0000003F |     32256 | 31.5KB |                |                                      |
-        | loader1                    |       64 | 00000040 |   7104 | 00001BC0 |   4096000 |  2.5MB |        1       | preloader (miniloader or U-Boot SPL) |
-        | Vendor Storage             |     7168 | 00001C00 |    512 | 00000200 |    262144 |  256KB |                | SN, MAC and etc.                     |
-        | Reserved Space             |     7680 | 00001E00 |    384 | 00000180 |    196608 |  192KB |                | Not used                             |
-        | reserved1                  |     8064 | 00001F80 |    128 | 00000080 |     65536 |   64KB |                | legacy DRM key                       |
-        | U-Boot ENV                 |     8128 | 00001FC0 |     64 | 00000040 |     32768 |   32KB |                |                                      |
-        | reserved2                  |     8192 | 00002000 |   8192 | 00002000 |   4194304 |    4MB |                | legacy parameter                     |
-        | loader2                    |    16384 | 00004000 |   8192 | 00002000 |   4194304 |    4MB |        2       | U-Boot or UEFI                       |
-        | trust                      |    24576 | 00006000 |   8192 | 00002000 |   4194304 |    4MB |        3       | trusted-os like ATF, OP-TEE          |
-        | boot(bootable must be set) |    32768 | 00008000 | 229376 | 00038000 | 117440512 |  112MB |        4       | kernel, dtb, extlinux.conf, ramdisk  |
-        | rootfs                     |   262144 | 00040000 |    -   |     -    |     -     |    -MB |        5       | Linux system                         |
-        | Secondary GPT              | 16777183 | 00FFFFDF |     33 | 00000021 |     16896 | 16.5KB |                |                                      |
-        +----------------------------+----------+----------+--------+----------+-----------+--------+----------------+--------------------------------------+
-
-
 # howto
 ### pre-build
 
-    apt install docker-ce git git-lfs
+    apt install docker-ce git
     git clone https://github.com/oiramario/rk3399-docker.git
     cd rk3399-docker
     ./build.sh

@@ -2,30 +2,16 @@
 #
 #set -x
 
-if [ ! `id -u` = 0 ] ; then
-    echo -e "\e[5m script must running with root. \e[0m"
-    exit
-fi
-
-if [ ! -d packages ]; then
-    echo -e "\e[5m run mk-packages.sh first. \e[0m"
-    exit
-fi
-
-
-DISTRO=$PWD/distro
-mkdir -p $DISTRO
-
 ROOTFS_IMG=$DISTRO/rootfs.img
 rm -f $ROOTFS_IMG
 
-ROOTFS_MNT=/tmp/rk3399-rootfs-mnt
+ROOTFS_MNT=/tmp/rootfs-mnt
 if [ -d $ROOTFS_MNT ]; then
     umount $ROOTFS_MNT >/dev/null 2>&1
     rm -rf $ROOTFS_MNT
 fi
 
-ROOTFS_DIR=/tmp/rk3399-rootfs
+ROOTFS_DIR=/tmp/rootfs
 if [ -d $ROOTFS_DIR ]; then
     umount $ROOTFS_DIR/proc >/dev/null 2>&1
     umount $ROOTFS_DIR/sys >/dev/null 2>&1
@@ -42,17 +28,9 @@ finish () {
     umount $ROOTFS_DIR/dev >/dev/null 2>&1
     umount $ROOTFS_MNT >/dev/null 2>&1
 
-    rm -rf $ROOTFS_MNT
-    rm -rf $ROOTFS_DIR
-
     exit 1
 }
 trap finish ERR
-
-test () {
-    echo "exit..."
-}
-trap test EXIT
 
 
 # build rootfs
@@ -60,25 +38,37 @@ trap test EXIT
 echo -e "\e[36m Extract image \e[0m"
 rm -rf $ROOTFS_DIR
 mkdir -p $ROOTFS_DIR
-#qemu-debootstrap --arch=arm64 --variant=minbase --verbose --include=locales,dbus --foreign bionic $ROOTFS_DIR http://mirrors.aliyun.com/ubuntu-ports/
-tar xzf packages/ubuntu-rootfs.tar.gz -C $ROOTFS_DIR/
+
+#qemu-debootstrap --arch=arm64 \
+#                 --variant=minbase \
+#                 --verbose \
+#                 --include=locales,ca-certificates \
+#                 --components=main,universe \
+#                 --foreign bionic $ROOTFS_DIR http://mirrors.aliyun.com/ubuntu-ports/
+tar xzf $HOME/packages/ubuntu-rootfs.tar.gz -C $ROOTFS_DIR/
 cp /usr/bin/qemu-aarch64-static $ROOTFS_DIR/usr/bin
+
 # rockchip rootfs
 RK_ROOTFS=/tmp/rk-rootfs-build
 rm -rf $RK_ROOTFS
-tar xzf packages/rk-rootfs-build.tar.gz -C /tmp/
+tar xzf $HOME/packages/rk-rootfs-build.tar.gz -C /tmp/
 echo -e "\e[32m Done \e[0m\n"
 
 # kernel modules
 echo -e "\e[36m Copy kernel modules and firmwares \e[0m"
-cp -rf $DISTRO/rootfs/* $ROOTFS_DIR/
+cp -rf $BUILD/kmodules/* $ROOTFS_DIR/
 echo -e "\e[32m Done \e[0m\n"
 
+# modules: bt, wifi, audio
+mkdir -p $ROOTFS_DIR/system/lib/modules
+cd $BUILD/kernel-rockchip/drivers/net/wireless/rockchip_wlan
+find . -name "*.ko" | xargs -n1 -i cp {} $ROOTFS_DIR/system/lib/modules
+
 # rockchip packages
-echo -e "\e[36m Copy packages \e[0m"
-mkdir -p $ROOTFS_DIR/packages
-cp -rf $RK_ROOTFS/packages/arm64/* $ROOTFS_DIR/packages/
-echo -e "\e[32m Done \e[0m\n"
+#echo -e "\e[36m Copy packages \e[0m"
+#mkdir -p $ROOTFS_DIR/packages
+#cp -rf $RK_ROOTFS/packages/arm64/* $ROOTFS_DIR/packages/
+#echo -e "\e[32m Done \e[0m\n"
 
 # rockchip overlay
 echo -e "\e[36m Copy overlay \e[0m"
@@ -102,7 +92,7 @@ mount -t sysfs /sys $ROOTFS_DIR/sys
 mount -o bind /dev $ROOTFS_DIR/dev
 mount -o bind /dev/pts $ROOTFS_DIR/dev/pts		
 
-cat << EOF | chroot $ROOTFS_DIR/ /bin/bash
+cat << EOF | LC_ALL=C LANG=C chroot $ROOTFS_DIR/ /bin/bash
 
 set -x
 
@@ -121,16 +111,18 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt update
 
-export LANGUAGE=en_US:en
-export LC_ALL=en_US.UTF-8
-apt install -y --no-install-recommends language-pack-en-base apt-utils
-update-locale LANG=en_US.UTF-8
+export LC_ALL=C LANG=C
+apt install -y --no-install-recommends locales apt-utils
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_MESSAGES=en_US.UTF-8
 
 apt -y upgrade
 
 apt install -y --no-install-recommends init udev dbus rsyslog module-init-tools
 apt install -y --no-install-recommends iproute2 iputils-ping network-manager
-apt install -y --no-install-recommends ssh bash-completion htop
+
+#mkdir -p /etc/bash_completion.d/
+#apt install -y --no-install-recommends ssh bash-completion htop
 # glmark2-es2
 
 #dpkg -i /packages/libdrm/*.deb
@@ -193,6 +185,7 @@ apt autoremove
 apt clean
 
 EOF
+sync
 
 umount $ROOTFS_DIR/proc
 umount $ROOTFS_DIR/sys
@@ -211,8 +204,5 @@ e2fsck -p -f $ROOTFS_IMG
 resize2fs -M $ROOTFS_IMG
 
 sync
-rm -rf $ROOTFS_MNT
-rm -rf $ROOTFS_DIR
 
 echo -e "\e[32m Done \e[0m\n"
-ls $DISTRO -lh

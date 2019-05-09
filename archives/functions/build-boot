@@ -1,6 +1,7 @@
-#!/bin/bash
-#
-#set -x
+# Functions:
+# pack_initramfs_image
+# pack_boot_image
+
 
 pack_initramfs_image()
 {
@@ -28,8 +29,7 @@ pack_initramfs_image()
 }
 
 
-pack_boot_image()
-{
+pack_boot_image() {
     # clean
     rm -f ${DISTRO}/boot.img
 
@@ -68,14 +68,3 @@ pack_boot_image()
     e2fsck -p -f ${BOOT_IMG}
     resize2fs -M ${BOOT_IMG}
 }
-
-
-finish()
-{
-    ls ${DISTRO} -lh
-    echo -e "\n\e[36m Done. \e[0m"
-}
-
-
-pack_boot_image
-finish

@@ -1,6 +1,6 @@
-#!/bin/bash
-#
-#set -x
+# Functions:
+# pack_loader_image
+
 
 pack_loader_image()
 {
@@ -29,14 +29,3 @@ pack_loader_image()
     cp -f idbloader.img uboot.img trust.img ${DISTRO}/
     cp -f rk3399_loader_*.bin ${DISTRO}/MiniLoaderAll.bin
 }
-
-
-finish()
-{
-    ls ${DISTRO} -lh
-    echo -e "\n\e[36m Done. \e[0m"
-}
-
-
-pack_loader_image
-finish

@@ -120,6 +120,6 @@ ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/"
 #----------------------------------------------------------------------------------------------------------------#
 
 ENV DISTRO /root/distro
-ENV PATH ${PATH}:/root/archives/scripts
+ENV PATH ${PATH}:/root/archives
 
 WORKDIR /root

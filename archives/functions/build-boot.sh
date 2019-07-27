@@ -2,6 +2,9 @@
 # pack_initramfs_image
 # pack_boot_image
 
+## Functions
+source archives/functions/common-functions.sh
+
 
 pack_initramfs_image()
 {
@@ -29,7 +32,8 @@ pack_initramfs_image()
 }
 
 
-pack_boot_image() {
+pack_boot_image()
+{
     # clean
     rm -f ${DISTRO}/boot.img
 
@@ -40,13 +44,19 @@ pack_boot_image() {
     mkdir -p ${BOOT}
 
     # initramfs
+    echo
+   	info_msg "ramdisk.cpio.gz"
     pack_initramfs_image
 
     cd ${BUILD}/kernel-rockchip/arch/arm64/boot
     # kernel
-    cp Image.gz ${BOOT}/kernel.gz
+    echo
+   	info_msg "kernel"
+    cp Image.gz ${BOOT}/kernel.gz -v
     # dtb
-    cp dts/rockchip/rk3399-nanopi4-rev0*.dtb ${BOOT}/
+    echo
+   	info_msg "dtb(s)"
+    cp dts/rockchip/rk3399-nanopi4-rev0*.dtb ${BOOT}/ -v
 
     # FIT
     local path=${BOOT}/uImage
@@ -55,6 +65,8 @@ pack_boot_image() {
     fi
     mkdir -p ${path}
 
+    echo
+   	info_msg "flattened device tree"
     cd ${HOME}/archives/boot
     cp autoscript.cmd fitImage.its ${BOOT}/
 
@@ -63,6 +75,8 @@ pack_boot_image() {
     ./mkimage -f ${BOOT}/fitImage.its ${path}/fitImage.itb
 
     # make image
+    echo
+   	info_msg "boot.img"
     BOOT_IMG=${DISTRO}/boot.img
     genext2fs -b 16384 -d ${path} ${BOOT_IMG}
     e2fsck -p -f ${BOOT_IMG}

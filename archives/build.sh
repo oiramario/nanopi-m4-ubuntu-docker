@@ -2,22 +2,21 @@
 #set -x
 
 ## Functions
-source archives/functions/common-functions
-source archives/functions/build-loader
-source archives/functions/build-boot
+source archives/functions/common-functions.sh
+source archives/functions/build-loader.sh
+source archives/functions/build-boot.sh
 
 help()
 {
 	echo
 	info_msg "Usage:"
-	info_msg "	./build.sh [target]"
-	info_msg
+	info_msg "	build.sh [target]"
+	echo
 	info_msg "Example:"
-	info_msg
-	info_msg "	./build.sh loader    --- pack loaders image"
-	info_msg "	./build.sh boot      --- pack boot.img"
-	info_msg "	./build.sh rootfs    --- pack rootfs.img"
-	info_msg "	./build.sh all       --- pack all above"
+	info_msg "	build.sh loader    --- pack loaders image"
+	info_msg "	build.sh boot      --- pack boot.img"
+	info_msg "	build.sh rootfs    --- pack rootfs.img"
+	info_msg "	build.sh all       --- pack all above"
 	echo
 }
 
@@ -44,6 +43,6 @@ case "$TARGET" in
 		;;
 esac
 
+echo
+info_msg "Done."
 ls ${DISTRO} -lh
-echo -e "\nDone."
-echo -e "\n`date`"

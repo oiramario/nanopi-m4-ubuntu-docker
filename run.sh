@@ -3,13 +3,12 @@
 #set -x
 
 DISTRO=$(pwd)/distro
-if [ ! -d $DISTRO ]; then
-    mkdir -p $DISTRO
-fi
+[ ! -d $DISTRO ] && mkdir -p $DISTRO
 
 docker run -it \
     -v $(pwd)/distro:/root/distro \
-    -v $(pwd)/archives:/root/archives:ro \
+    -v $(pwd)/scripts:/root/scripts:ro \
     -v /etc/localtime:/etc/localtime:ro \
     --privileged \
-    rk3399
+    rk3399 \
+    /bin/bash

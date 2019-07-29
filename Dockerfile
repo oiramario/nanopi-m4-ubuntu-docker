@@ -7,7 +7,7 @@ LABEL author="oiramario" \
 
 # cn sources
 RUN cat << EOF > /etc/apt/sources.list \
-    && SOURCES="http://mirrors.aliyun.com/ubuntu/" \
+    && SOURCES="http://mirrors.163.com/ubuntu/" \
     && echo "\
 deb $SOURCES bionic main restricted universe multiverse \n\
 deb $SOURCES bionic-updates main restricted universe multiverse \n\
@@ -32,7 +32,7 @@ deb $SOURCES bionic-updates main restricted universe multiverse \n\
                     # boot.img
                     genext2fs \
                     # rootfs
-                    binfmt-support  qemu-user-static  debootstrap \
+                    binfmt-support  qemu-user-static \
                     # local:en_US.UTF-8
                     locales 
 
@@ -106,20 +106,19 @@ RUN set -x \
     && make CONFIG_PREFIX=$OUT install
 
 
+# ubuntu bionic
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/rootfs"
+
+
 # rockchip rootfs
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
-
-
-# ubuntu bionic
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/"
 
 
 # here we go
 #----------------------------------------------------------------------------------------------------------------#
 
 ENV DISTRO /root/distro
-ENV PATH ${PATH}:/root/archives
 
-WORKDIR /root
+WORKDIR /root/scripts

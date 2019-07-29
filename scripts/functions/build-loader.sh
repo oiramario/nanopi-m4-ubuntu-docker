@@ -2,7 +2,7 @@
 # pack_loader_image
 
 ## Functions
-source archives/functions/common-functions.sh
+source functions/common-functions.sh
 
 
 pack_loader_image()
@@ -37,6 +37,6 @@ pack_loader_image()
    	info_msg "trust.img"
     tools/trust_merger ${path_fixup} RKTRUST/RK3399TRUST.ini
 
-    cp -f idbloader.img uboot.img trust.img ${DISTRO}/
-    cp -f rk3399_loader_*.bin ${DISTRO}/MiniLoaderAll.bin
+    cp -v idbloader.img uboot.img trust.img ${DISTRO}/
+    cp -v rk3399_loader_*.bin ${DISTRO}/MiniLoaderAll.bin
 }

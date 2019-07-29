@@ -29,7 +29,7 @@ OS Image for development with the following tidbits:
 
 * u-boot
 
-        git clone --depth 1 https://github.com/u-boot/u-boot.git u-boot
+        git clone --depth 1 -b stable-4.4-rk3399-linux https://github.com/rockchip-linux/u-boot.git u-boot
 
 ### kernel
 
@@ -41,46 +41,22 @@ OS Image for development with the following tidbits:
 
         git clone --depth 1 -b 1_30_stable https://github.com/mirror/busybox.git busybox
 
-* nanopi4-overlay-firmware
+* rk-rootfs-build
 
-        git clone https://github.com/nishantpoorswani/nanopi-m4-bin --depth 1
-
-* libdrm
-
-        git clone https://github.com/numbqq/libdrm-rockchip.git --depth 1 -b rockchip-2.4.91 libdrm-2.4.91
+        git clone --depth 1 -b master https://github.com/friendlyarm/rk-rootfs-build.git rk-rootfs-build
 
 * mali
 
-        git clone https://github.com/rockchip-linux/libmali.git --depth 1 -b rockchip
+        git clone --depth 1 -b rockchip https://github.com/rockchip-linux/libmali.git --depth 1 -b libmali
 
-* eudev
-
-        wget https://github.com/gentoo/eudev/archive/v3.2.7.tar.gz
-
-* libusb
-
-        wget https://github.com/libusb/libusb/archive/v1.0.22.tar.gz
-
-* librealsense
-
-        wget https://github.com/IntelRealSense/librealsense/archive/v2.19.0.tar.gz
-
-# howto
-### pre-build
+# build
 
     apt install docker-ce git
     git clone https://github.com/oiramario/rk3399-docker.git
     cd rk3399-docker
+    ./update.sh
     ./build.sh
-
-### build latest
-
-    apt install docker-ce git
-    git clone https://github.com/oiramario/rk3399-docker.git
-    cd rk3399-docker/packages
-    ./install.sh
-    cd ..
-    ./build.sh
+    ./run.sh
 
 # tips
 ### hosts
@@ -108,14 +84,6 @@ OS Image for development with the following tidbits:
         sudo service docker restart
         newgrp - docker
 
-* build
-
-        docker build -t rk3399 .
-
-* run
-
-        docker container run -it rk3399 /bin/bash
-
 * remove none images
 
         docker stop $(docker ps -a | grep "Exited" | awk '{print $1 }')
@@ -135,24 +103,9 @@ OS Image for development with the following tidbits:
 
         echo "
         # Github Start
-        151.101.72.249 github.global.ssl.fastly.net
-        #192.30.253.112 github.com 
-        #192.30.253.112 www.github.com 
-        140.82.118.4 github.com
-        140.82.118.4 www.github.com
-        151.101.112.133 assets-cdn.github.com 
-        151.101.184.133 assets-cdn.github.com 
-        185.199.108.153 documentcloud.github.com 
-        192.30.253.118 gist.github.com
-        185.199.108.153 help.github.com 
-        192.30.253.120 nodeload.github.com 
-        151.101.112.133 raw.github.com 
-        23.21.63.56 status.github.com 
-        192.30.253.1668 training.github.com 
-        151.101.13.194 github.global.ssl.fastly.net 
-        151.101.12.133 avatars0.githubusercontent.com 
-        151.101.112.133 avatars1.githubusercontent.com
-        52.216.236.115  github-cloud.s3.amazonaws.com
+        140.82.118.3	www.github.com
+        140.82.118.3	github.com
+        151.101.113.194 github.global.ssl.fastly.net
         # Github End
         " >> /etc/hosts
         /etc/init.d/networking restart

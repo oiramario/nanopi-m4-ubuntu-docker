@@ -5,13 +5,9 @@
 GITS_DIR=$PWD/gits
 PACKAGES_DIR=$PWD/packages
 
-if [ ! -d $GITS_DIR ]; then
-    mkdir -p $GITS_DIR
-fi
+[ ! -d $GITS_DIR ] && mkdir -p $GITS_DIR
 
-if [ ! -d $PACKAGES_DIR ]; then
-    mkdir -p $PACKAGES_DIR
-fi
+[ ! -d $PACKAGES_DIR ] && mkdir -p $PACKAGES_DIR
 
 cd $GITS_DIR
 

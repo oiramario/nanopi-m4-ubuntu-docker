@@ -25,9 +25,9 @@ BOLDWHITE="\e[1;37m"
 ENDCOLOR="\e[0m"
 
 ##
-ERROR="${RED}Error:${ENDCOLOR}"
-WARNING="${YELLOW}Warning:${ENDCOLOR}"
-INFO="${GREEN}Info:${ENDCOLOR}"
+ERROR="${RED}Error:${BOLDRED}"
+WARNING="${YELLOW}Warning:${BOLDYELLOW}"
+INFO="${GREEN}Info:${BOLDGREEN}"
 
 
 ## Print error message
@@ -36,7 +36,7 @@ error_msg() {
 	local _FILE=${BASH_SOURCE[1]}
 	local _LINE=${BASH_LINENO[0]}
 
-	echo -e "$_FILE:$_LINE" $ERROR "$1"
+	echo -e "$_FILE:$_LINE" $ERROR "$1" ${ENDCOLOR}
 }
 
 ## Print warning message
@@ -45,13 +45,13 @@ warning_msg() {
 	local _FILE=${BASH_SOURCE[1]}
 	local _LINE=${BASH_LINENO[0]}
 
-    echo -e "$_FILE:$_LINE" $WARNING "$1"
+    echo -e "$_FILE:$_LINE" $WARNING "$1" ${ENDCOLOR}
 }
 
 ## Print information message
 ## $1 - message
 info_msg() {
-	echo -e $INFO "$1"
+	echo -e $INFO "$1" ${ENDCOLOR}
 }
 
 ## Mount chroot

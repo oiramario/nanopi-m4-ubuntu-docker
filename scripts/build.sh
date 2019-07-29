@@ -2,9 +2,10 @@
 #set -x
 
 ## Functions
-source archives/functions/common-functions.sh
-source archives/functions/build-loader.sh
-source archives/functions/build-boot.sh
+source functions/common-functions.sh
+source functions/build-loader.sh
+source functions/build-boot.sh
+source functions/build-rootfs.sh
 
 help()
 {

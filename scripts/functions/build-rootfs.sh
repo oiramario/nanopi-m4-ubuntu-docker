@@ -107,8 +107,7 @@ pack_rootfs_image()
     #------------------------------------------------------------------------
     echo -e "\033[36m apt update && upgrade && install packages.................... \033[0m"
 
-    echo "nameserver 223.5.5.5" > /etc/resolv.conf
-    echo "nameserver 223.6.6.6" >> /etc/resolv.conf
+    echo "nameserver 223.6.6.6" > /etc/resolv.conf
 
     echo '
     deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse

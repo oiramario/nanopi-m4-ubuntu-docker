@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#set -x
+set -x
 
 # Functions:
 # pack_initramfs_image
@@ -43,18 +43,6 @@ pack_rootfs_image()
     local rootfs_mnt=/tmp/rootfs-mnt
     local rootfs_dir=${BUILD}/rootfs
 
-    # ubuntu bionic
-    echo
-   	info_msg "extract ubuntu-bionic packages"
-    #qemu-debootstrap --arch=arm64 \
-    #                 --variant=minbase \
-    #                 --verbose \
-    #                 --include=locales,ca-certificates \
-    #                 --components=main,universe \
-    #                 --foreign bionic ${rootfs_dir} http://mirrors.aliyun.com/ubuntu-ports/
-    #tar xzf ${HOME}/packages/ubuntu-rootfs.tar.gz -C ${rootfs_dir}/
-    cp -v /usr/bin/qemu-aarch64-static ${rootfs_dir}/usr/bin/
-
     # kernel modules
     echo
    	info_msg "copy kernel modules"
@@ -90,19 +78,22 @@ pack_rootfs_image()
     # for wifi_chip save
     mkdir -p ${rootfs_dir}/data
 
-    # config ubuntu
+    # config
     echo
-   	info_msg "config ubuntu"
+   	info_msg "config"
     mount -t proc /proc ${rootfs_dir}/proc
     mount -t sysfs /sys ${rootfs_dir}/sys
     mount -o bind /dev ${rootfs_dir}/dev
-    mount -o bind /dev/pts ${rootfs_dir}/dev/pts		
+    mount -o bind /dev/pts ${rootfs_dir}/dev/pts
 
-    # building ubuntu
+    # building
     echo
    	info_msg "building rootfs"
+    cp -v /usr/bin/qemu-aarch64-static ${rootfs_dir}/usr/bin/
     cat << EOF | LC_ALL=C LANG=C chroot ${rootfs_dir}/ /bin/bash
     set -x
+
+    uname -a
 
     #------------------------------------------------------------------------
     echo -e "\033[36m apt update && upgrade && install packages.................... \033[0m"
@@ -194,6 +185,7 @@ pack_rootfs_image()
 EOF
     sync
 
+    #umount ${rootfs_dir}/proc/sys/fs/binfmt_misc
     umount ${rootfs_dir}/proc
     umount ${rootfs_dir}/sys
     umount ${rootfs_dir}/dev/pts
@@ -203,6 +195,7 @@ EOF
     # make rootfs.img
     echo
    	info_msg "make rootfs.img"
+    local rootfs_img=${DISTRO}/rootfs.img
     dd if=/dev/zero of=${rootfs_img} bs=1M count=512
     mkfs.ext4 ${rootfs_img}
     mkdir -p ${rootfs_mnt}
@@ -211,6 +204,5 @@ EOF
     umount ${rootfs_mnt}
     e2fsck -p -f ${rootfs_img}
     resize2fs -M ${rootfs_img}
-
     sync
 }

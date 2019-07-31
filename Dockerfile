@@ -17,26 +17,24 @@ deb $SOURCES bionic-updates main restricted universe multiverse \n\
 
 # reuses the cache
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive \
-       apt-get install -y --no-install-recommends \
-                     # compile
-                    gcc  patch  make \
-                    gcc-aarch64-linux-gnu  libc6-dev \
-#                    g++-aarch64-linux-gnu  libstdc++-7-dev  cmake \
-                    # u-boot
-                    bison  flex \
-                    # kernel
-                    bc  libssl-dev  kmod \
-                    # initramfs
-                    cpio \
-                    # FIT(Flattened Image Tree)
-                    device-tree-compiler \
-                    # boot.img
-                    genext2fs \
-                    # rootfs
-                    binfmt-support  qemu-user-static \
-                    # local:en_US.UTF-8
-                    locales 
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        # compile
+        patch  make  gcc-aarch64-linux-gnu \
+        #g++-aarch64-linux-gnu  cmake \
+        # u-boot
+        bison  flex \
+        # kernel
+        bc  libssl-dev  kmod \
+        # initramfs
+        cpio \
+        # FIT(Flattened Image Tree)
+        device-tree-compiler \
+        # boot.img
+        genext2fs \
+        # rootfs
+        binfmt-support  qemu-user-static \
+        # local:en_US.UTF-8
+        locales 
 
 RUN locale-gen en_US.UTF-8
 
@@ -57,27 +55,27 @@ WORKDIR $BUILD
 # kernel
 #----------------------------------------------------------------------------------------------------------------#
 
-#ADD "packages/kernel-rockchip.tar.gz" "$BUILD/"
-#COPY "patches/kernel" "$BUILD/kernel-rockchip/patches/"
-#RUN set -x \
-#    && cd kernel-rockchip \
-#    # patch
-#    && for x in `ls patches`; do patch -p1 < patches/$x; done \
-#    # make
-#    && make nanopi4_linux_defconfig \
-#    && make -j$(nproc)
+ADD "packages/kernel-rockchip.tar.gz" "$BUILD/"
+COPY "patches/kernel" "$BUILD/kernel-rockchip/patches/"
+RUN set -x \
+    && cd kernel-rockchip \
+    # patch
+    && for x in `ls patches`; do patch -p1 < patches/$x; done \
+    # make
+    && make nanopi4_linux_defconfig \
+    && make -j$(nproc)
 
 
-#RUN set -x \
-#    && cd kernel-rockchip \
-#    && export OUT="$BUILD/kmodules" \
-#    && make INSTALL_MOD_PATH=$OUT modules_install \
-#    && KREL=`make kernelrelease` \
-#    # useless
-#    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
-#    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
-#    # strip
-#    && (cd $OUT && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
+RUN set -x \
+    && cd kernel-rockchip \
+    && export OUT="$BUILD/kmodules" \
+    && make INSTALL_MOD_PATH=$OUT modules_install \
+    && KREL=`make kernelrelease` \
+    # useless
+    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
+    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
+    # strip
+    && (cd $OUT && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
 
 
 # u-boot
@@ -110,12 +108,12 @@ RUN set -x \
 
 # ubuntu bionic
 #----------------------------------------------------------------------------------------------------------------#
-#ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/rootfs"
+ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/rootfs"
 
 
 # rockchip rootfs
 #----------------------------------------------------------------------------------------------------------------#
-#ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
+ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
 
 
 # here we go

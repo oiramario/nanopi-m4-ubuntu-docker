@@ -25,7 +25,10 @@ help()
 ######################################################################################
 TARGET="$1"
 
-if [ "$TARGET" != "loader" ] && [ "$TARGET" != "boot" ] && [ "$TARGET" != "rootfs" ]; then
+if [ "$TARGET" != "loader" ] && 
+   [ "$TARGET" != "boot" ] && 
+   [ "$TARGET" != "rootfs" ] && 
+   [ "$TARGET" != "all" ]; then
 	error_msg "Unsupported target: $TARGET"
 	help
 	exit -1
@@ -40,6 +43,11 @@ case "$TARGET" in
 		pack_boot_image
 		;;
 	rootfs)
+		pack_rootfs_image
+		;;
+	all)
+		pack_loader_image
+		pack_boot_image
 		pack_rootfs_image
 		;;
 esac

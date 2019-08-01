@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-set -x
+#set -x
 
 # Functions:
 # pack_initramfs_image
@@ -72,9 +72,10 @@ pack_rootfs_image()
     echo
    	info_msg "copy rockchip firmwares"
     cp -rf ${rk_rootfs}/overlay-firmware/* ${rootfs_dir}/
-    mv -f ${rootfs_dir}/usr/bin/brcm_patchram_plus1_64 ${rootfs_dir}/usr/bin/brcm_patchram_plus1
-    mv -f ${rootfs_dir}/usr/bin/rk_wifi_init_64 ${rootfs_dir}/usr/bin/rk_wifi_init
-    rm -f ${rootfs_dir}/usr/bin/brcm_patchram_plus1_32  ${rootfs_dir}/usr/bin/rk_wifi_init_32
+    cd ${rootfs_dir}/usr/bin
+    mv -f brcm_patchram_plus1_64 brcm_patchram_plus1
+    mv -f rk_wifi_init_64 rk_wifi_init
+    rm -f brcm_patchram_plus1_32 rk_wifi_init_32
     # for wifi_chip save
     mkdir -p ${rootfs_dir}/data
 
@@ -85,6 +86,8 @@ pack_rootfs_image()
     mount -t sysfs /sys ${rootfs_dir}/sys
     mount -o bind /dev ${rootfs_dir}/dev
     mount -o bind /dev/pts ${rootfs_dir}/dev/pts
+    #mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
+    update-binfmts --enable qemu-aarch64
 
     # building
     echo
@@ -98,7 +101,7 @@ pack_rootfs_image()
     #------------------------------------------------------------------------
     echo -e "\033[36m apt update && upgrade && install packages.................... \033[0m"
 
-    echo "nameserver 223.6.6.6" > /etc/resolv.conf
+    echo "nameserver 8.8.8.8" > /etc/resolv.conf
 
     echo '
     deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse
@@ -116,11 +119,12 @@ pack_rootfs_image()
 
     apt -y upgrade
 
-    apt install -y --no-install-recommends init udev dbus rsyslog module-init-tools
-    apt install -y --no-install-recommends iproute2 iputils-ping network-manager
+    mkdir -p /etc/bash_completion.d/
 
-    #mkdir -p /etc/bash_completion.d/
-    #apt install -y --no-install-recommends ssh bash-completion htop
+    apt install -y --no-install-recommends \
+            init udev dbus rsyslog module-init-tools \
+            iproute2 iputils-ping network-manager \
+            ssh bash-completion htop
     # glmark2-es2
 
     #dpkg -i /packages/libdrm/*.deb

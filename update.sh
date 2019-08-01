@@ -16,8 +16,7 @@ gits=(
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/u-boot.git,u-boot"
 "nanopi4-linux-v4.4.y,https://github.com/friendlyarm/kernel-rockchip.git,kernel-rockchip"
 "1_30_stable,https://github.com/mirror/busybox.git,busybox"
-"master,https://github.com/friendlyarm/rk-rootfs-build.git,rk-rootfs-build"
-"rockchip,https://github.com/rockchip-linux/libmali.git,libmali"
+"master,https://github.com/rockchip-linux/rk-rootfs-build.git,rk-rootfs-build"
 #"master,https://github.com/IntelRealSense/librealsense.git,librealsense"
 #"master,https://github.com/oiramario/gbm-drm-gles-cube.git,gbm-drm-gles-cube"
 )

@@ -40,32 +40,30 @@ pack_rootfs_image()
 {
     clean
 
-    local rootfs_mnt=/tmp/rootfs-mnt
-    local rootfs_dir=${BUILD}/rootfs
-
     # kernel modules
     echo
    	info_msg "copy kernel modules"
-    cp -rf ${BUILD}/kmodules/* ${rootfs_dir}/
+    local rootfs_dir=${BUILD}/rootfs
+    cp -vrf ${BUILD}/kmodules/* ${rootfs_dir}/
 
     # modules: bt, wifi, audio
     echo
    	info_msg "copy bt/wifi/audio modules"
     mkdir -p ${rootfs_dir}/system/lib/modules
     cd ${BUILD}/kernel-rockchip/drivers/net/wireless/rockchip_wlan
-    find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules
+    find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules -v
 
-    local rk_rootfs=${BUILD}/rk-rootfs-build
     # rockchip packages
-    #echo -e "\e[36m Copy packages \e[0m"
-    #mkdir -p ${rootfs_dir}/packages
-    #cp -rf ${rk_rootfs}/packages/arm64/* ${rootfs_dir}/packages/
-    #echo -e "\e[32m Done \e[0m\n"
+    echo
+   	info_msg "copy rockchip packages"
+    local rk_rootfs=${BUILD}/rk-rootfs-build
+    mkdir -p ${rootfs_dir}/packages
+    cp -vrf ${rk_rootfs}/packages/arm64/* ${rootfs_dir}/packages/
 
     # rockchip overlay
     echo
    	info_msg "copy rockchip overlays"
-    cp -rf ${rk_rootfs}/overlay/* ${rootfs_dir}/
+    cp -vrf ${rk_rootfs}/overlay/* ${rootfs_dir}/
     chmod +x ${rootfs_dir}/etc/rc.local
 
     # rockchip firmware
@@ -86,7 +84,7 @@ pack_rootfs_image()
     mount -t sysfs /sys ${rootfs_dir}/sys
     mount -o bind /dev ${rootfs_dir}/dev
     mount -o bind /dev/pts ${rootfs_dir}/dev/pts
-    #mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
+    mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
     update-binfmts --enable qemu-aarch64
 
     # building
@@ -117,24 +115,18 @@ pack_rootfs_image()
     locale-gen en_US.UTF-8
     update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_MESSAGES=en_US.UTF-8
 
-    apt -y upgrade
-
     mkdir -p /etc/bash_completion.d/
-
     apt install -y --no-install-recommends \
             init udev dbus rsyslog module-init-tools \
             iproute2 iputils-ping network-manager \
             ssh bash-completion htop
     # glmark2-es2
 
-    #dpkg -i /packages/libdrm/*.deb
-    #apt-get install -f -y
+    dpkg -i /packages/libdrm/*.deb
+    apt install -f -y
 
-    #dpkg -i /packages/libmali/libmali-rk-midgard-t86x-r14p0_1.6-2_arm64.deb
-    #apt-get install -f -y
-
-    #dpkg -i /packages/libmali/libmali-rk-dev_1.6-2_arm64.deb
-    #apt-get install -f -y
+    dpkg -i /packages/libmali/*.deb
+    apt install -f -y
 
     #------------------------------------------------------------------------
     echo -e "\033[36m configuration.................... \033[0m"
@@ -177,19 +169,21 @@ pack_rootfs_image()
     systemctl enable rockchip.service
     systemctl mask systemd-networkd-wait-online.service
     systemctl mask NetworkManager-wait-online.service
-    rm /lib/systemd/system/wpa_supplicant@.service
+    #rm /lib/systemd/system/wpa_supplicant@.service
 
     #------------------------------------------------------------------------
     echo -e "\033[36m clean.................... \033[0m"
 
-    rm -rf /var/lib/apt/lists/*
+    apt -y upgrade
     apt autoremove
     apt clean
+    rm -rf /var/lib/apt/lists/*
+    rm -rf ${rootfs_dir}/packages
 
 EOF
     sync
 
-    #umount ${rootfs_dir}/proc/sys/fs/binfmt_misc
+    umount ${rootfs_dir}/proc/sys/fs/binfmt_misc
     umount ${rootfs_dir}/proc
     umount ${rootfs_dir}/sys
     umount ${rootfs_dir}/dev/pts
@@ -200,6 +194,7 @@ EOF
     echo
    	info_msg "make rootfs.img"
     local rootfs_img=${DISTRO}/rootfs.img
+    local rootfs_mnt=/tmp/rootfs-mnt
     dd if=/dev/zero of=${rootfs_img} bs=1M count=512
     mkfs.ext4 ${rootfs_img}
     mkdir -p ${rootfs_mnt}

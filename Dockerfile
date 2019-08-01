@@ -7,20 +7,19 @@ LABEL author="oiramario" \
 
 # apt sources
 RUN cat << EOF > /etc/apt/sources.list \
-    && SOURCES="http://mirrors.aliyun.com/ubuntu/" \
+    && SOURCES="http://mirrors.163.com/ubuntu/" \
     && echo "\
 deb $SOURCES bionic main restricted universe multiverse \n\
 deb $SOURCES bionic-updates main restricted universe multiverse \n\
 " > /etc/apt/sources.list \
     # dns server
-    && echo "nameserver 223.6.6.6" > /etc/resolv.conf
+    && echo "nameserver 8.8.8.8" > /etc/resolv.conf
 
 # reuses the cache
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         # compile
-        patch  make  gcc-aarch64-linux-gnu \
-        #g++-aarch64-linux-gnu  cmake \
+        patch  make  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  cmake \
         # u-boot
         bison  flex \
         # kernel
@@ -36,6 +35,7 @@ RUN apt-get update \
         # local:en_US.UTF-8
         locales 
 
+# locale
 RUN locale-gen en_US.UTF-8
 
 # setup build environment

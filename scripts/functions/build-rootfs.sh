@@ -40,23 +40,12 @@ pack_rootfs_image()
 {
     clean
 
-    # kernel modules
-    echo
-   	info_msg "copy kernel modules"
+    local rk_rootfs=${BUILD}/rk-rootfs-build
     local rootfs_dir=${BUILD}/rootfs
-    cp -vrf ${BUILD}/kmodules/* ${rootfs_dir}/
-
-    # modules: bt, wifi, audio
-    echo
-   	info_msg "copy bt/wifi/audio modules"
-    mkdir -p ${rootfs_dir}/system/lib/modules
-    cd ${BUILD}/kernel-rockchip/drivers/net/wireless/rockchip_wlan
-    find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules -v
 
     # rockchip packages
     echo
    	info_msg "copy rockchip packages"
-    local rk_rootfs=${BUILD}/rk-rootfs-build
     mkdir -p ${rootfs_dir}/packages
     cp -vrf ${rk_rootfs}/packages/arm64/* ${rootfs_dir}/packages/
 
@@ -69,7 +58,8 @@ pack_rootfs_image()
     # rockchip firmware
     echo
    	info_msg "copy rockchip firmwares"
-    cp -rf ${rk_rootfs}/overlay-firmware/* ${rootfs_dir}/
+    cp -vrf ${rk_rootfs}/overlay-firmware/* ${rootfs_dir}/
+    # some configs
     cd ${rootfs_dir}/usr/bin
     mv -f brcm_patchram_plus1_64 brcm_patchram_plus1
     mv -f rk_wifi_init_64 rk_wifi_init
@@ -77,15 +67,38 @@ pack_rootfs_image()
     # for wifi_chip save
     mkdir -p ${rootfs_dir}/data
 
-    # config
+    # bt, wifi, audio firmware
     echo
-   	info_msg "config"
+   	info_msg "copy bt/wifi/audio modules"
+    mkdir -p ${rootfs_dir}/system/lib/modules
+    cd ${BUILD}/kernel-rockchip/drivers/net/wireless/rockchip_wlan
+    find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules -v
+
+    # kernel modules
+    echo
+   	info_msg "copy kernel modules"
+    cp -vrf ${BUILD}/kmodules/* ${rootfs_dir}/
+
+    # debug
+    local rk_debug=${rk_rootfs}/overlay-debug
+    cp -rf $rk_debug/* ${rootfs_dir}/
+    # glmark2
+    local dst_glmark2=${rootfs_dir}/usr/local/share/glmark2
+    mkdir -p ${dst_glmark2}
+    local src_glmark2=${rk_debug}/usr/local/share/glmark2/aarch64
+    cp -rf ${src_glmark2}/share/* ${dst_glmark2}
+    cp ${src_glmark2}/bin/glmark2-es2 ${rootfs_dir}/usr/local/bin/glmark2-es2
+
+    # mount
+    echo
+   	info_msg "mount"
     mount -t proc /proc ${rootfs_dir}/proc
     mount -t sysfs /sys ${rootfs_dir}/sys
     mount -o bind /dev ${rootfs_dir}/dev
     mount -o bind /dev/pts ${rootfs_dir}/dev/pts
     mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
-    update-binfmts --enable qemu-aarch64
+#    update-binfmts --enable qemu-aarch64
+    mount
 
     # building
     echo
@@ -102,31 +115,38 @@ pack_rootfs_image()
     echo "nameserver 8.8.8.8" > /etc/resolv.conf
 
     echo '
-    deb http://mirrors.aliyun.com/ubuntu-ports/ bionic main restricted universe multiverse
-    deb http://mirrors.aliyun.com/ubuntu-ports/ bionic-updates main restricted universe multiverse
+    deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ bionic main restricted universe multiverse
+    deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ bionic-updates main restricted universe multiverse
     ' > /etc/apt/sources.list
 
     export DEBIAN_FRONTEND=noninteractive 
 
     apt update
 
+    # basic config
     export LC_ALL=C LANG=C
     apt install -y --no-install-recommends locales apt-utils
     locale-gen en_US.UTF-8
     update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_MESSAGES=en_US.UTF-8
 
+    # rockchip libdrm
+    dpkg -i /packages/libdrm/*.deb
+    apt install -f -y
+
+    # rockchip libmali
+    apt install -y --no-install-recommends libdrm2 libx11-6 libx11-xcb1 libxcb-dri2-0 libxcb1
+    dpkg -i /packages/libmali/*.deb
+    apt install -f -y
+
+    # advance config
     mkdir -p /etc/bash_completion.d/
     apt install -y --no-install-recommends \
             init udev dbus rsyslog module-init-tools \
             iproute2 iputils-ping network-manager \
             ssh bash-completion htop
-    # glmark2-es2
 
-    dpkg -i /packages/libdrm/*.deb
-    apt install -f -y
-
-    dpkg -i /packages/libmali/*.deb
-    apt install -f -y
+    # upgrade
+    apt upgrade -y
 
     #------------------------------------------------------------------------
     echo -e "\033[36m configuration.................... \033[0m"
@@ -174,12 +194,11 @@ pack_rootfs_image()
     #------------------------------------------------------------------------
     echo -e "\033[36m clean.................... \033[0m"
 
-    apt -y upgrade
-    apt autoremove
-    apt clean
+    rm -rf /packages
+    apt autoremove -y
+    apt clean -y
     rm -rf /var/lib/apt/lists/*
-    rm -rf ${rootfs_dir}/packages
-
+ 
 EOF
     sync
 
@@ -195,7 +214,7 @@ EOF
    	info_msg "make rootfs.img"
     local rootfs_img=${DISTRO}/rootfs.img
     local rootfs_mnt=/tmp/rootfs-mnt
-    dd if=/dev/zero of=${rootfs_img} bs=1M count=512
+    dd if=/dev/zero of=${rootfs_img} bs=1M count=1024
     mkfs.ext4 ${rootfs_img}
     mkdir -p ${rootfs_mnt}
     mount ${rootfs_img} ${rootfs_mnt}

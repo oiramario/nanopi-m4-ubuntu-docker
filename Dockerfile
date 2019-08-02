@@ -7,7 +7,7 @@ LABEL author="oiramario" \
 
 # apt sources
 RUN cat << EOF > /etc/apt/sources.list \
-    && SOURCES="http://mirrors.163.com/ubuntu/" \
+    && SOURCES="http://mirrors.tuna.tsinghua.edu.cn/ubuntu/" \
     && echo "\
 deb $SOURCES bionic main restricted universe multiverse \n\
 deb $SOURCES bionic-updates main restricted universe multiverse \n\

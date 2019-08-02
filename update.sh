@@ -43,30 +43,22 @@ do
     fi
 
     echo -e "\e[34m packing $dir ... \e[0m"
-    option=
-    if [ $dir = "libmali" ];then
-        option="\
-            --exclude=lib/arm-linux-gnueabihf \
-            --exclude=lib/aarch64-linux-gnu/libmali-bifrost-* \
-            --exclude=lib/aarch64-linux-gnu/libmali-utgard-* \
-            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r9p0-* \
-            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r13p0-* \
-            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
-            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
-            --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
-    elif [ $dir = "rk-rootfs-build" ];then
-        option="\
-            --exclude=overlay-debug \
+    exclude="--exclude-vcs"
+    if [ $dir = "rk-rootfs-build" ];then
+        exclude+=" \
+            --exclude=*.md \
+            --exclude=$dir/mk-*.sh \
             --exclude=overlay-firmware/usr/share/npu_fw \
             --exclude=packages/armhf \
             --exclude=packages/arm64/others \
             --exclude=packages/arm64/video \
             --exclude=packages/arm64/xserver \
+            --exclude=packages/arm64/libmali/libmali-rk-bifrost-*.deb \
             --exclude=packages-patches \
             --exclude=ubuntu-build-service"
     fi
 
-    eval tar --exclude-vcs $option -czf $PACKAGES_DIR/$dir.tar.gz $dir
+    eval tar -czf $PACKAGES_DIR/$dir.tar.gz $exclude -C . $dir
 
     echo -e "\e[32m done.\n \e[0m"
 done

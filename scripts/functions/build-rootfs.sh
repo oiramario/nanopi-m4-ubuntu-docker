@@ -97,7 +97,7 @@ pack_rootfs_image()
     mount -o bind /dev ${rootfs_dir}/dev
     mount -o bind /dev/pts ${rootfs_dir}/dev/pts
     mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
-#    update-binfmts --enable qemu-aarch64
+    update-binfmts --enable qemu-aarch64
     mount
 
     # building

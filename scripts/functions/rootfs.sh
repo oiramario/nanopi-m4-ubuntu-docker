@@ -1,13 +1,9 @@
-#!/bin/bash
-#
-#set -x
-
 # Functions:
 # pack_initramfs_image
 # pack_boot_image
 
 ## Functions
-source functions/common-functions.sh
+source functions/common.sh
 
 
 clean () {

@@ -2,7 +2,7 @@
 # pack_loader_image
 
 ## Functions
-source functions/common-functions.sh
+source functions/common.sh
 
 
 pack_loader_image()

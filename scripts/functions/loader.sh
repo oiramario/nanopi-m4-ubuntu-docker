@@ -1,7 +1,6 @@
 # Functions:
 # pack_loader_image
 
-## Functions
 source functions/common.sh
 
 

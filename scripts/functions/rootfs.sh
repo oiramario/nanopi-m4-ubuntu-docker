@@ -1,41 +1,11 @@
 # Functions:
-# pack_initramfs_image
-# pack_boot_image
+# pack_rootfs_image
 
-## Functions
 source functions/common.sh
-
-
-clean () {
-    local rootfs_mnt=/tmp/rootfs-mnt
-    if [ -d ${rootfs_mnt} ]; then
-        umount ${rootfs_mnt} >/dev/null 2>&1
-        rm -rf ${rootfs_mnt}
-    fi
-
-    local rootfs_dir=${BUILD}/rootfs
-    if [ -d ${rootfs_dir} ]; then
-        umount ${rootfs_dir}/proc >/dev/null 2>&1
-        umount ${rootfs_dir}/sys >/dev/null 2>&1
-        umount ${rootfs_dir}/dev/pts >/dev/null 2>&1
-        umount ${rootfs_dir}/dev >/dev/null 2>&1
-    fi
-
-    local rootfs_img=${DISTRO}/rootfs.img
-    rm -f ${rootfs_img}
-}
-
-finish () {
-    clean
-    exit 1
-}
-trap finish ERR
 
 
 pack_rootfs_image()
 {
-    clean
-
     local rk_rootfs=${BUILD}/rk-rootfs-build
     local rootfs_dir=${BUILD}/rootfs
 
@@ -43,18 +13,18 @@ pack_rootfs_image()
     echo
    	info_msg "copy rockchip packages"
     mkdir -p ${rootfs_dir}/packages
-    cp -vrf ${rk_rootfs}/packages/arm64/* ${rootfs_dir}/packages/
+    cp -rf ${rk_rootfs}/packages/arm64/* ${rootfs_dir}/packages/
 
     # rockchip overlay
     echo
    	info_msg "copy rockchip overlays"
-    cp -vrf ${rk_rootfs}/overlay/* ${rootfs_dir}/
-    chmod +x ${rootfs_dir}/etc/rc.local
+    cp -rf ${rk_rootfs}/overlay/* ${rootfs_dir}/
+    chmod +x ${rootfs_dir}/etc/rc.local 
 
     # rockchip firmware
     echo
    	info_msg "copy rockchip firmwares"
-    cp -vrf ${rk_rootfs}/overlay-firmware/* ${rootfs_dir}/
+    cp -rf ${rk_rootfs}/overlay-firmware/* ${rootfs_dir}/
     # some configs
     cd ${rootfs_dir}/usr/bin
     mv -f brcm_patchram_plus1_64 brcm_patchram_plus1
@@ -68,12 +38,12 @@ pack_rootfs_image()
    	info_msg "copy bt/wifi/audio modules"
     mkdir -p ${rootfs_dir}/system/lib/modules
     cd ${BUILD}/kernel-rockchip/drivers/net/wireless/rockchip_wlan
-    find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules -v
+    find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules
 
     # kernel modules
     echo
    	info_msg "copy kernel modules"
-    cp -vrf ${BUILD}/kmodules/* ${rootfs_dir}/
+    cp -rf ${BUILD}/kmodules/* ${rootfs_dir}/
 
     # debug
     local rk_debug=${rk_rootfs}/overlay-debug
@@ -88,13 +58,9 @@ pack_rootfs_image()
     # mount
     echo
    	info_msg "mount"
-    mount -t proc /proc ${rootfs_dir}/proc
-    mount -t sysfs /sys ${rootfs_dir}/sys
-    mount -o bind /dev ${rootfs_dir}/dev
-    mount -o bind /dev/pts ${rootfs_dir}/dev/pts
+    mount_chroot ${rootfs_dir}
     mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
     update-binfmts --enable qemu-aarch64
-    mount
 
     # building
     echo
@@ -196,20 +162,19 @@ pack_rootfs_image()
     rm -rf /var/lib/apt/lists/*
  
 EOF
+    umount ${rootfs_dir}/proc/sys/fs/binfmt_misc
+    umount_chroot ${rootfs_dir}
     sync
 
-    umount ${rootfs_dir}/proc/sys/fs/binfmt_misc
-    umount ${rootfs_dir}/proc
-    umount ${rootfs_dir}/sys
-    umount ${rootfs_dir}/dev/pts
-    umount ${rootfs_dir}/dev
-    sync
 
     # make rootfs.img
     echo
    	info_msg "make rootfs.img"
-    local rootfs_img=${DISTRO}/rootfs.img
     local rootfs_mnt=/tmp/rootfs-mnt
+    [ -d ${rootfs_mnt} ] && rm -rf ${rootfs_mnt}
+    local rootfs_img=${DISTRO}/rootfs.img
+    [ -f ${rootfs_img} ] && rm -f ${rootfs_img}
+
     dd if=/dev/zero of=${rootfs_img} bs=1M count=1024
     mkfs.ext4 ${rootfs_img}
     mkdir -p ${rootfs_mnt}
@@ -218,5 +183,4 @@ EOF
     umount ${rootfs_mnt}
     e2fsck -p -f ${rootfs_img}
     resize2fs -M ${rootfs_img}
-    sync
 }

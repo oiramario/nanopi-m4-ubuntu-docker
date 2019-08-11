@@ -58,7 +58,10 @@ pack_rootfs_image()
     # mount
     echo
    	info_msg "mount"
-    mount_chroot ${rootfs_dir}
+    mount -t proc /proc ${rootfs_dir}/proc
+    mount -t sysfs /sys ${rootfs_dir}/sys
+    mount -o bind /dev ${rootfs_dir}/dev
+    mount -o bind /dev/pts ${rootfs_dir}/dev/pts
     mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
     update-binfmts --enable qemu-aarch64
 
@@ -83,32 +86,32 @@ pack_rootfs_image()
 
     export DEBIAN_FRONTEND=noninteractive 
 
-    apt update
+    apt-get update
 
     # basic config
     export LC_ALL=C LANG=C
-    apt install -y --no-install-recommends locales apt-utils
+    apt-get install -y --no-install-recommends locales apt-utils
     locale-gen en_US.UTF-8
     update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_MESSAGES=en_US.UTF-8
 
     # rockchip libdrm
     dpkg -i /packages/libdrm/*.deb
-    apt install -f -y
+    apt-get install -f -y
 
     # rockchip libmali
-    apt install -y --no-install-recommends libdrm2 libx11-6 libx11-xcb1 libxcb-dri2-0 libxcb1
+    apt-get install -y --no-install-recommends libdrm2 libx11-6 libx11-xcb1 libxcb-dri2-0 libxcb1
     dpkg -i /packages/libmali/*.deb
-    apt install -f -y
+    apt-get install -f -y
 
     # advance config
     mkdir -p /etc/bash_completion.d/
-    apt install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends \
             init udev dbus rsyslog module-init-tools \
             iproute2 iputils-ping network-manager \
             ssh bash-completion htop
 
     # upgrade
-    apt upgrade -y
+    apt-get upgrade -y
 
     #------------------------------------------------------------------------
     echo -e "\033[36m configuration.................... \033[0m"
@@ -157,13 +160,17 @@ pack_rootfs_image()
     echo -e "\033[36m clean.................... \033[0m"
 
     rm -rf /packages
-    apt autoremove -y
-    apt clean -y
+    apt-get autoremove -y
+    apt-get clean -y
     rm -rf /var/lib/apt/lists/*
  
 EOF
+    sync
     umount ${rootfs_dir}/proc/sys/fs/binfmt_misc
-    umount_chroot ${rootfs_dir}
+    umount ${rootfs_dir}/proc
+    umount ${rootfs_dir}/sys
+    umount ${rootfs_dir}/dev/pts
+    umount ${rootfs_dir}/dev
     sync
 
 

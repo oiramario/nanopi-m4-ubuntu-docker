@@ -2,9 +2,19 @@
 #
 #set -x
 
+source scripts/functions/common.sh
+
 DISTRO=$(pwd)/distro
 [ -d $DISTRO ] && rm -rf $DISTRO
 
-docker stop $(docker ps -a | grep "Exited" | awk '{print $1 }')
-docker rm $(docker ps -a | grep "Exited" | awk '{print $1 }')
-docker rmi $(docker images | grep "none" | awk '{print $3}')
+info_msg "stop rk3399 containers"
+var=$(docker ps -a | grep "rk3399" | awk '{print $1 }')
+[ -n "$var" ] && docker stop $var
+
+info_msg "remove rk3399 containers"
+var=$(docker ps -a | grep "rk3399" | awk '{print $1 }')
+[ -n "$var" ] && docker rm $var
+
+info_msg "remove none containers"
+var=$(docker images | grep "none" | awk '{print $3}')
+[ -n "$var" ] && docker rmi $var

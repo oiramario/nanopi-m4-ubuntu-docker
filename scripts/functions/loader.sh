@@ -38,4 +38,9 @@ pack_loader_image()
 
     cp -v idbloader.img uboot.img trust.img ${DISTRO}/
     cp -v rk3399_loader_*.bin ${DISTRO}/MiniLoaderAll.bin
+
+    # qemu
+    local qemu=${DISTRO}/qemu
+    mkdir -p ${qemu}
+    cp -v ../u-boot/u-boot.bin ${qemu}/
 }

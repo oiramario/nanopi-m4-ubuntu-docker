@@ -62,4 +62,11 @@ pack_boot_image()
     genext2fs -b 16384 -d ${fit_path} ${boot_img}
     e2fsck -p -f ${boot_img}
     resize2fs -M ${boot_img}
+
+    # qemu
+    local qemu=${DISTRO}/qemu
+    mkdir -p ${qemu}
+    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/Image ${qemu}/
+    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev04.dtb ${qemu}/
+    cp -v ${boot}/ramdisk.cpio.gz ${qemu}/
 }

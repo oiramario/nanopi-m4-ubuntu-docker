@@ -64,9 +64,7 @@ pack_boot_image()
     resize2fs -M ${boot_img}
 
     # qemu
-    local qemu=${DISTRO}/qemu
-    mkdir -p ${qemu}
-    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/Image ${qemu}/
-    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev04.dtb ${qemu}/
-    cp -v ${boot}/ramdisk.cpio.gz ${qemu}/
+    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/Image ${DISTRO}/
+    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev04.dtb ${DISTRO}/
+    cp -v ${boot}/ramdisk.cpio.gz ${DISTRO}/
 }

@@ -69,3 +69,18 @@ if [ ! -f $PACKAGES_DIR/ubuntu-rootfs.tar.gz ]; then
 else
     echo ubuntu-rootfs exists.
 fi
+
+echo -e "\e[34m checking qemu ... \e[0m"
+if [ ! -f $PACKAGES_DIR/qemu.tar.xz ]; then
+    wget -O $PACKAGES_DIR/qemu.tar.xz https://download.qemu.org/qemu-4.0.0.tar.xz
+else
+    echo qemu exists.
+fi
+
+echo -e "\e[34m checking qemu efi... \e[0m"
+if [ ! -f $PACKAGES_DIR/QEMU_EFI.fd.tar.gz ]; then
+    wget -O $PACKAGES_DIR/QEMU_EFI.fd http://releases.linaro.org/components/kernel/uefi-linaro/16.02/release/qemu64/QEMU_EFI.fd
+    tar -czf $PACKAGES_DIR/QEMU_EFI.fd.tar.gz $PACKAGES_DIR/QEMU_EFI.fd
+else
+    echo qemu efi exists.
+fi

@@ -106,6 +106,27 @@ RUN set -x \
     && make CONFIG_PREFIX=$OUT install
 
 
+# qemu
+#----------------------------------------------------------------------------------------------------------------#
+RUN apt-get install -y libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev python
+ADD "packages/qemu.tar.xz" "$BUILD/"
+ADD "packages/QEMU_EFI.fd.tar.gz" "$BUILD/"
+RUN set -x \
+    && cd qemu-4.0.0 \
+    && ./configure --target-list=aarch64-softmmu \
+    # make
+    && make -j$(nproc)
+
+RUN set -x \
+    && cd qemu-4.0.0/roms/u-boot \
+    # make
+    && make qemu_arm64_defconfig \
+    # disable boot delay
+    && sed -i "s:^CONFIG_ARCH_QEMU.*:CONFIG_ARCH_QEMU=y:" .config \
+    && sed -i "s:^CONFIG_TARGET_QEMU_ARM_64BIT.*:CONFIG_TARGET_QEMU_ARM_64BIT=y:" .config \
+    && make -j$(nproc)
+
+
 # ubuntu bionic
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/rootfs"

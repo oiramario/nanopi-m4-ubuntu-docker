@@ -76,11 +76,3 @@ if [ ! -f $PACKAGES_DIR/qemu.tar.xz ]; then
 else
     echo qemu exists.
 fi
-
-echo -e "\e[34m checking qemu efi... \e[0m"
-if [ ! -f $PACKAGES_DIR/QEMU_EFI.fd.tar.gz ]; then
-    wget -O $PACKAGES_DIR/QEMU_EFI.fd http://releases.linaro.org/components/kernel/uefi-linaro/16.02/release/qemu64/QEMU_EFI.fd
-    tar -czf $PACKAGES_DIR/QEMU_EFI.fd.tar.gz $PACKAGES_DIR/QEMU_EFI.fd
-else
-    echo qemu efi exists.
-fi

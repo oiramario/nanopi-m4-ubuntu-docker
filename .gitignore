@@ -3,6 +3,6 @@
 .bash_history
 
 gits
-packages
+packages/*
 distro
 tools/log

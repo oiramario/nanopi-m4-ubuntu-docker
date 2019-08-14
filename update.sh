@@ -2,14 +2,13 @@
 #
 #set -x
 
-GITS_DIR=$PWD/gits
-PACKAGES_DIR=$PWD/packages
+gits_dir=$(pwd)/gits
+[ ! -d $gits_dir ] && mkdir -p $gits_dir
 
-[ ! -d $GITS_DIR ] && mkdir -p $GITS_DIR
+packages_dir=$(pwd)/packages
+[ ! -d $packages_dir ] && mkdir -p $packages_dir
 
-[ ! -d $PACKAGES_DIR ] && mkdir -p $PACKAGES_DIR
-
-cd $GITS_DIR
+cd $gits_dir
 
 gits=(
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/rkbin.git,rkbin"
@@ -35,7 +34,7 @@ do
     else
         if [[ `git -C $dir pull` =~ "Already up to date." ]];then
             echo up-to-date sources.
-            if [ -f $PACKAGES_DIR/$dir.tar.gz ]; then
+            if [ -f $packages_dir/$dir.tar.gz ]; then
                 echo up-to-date package.
                 continue
             fi
@@ -58,21 +57,21 @@ do
             --exclude=ubuntu-build-service"
     fi
 
-    eval tar -czf $PACKAGES_DIR/$dir.tar.gz $exclude -C . $dir
+    eval tar -czf $packages_dir/$dir.tar.gz $exclude -C . $dir
 
     echo -e "\e[32m done.\n \e[0m"
 done
 
 echo -e "\e[34m checking ubuntu-rootfs ... \e[0m"
-if [ ! -f $PACKAGES_DIR/ubuntu-rootfs.tar.gz ]; then
-    wget -O $PACKAGES_DIR/ubuntu-rootfs.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz
+if [ ! -f $packages_dir/ubuntu-rootfs.tar.gz ]; then
+    wget -O $packages_dir/ubuntu-rootfs.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz
 else
     echo ubuntu-rootfs exists.
 fi
 
 echo -e "\e[34m checking qemu ... \e[0m"
-if [ ! -f $PACKAGES_DIR/qemu.tar.xz ]; then
-    wget -O $PACKAGES_DIR/qemu.tar.xz https://download.qemu.org/qemu-4.0.0.tar.xz
+if [ ! -f $packages_dir/qemu.tar.xz ]; then
+    wget -O $packages_dir/qemu.tar.xz https://download.qemu.org/qemu-4.0.0.tar.xz
 else
     echo qemu exists.
 fi

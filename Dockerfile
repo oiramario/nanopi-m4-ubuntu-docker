@@ -108,7 +108,7 @@ RUN set -x \
 
 # qemu
 #----------------------------------------------------------------------------------------------------------------#
-RUN apt-get install -y libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev python
+RUN apt-get install -y libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev python parted
 ADD "packages/qemu.tar.xz" "$BUILD/"
 RUN set -x \
     && cd qemu-4.0.0 \

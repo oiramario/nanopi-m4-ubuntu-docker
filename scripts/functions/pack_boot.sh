@@ -65,7 +65,7 @@ pack_boot_image()
 
     # qemu
     cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/Image ${DISTRO}/
-    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev04.dtb ${DISTRO}/
-    cp -v ${boot}/ramdisk.cpio.gz ${DISTRO}/
+#    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev04.dtb ${DISTRO}/
+#    cp -v ${boot}/ramdisk.cpio.gz ${DISTRO}/
     cp -v ${fit_path}/boot.scr ${fit_path}/fitImage.itb ${DISTRO}/
 }

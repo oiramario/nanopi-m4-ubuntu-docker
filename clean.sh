@@ -7,12 +7,21 @@ source scripts/functions/common.sh
 DISTRO=$(pwd)/distro
 [ -d $DISTRO ] && rm -rf $DISTRO
 
+# stop containers
 info_msg "stop rk3399 containers"
 var=$(docker ps -a | grep "rk3399" | awk '{print $1 }')
 [ -n "$var" ] && docker stop $var
 
+info_msg "stop exited containers"
+var=$(docker ps -a | grep "Exited" | awk '{print $1 }')
+[ -n "$var" ] && docker stop $var
+
 info_msg "remove rk3399 containers"
 var=$(docker ps -a | grep "rk3399" | awk '{print $1 }')
+[ -n "$var" ] && docker rm $var
+
+info_msg "remove exited containers"
+var=$(docker ps -a | grep "Exited" | awk '{print $1 }')
 [ -n "$var" ] && docker rm $var
 
 info_msg "remove none images"

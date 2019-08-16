@@ -8,7 +8,7 @@
 #    -append "root=/dev/ram rdinit=/init console=ttyAMA0"
 
 ${QEMU}/aarch64-softmmu/qemu-system-aarch64 \
-    -serial stdio -nographic \
+    -serial stdio -no-reboot -nographic \
     -machine virt,virtualization=true,gic-version=3 \
     -cpu cortex-a57 -smp 4 -m 4096 \
     -bios ${DISTRO}/qemu-u-boot.bin \

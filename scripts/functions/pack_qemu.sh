@@ -29,13 +29,13 @@ pack_qemu_image()
     p
     w
 EOF
+    losetup -d ${devloop}
 #    partprobe ${image}
 
     echo
    	info_msg "formatting and mounting"
     # 2048 * 512 = 1048576
-    local partloop=$(losetup -f)
-    losetup -o 1048576 ${partloop} ${devloop}
+    local partloop=$(losetup -o 1048576 --show -f ${partloop} ${image})
     mkfs.ext4 ${partloop}
     local mnt=/tmp/boot-mnt
     rm -rf ${mnt}
@@ -55,5 +55,4 @@ EOF
    	info_msg "cleaning up"
     umount ${mnt}
     losetup -d ${partloop}
-    losetup -d ${devloop}
 }

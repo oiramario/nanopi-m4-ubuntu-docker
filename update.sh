@@ -17,7 +17,7 @@ gits=(
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/rkbin.git,rkbin"
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/u-boot.git,u-boot"
 "nanopi4-linux-v4.4.y,https://github.com/friendlyarm/kernel-rockchip.git,kernel-rockchip"
-#"master,https://github.com/rockchip-linux/rk-rootfs-build.git,rk-rootfs-build"
+"master,https://github.com/rockchip-linux/rk-rootfs-build.git,rk-rootfs-build"
 )
 for i in ${gits[@]}
 do
@@ -33,32 +33,40 @@ do
     if [ ! -d ${dir} ];then
         git clone --depth 1 --branch ${branch} --single-branch ${url} ${dir}
     else
-        if [[ `git -C ${dir} pull` =~ "Already up to date." ]];then
-            echo "up-to-date sources"
-            if [ -f ${packages_dir}/${dir}.tar.gz ]; then
-                echo "up-to-date package"
-                continue
+        ret=$(git -C ${dir} pull)
+        if [ $? -eq 0 ]; then
+            if [[ ${ret} =~ "Already up to date." ]];then
+                echo "up-to-date sources"
+                if [ -f ${packages_dir}/${dir}.tar.gz ]; then
+                    echo "up-to-date package"
+                    continue
+                fi
             fi
+        else
+            error_msg "operation failed"
+            continue
         fi
     fi
 
-    info_msg "packaging ${dir}"
-    exclude="--exclude-vcs"
-    if [ ${dir} = "rk-rootfs-build" ];then
-        exclude+=" \
-            --exclude=*.md \
-            --exclude=${dir}/mk-*.sh \
-            --exclude=overlay-firmware/usr/share/npu_fw \
-            --exclude=packages/armhf \
-            --exclude=packages/arm64/others \
-            --exclude=packages/arm64/video \
-            --exclude=packages/arm64/xserver \
-            --exclude=packages/arm64/libmali/libmali-rk-bifrost-*.deb \
-            --exclude=packages-patches \
-            --exclude=ubuntu-build-service"
-    fi
+    if [ $? -eq 0 ] ; then
+        info_msg "packaging ${dir}"
+        exclude="--exclude-vcs"
+        if [ ${dir} = "rk-rootfs-build" ];then
+            exclude+=" \
+                --exclude=*.md \
+                --exclude=${dir}/mk-*.sh \
+                --exclude=overlay-firmware/usr/share/npu_fw \
+                --exclude=packages/armhf \
+                --exclude=packages/arm64/others \
+                --exclude=packages/arm64/video \
+                --exclude=packages/arm64/xserver \
+                --exclude=packages/arm64/libmali/libmali-rk-bifrost-*.deb \
+                --exclude=packages-patches \
+                --exclude=ubuntu-build-service"
+        fi
 
-    eval tar -czf ${packages_dir}/${dir}.tar.gz $exclude -C . ${dir}
+        eval tar -czf ${packages_dir}/${dir}.tar.gz $exclude -C . ${dir}
+    fi
 done
 
 
@@ -67,7 +75,7 @@ cd ..
 tars=(
 "busybox,https://github.com/mirror/busybox/archive/1_31_0.tar.gz"
 "ubuntu-rootfs,http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz"
-"qemu,https://download.qemu.org/qemu-3.1.1.tar.xz"
+"qemu,https://download.qemu.org/qemu-4.0.0.tar.xz"
 "qemu-u-boot,https://github.com/qemu/u-boot/archive/v2019.07.tar.gz"
 "librealsense,https://github.com/IntelRealSense/librealsense/archive/v2.25.0.tar.gz"
 )
@@ -88,10 +96,13 @@ do
             cp /tmp/${name}.tar ${download_dir}/
             # re-package
             rm -f ${packages_dir}/${name}.tar.gz
+        else
+            error_msg "operation failed"
+            continue
         fi
     fi
 
-    if [ ! -f ${packages_dir}/${name}.tar.gz ]; then
+    if [ $? -eq 0 ] && [ ! -f ${packages_dir}/${name}.tar.gz ]; then
         archive="z"
         case "${name}" in
             ubuntu-rootfs)
@@ -105,6 +116,7 @@ do
                 ;;
         esac
 
+        info_msg "re-packaging ${name}"
         tmp_dir=/tmp/${name}
         rm -rf ${tmp_dir}
         mkdir -p ${tmp_dir}
@@ -115,3 +127,7 @@ do
         continue
     fi
 done
+
+echo
+info_msg "Done."
+ls ${packages_dir} -lh

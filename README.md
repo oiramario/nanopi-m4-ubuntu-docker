@@ -103,9 +103,11 @@ OS Image for development with the following tidbits:
 
         echo "
         # Github Start
-        140.82.118.3	www.github.com
-        140.82.118.3	github.com
-        151.101.113.194 github.global.ssl.fastly.net
+        192.30.255.112	github.com
+        192.30.255.112	www.github.com
+        151.101.185.194 github.global.ssl.fastly.net
+        52.216.176.59   github-cloud.s3.amazonaws.com
+        140.82.113.9    codeload.github.com
         # Github End
         " >> /etc/hosts
         /etc/init.d/networking restart

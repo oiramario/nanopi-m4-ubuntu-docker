@@ -2,7 +2,7 @@
 .vscode
 .bash_history
 
-gits/*
+downloads/*
 packages/*
 distro/*
 tools/log

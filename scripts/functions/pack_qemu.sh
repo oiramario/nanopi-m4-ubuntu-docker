@@ -3,17 +3,18 @@
 
 source functions/common.sh
 
-
+set -x
 pack_qemu_image()
 {
+    cp -v ${BUILD}/qemu-u-boot/u-boot.bin ${DISTRO}/qemu-u-boot.bin
+
     # 32M
     echo
    	info_msg "creating the empty image"
-    local image=/tmp/qemu_boot.img
+    local image=${DISTRO}/qemu-boot.img
     rm -f ${image}
     dd if=/dev/zero of=${image} bs=1M count=64
-    local devloop=`losetup -f`
-    losetup ${devloop} ${image}
+    local devloop=$(losetup --show -f ${image})
 
     echo
    	info_msg "running fdisk to partition the card"
@@ -28,26 +29,31 @@ pack_qemu_image()
     p
     w
 EOF
-    partprobe ${image}
+#    partprobe ${image}
 
     echo
    	info_msg "formatting and mounting"
     # 2048 * 512 = 1048576
-    local partloop=`losetup -f`
+    local partloop=$(losetup -f)
     losetup -o 1048576 ${partloop} ${devloop}
     mkfs.ext4 ${partloop}
-    mkdir -p /tmp/boot-mnt
-    mount ${partloop} /tmp/boot-mnt/
+    local mnt=/tmp/boot-mnt
+    rm -rf ${mnt}
+    mkdir -p ${mnt}
+    mount ${partloop} ${mnt}
 
     echo
    	info_msg "copying data"
-    cp -v ${DISTRO}/boot.scr /tmp/boot-mnt/
-    cp -v ${DISTRO}/fitImage.itb /tmp/boot-mnt/
-    cp -v ${DISTRO}/Image /tmp/boot-mnt/
+    cp -v /tmp/boot/uImage/boot.scr ${mnt}/
+    cp -v /tmp/boot/uImage/fitImage.itb ${mnt}/
+
+    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/Image ${mnt}/
+    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev04.dtb ${mnt}/
+    cp -v /tmp/boot/ramdisk.cpio.gz ${mnt}/
 
     echo
    	info_msg "cleaning up"
-    umount /tmp/boot-mnt/
+    umount ${mnt}
     losetup -d ${partloop}
     losetup -d ${devloop}
 }

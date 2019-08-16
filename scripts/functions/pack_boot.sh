@@ -3,7 +3,6 @@
 
 source functions/common.sh
 
-
 pack_boot_image()
 {
     # boot loader
@@ -62,10 +61,4 @@ pack_boot_image()
     genext2fs -b 16384 -d ${fit_path} ${boot_img}
     e2fsck -p -f ${boot_img}
     resize2fs -M ${boot_img}
-
-    # qemu
-    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/Image ${DISTRO}/
-#    cp -v ${BUILD}/kernel-rockchip/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev04.dtb ${DISTRO}/
-#    cp -v ${boot}/ramdisk.cpio.gz ${DISTRO}/
-    cp -v ${fit_path}/boot.scr ${fit_path}/fitImage.itb ${DISTRO}/
 }

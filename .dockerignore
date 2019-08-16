@@ -6,7 +6,7 @@
 
 scripts
 distro
-gits
+downloads
 tools
 
 *.sh

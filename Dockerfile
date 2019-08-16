@@ -109,20 +109,23 @@ RUN set -x \
 # qemu
 #----------------------------------------------------------------------------------------------------------------#
 RUN apt-get install -y libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev python parted
-ADD "packages/qemu.tar.xz" "$BUILD/"
+ADD "packages/qemu.tar.gz" "$BUILD/"
 RUN set -x \
-    && cd qemu-4.0.0 \
+    && cd qemu \
     && ./configure --target-list=aarch64-softmmu \
     # make
-    && make -j$(nproc) \
-\
+    && make -j$(nproc)
+
+ADD "packages/qemu-u-boot.tar.gz" "$BUILD/"
+RUN set -x \
     # qemu u-boot
-    && cd roms/u-boot \
+    && cd qemu-u-boot \
     # make
     && make qemu_arm64_defconfig \
     && sed -i "s:^CONFIG_ARCH_QEMU.*:CONFIG_ARCH_QEMU=y:" .config \
     && sed -i "s:^CONFIG_TARGET_QEMU_ARM_64BIT.*:CONFIG_TARGET_QEMU_ARM_64BIT=y:" .config \
     && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
+    && sed -i "s:^CONFIG_FIT.*:CONFIG_FIT=y:" .config \
     && make -j$(nproc)
 
 
@@ -139,6 +142,7 @@ ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
 # here we go
 #----------------------------------------------------------------------------------------------------------------#
 
-ENV DISTRO /root/distro
+ENV DISTRO=/root/distro \
+    QEMU=${BUILD}/qemu
 
 WORKDIR /root/scripts

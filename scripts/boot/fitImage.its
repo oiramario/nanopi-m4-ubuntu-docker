@@ -12,8 +12,8 @@
             arch = "arm64";
             os = "linux";
 			compression = "gzip";
-			load = <0x00080000>;
-			entry = <0x00080000>;
+			load = <0x50080000>;
+			entry = <0x50080000>;
 			hash_crc {
 				algo = "crc32";
 			};
@@ -37,7 +37,7 @@
             type = "flat_dt";
             arch = "arm64";
 			compression = "none";
-			load = <0x01400000>;
+			load = <0x51400000>;
 			hash_crc {
 				algo = "crc32";
 			};
@@ -74,8 +74,8 @@
             arch = "arm64";
             os = "linux";
 			compression = "gzip";
-			load = <0x01700000>;
-			entry = <0x01700000>;
+			load = <0x51700000>;
+			entry = <0x51700000>;
 			hash_crc {
 				algo = "crc32";
 			};

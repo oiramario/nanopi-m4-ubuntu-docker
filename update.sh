@@ -2,51 +2,52 @@
 #
 #set -x
 
-gits_dir=$(pwd)/gits
-[ ! -d $gits_dir ] && mkdir -p $gits_dir
+source scripts/functions/common.sh
+
+
+download_dir=$(pwd)/downloads
+[ ! -d ${download_dir} ] && mkdir -p ${download_dir}
 
 packages_dir=$(pwd)/packages
-[ ! -d $packages_dir ] && mkdir -p $packages_dir
+[ ! -d ${packages_dir} ] && mkdir -p ${packages_dir}
 
-cd $gits_dir
+cd ${download_dir}
 
 gits=(
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/rkbin.git,rkbin"
 "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/u-boot.git,u-boot"
 "nanopi4-linux-v4.4.y,https://github.com/friendlyarm/kernel-rockchip.git,kernel-rockchip"
-"1_30_stable,https://github.com/mirror/busybox.git,busybox"
-"master,https://github.com/rockchip-linux/rk-rootfs-build.git,rk-rootfs-build"
-#"master,https://github.com/IntelRealSense/librealsense.git,librealsense"
-#"master,https://github.com/oiramario/gbm-drm-gles-cube.git,gbm-drm-gles-cube"
+#"master,https://github.com/rockchip-linux/rk-rootfs-build.git,rk-rootfs-build"
 )
 for i in ${gits[@]}
 do
-    IFS=","
-    arr=($i)
+    str=($i)
+    arr=(${str//,/ })
 
     branch=${arr[0]}
     url=${arr[1]}
     dir=${arr[2]}
 
-    echo -e "\e[34m checking $dir ... \e[0m"
-    if [ ! -d $dir ];then
-        git clone --depth 1 -b $branch $url ${dir}
+    echo
+    info_msg "checking ${dir}"
+    if [ ! -d ${dir} ];then
+        git clone --depth 1 --branch ${branch} --single-branch ${url} ${dir}
     else
-        if [[ `git -C $dir pull` =~ "Already up to date." ]];then
-            echo up-to-date sources.
-            if [ -f $packages_dir/$dir.tar.gz ]; then
-                echo up-to-date package.
+        if [[ `git -C ${dir} pull` =~ "Already up to date." ]];then
+            echo "up-to-date sources"
+            if [ -f ${packages_dir}/${dir}.tar.gz ]; then
+                echo "up-to-date package"
                 continue
             fi
         fi
     fi
 
-    echo -e "\e[34m packing $dir ... \e[0m"
+    info_msg "packaging ${dir}"
     exclude="--exclude-vcs"
-    if [ $dir = "rk-rootfs-build" ];then
+    if [ ${dir} = "rk-rootfs-build" ];then
         exclude+=" \
             --exclude=*.md \
-            --exclude=$dir/mk-*.sh \
+            --exclude=${dir}/mk-*.sh \
             --exclude=overlay-firmware/usr/share/npu_fw \
             --exclude=packages/armhf \
             --exclude=packages/arm64/others \
@@ -57,21 +58,60 @@ do
             --exclude=ubuntu-build-service"
     fi
 
-    eval tar -czf $packages_dir/$dir.tar.gz $exclude -C . $dir
-
-    echo -e "\e[32m done.\n \e[0m"
+    eval tar -czf ${packages_dir}/${dir}.tar.gz $exclude -C . ${dir}
 done
 
-echo -e "\e[34m checking ubuntu-rootfs ... \e[0m"
-if [ ! -f $packages_dir/ubuntu-rootfs.tar.gz ]; then
-    wget -O $packages_dir/ubuntu-rootfs.tar.gz http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz
-else
-    echo ubuntu-rootfs exists.
-fi
 
-echo -e "\e[34m checking qemu ... \e[0m"
-if [ ! -f $packages_dir/qemu.tar.xz ]; then
-    wget -O $packages_dir/qemu.tar.xz https://download.qemu.org/qemu-4.0.0.tar.xz
-else
-    echo qemu exists.
-fi
+cd ..
+
+tars=(
+"busybox,https://github.com/mirror/busybox/archive/1_31_0.tar.gz"
+"ubuntu-rootfs,http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz"
+"qemu,https://download.qemu.org/qemu-3.1.1.tar.xz"
+"qemu-u-boot,https://github.com/qemu/u-boot/archive/v2019.07.tar.gz"
+"librealsense,https://github.com/IntelRealSense/librealsense/archive/v2.25.0.tar.gz"
+)
+for i in ${tars[@]}
+do
+    str=($i)
+    arr=(${str//,/ })
+
+    name=${arr[0]}
+    url=${arr[1]}
+
+    echo
+    info_msg "checking ${name}"
+
+    if [ ! -f ${download_dir}/${name}.tar ]; then
+        wget -O /tmp/${name}.tar ${url}
+        if [ $? -eq 0 ] ; then
+            cp /tmp/${name}.tar ${download_dir}/
+            # re-package
+            rm -f ${packages_dir}/${name}.tar.gz
+        fi
+    fi
+
+    if [ ! -f ${packages_dir}/${name}.tar.gz ]; then
+        archive="z"
+        case "${name}" in
+            ubuntu-rootfs)
+                cp -v ${download_dir}/${name}.tar ${packages_dir}/${name}.tar.gz
+                continue
+                ;;
+            qemu)
+                archive="J"
+                ;;
+            *)
+                ;;
+        esac
+
+        tmp_dir=/tmp/${name}
+        rm -rf ${tmp_dir}
+        mkdir -p ${tmp_dir}
+        eval tar -x${archive}f ${download_dir}/${name}.tar -C ${tmp_dir} --strip-components 1
+        eval tar -czf ${packages_dir}/${name}.tar.gz --exclude-vcs -C /tmp ${name}
+    else
+        echo "exists"
+        continue
+    fi
+done

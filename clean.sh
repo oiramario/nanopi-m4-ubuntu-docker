@@ -4,6 +4,7 @@
 
 source scripts/functions/common.sh
 
+
 DISTRO=$(pwd)/distro
 [ -d $DISTRO ] && rm -rf $DISTRO
 

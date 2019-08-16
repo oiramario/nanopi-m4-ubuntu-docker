@@ -3,6 +3,7 @@
 
 source functions/common.sh
 
+
 pack_boot_image()
 {
     # boot loader

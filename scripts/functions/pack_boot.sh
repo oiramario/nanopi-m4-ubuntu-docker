@@ -45,21 +45,21 @@ pack_boot_image()
     echo
    	info_msg "flattened device tree"
     cd ${HOME}/scripts/boot
-    cp -v autoscript.cmd fitImage.its ${boot}/
+    cp -v boot.cmd fitImage.its ${boot}/
     ## binary path
     local fit_path=${boot}/uImage
     [ -d ${fit_path} ] && rm -rf ${fit_path}
     mkdir -p ${fit_path}
     ## mkimage
     cd ${BUILD}/u-boot/tools
-    ./mkimage -C none -A arm64 -T script -d ${boot}/autoscript.cmd ${fit_path}/boot.scr
+    ./mkimage -C none -A arm64 -T script -d ${boot}/boot.cmd ${fit_path}/boot.scr
     ./mkimage -f ${boot}/fitImage.its ${fit_path}/fitImage.itb
     ## ext2fs
     local boot_img=${DISTRO}/boot.img
     [ -f ${boot_img} ] && rm -f ${boot_img}
     echo
    	info_msg "boot.img"
-    genext2fs -b 16384 -d ${fit_path} ${boot_img}
+    genext2fs -b 65536 -d ${fit_path} ${boot_img}
     e2fsck -p -f ${boot_img}
     resize2fs -M ${boot_img}
 }

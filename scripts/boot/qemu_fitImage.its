@@ -1,0 +1,44 @@
+/dts-v1/;
+  
+/ {
+    description = "U-Boot fitImage for rk3399_aarch64 kernel";
+    #address-cells = <1>;
+  
+    images {
+		kernel {
+            description = "kernel 4.4.y";
+            data = /incbin/("./kernel.gz");
+            type = "kernel";
+            arch = "arm64";
+            os = "linux";
+			compression = "gzip";
+			load = <0x40000000>;
+			entry = <0x40000000>;
+			hash_crc {
+				algo = "crc32";
+			};
+		};
+
+        fdt_m4 {
+            description = "nanopi-m4";
+            data = /incbin/("./rk3399-nanopi4-rev01.dtb");
+            type = "flat_dt";
+            arch = "arm64";
+			compression = "none";
+			load = <0x50000000>;
+			hash_crc {
+				algo = "crc32";
+			};
+        };
+    };
+
+    configurations {
+        default = "conf_m4";
+
+        conf_m4 {
+            description = "nanopi-m4";
+            kernel = "kernel";
+            fdt = "fdt_m4";
+        };
+    };
+};

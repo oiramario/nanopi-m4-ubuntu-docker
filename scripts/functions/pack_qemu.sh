@@ -3,28 +3,52 @@
 
 source functions/common.sh
 
-set -x
 pack_qemu_image()
 {
-    cd ${BUILD}/qemu-u-boot
     # u-boot.bin
-    cp -v ./u-boot.bin ${DISTRO}/qemu-u-boot.bin
-    # boot.scr
-    ./tools/mkimage -C none -A arm64 -T script -d \
-        ${HOME}/scripts/boot/qemu_boot.cmd ${DISTRO}/boot.scr
-    # uImage
-    ./tools/mkimage -A arm64 -O linux -T kernel -C none -a 0x81008000 -e 0x81008000 -n Linux -d \
-        ${BUILD}/kernel-rockchip/arch/arm64/boot/Image.gz ${DISTRO}/uImage
+    echo
+   	info_msg "u-boot.bin"
+    cp -v ${BUILD}/qemu-u-boot/u-boot.bin ${DISTRO}/qemu-u-boot.bin
+
+    # boot loader
+    local boot=/tmp/qemu_boot
+    [ -d ${boot} ] && rm -rf ${boot}
+    mkdir -p ${boot}
+
+    # boot
+    cd ${BUILD}/kernel-rockchip/arch/arm64/boot
+    ## kernel
+    echo
+   	info_msg "kernel"
+    cp -v ./Image.gz ${boot}/kernel.gz
+    ## dtb
+    echo
+   	info_msg "dtb"
+    cp -v dts/rockchip/rk3399-nanopi4-rev01.dtb ${boot}/
+
+    # FIT
+    echo
+   	info_msg "flattened device tree"
+    cd ${HOME}/scripts/boot
+    cp -v qemu_boot.cmd qemu_fitImage.its ${boot}/
+    ## binary path
+    local fit_path=${boot}/uImage
+    [ -d ${fit_path} ] && rm -rf ${fit_path}
+    mkdir -p ${fit_path}
+    ## mkimage
+    cd ${BUILD}/qemu-u-boot/tools
+    ./mkimage -C none -A arm64 -T script -d ${boot}/qemu_boot.cmd ${fit_path}/boot.scr
+    ./mkimage -f ${boot}/qemu_fitImage.its ${fit_path}/fitImage.itb
 
     # 32M
     echo
    	info_msg "creating the empty image"
-    local image=${DISTRO}/qemu-boot.img
-    rm -f ${image}
-    dd if=/dev/zero of=${image} bs=1M count=128
+    local boot_img=${DISTRO}/qemu-boot.img
+    rm -f ${boot_img}
+    dd if=/dev/zero of=${boot_img} bs=1M count=32
     mknod -m 0660 /dev/loop100 b 7 100
     local devloop=/dev/loop100
-    losetup /dev/loop100 ${image}
+    losetup /dev/loop100 ${boot_img}
 
     echo
    	info_msg "running fdisk to partition the card"
@@ -40,16 +64,13 @@ pack_qemu_image()
     w
 EOF
     sync
-    partprobe ${image}
-    sleep 1
-    sync
 
     echo
    	info_msg "formatting and mounting"
     # 2048 * 512 = 1048576
     mknod -m 0660 /dev/loop101 b 7 101
     local partloop=/dev/loop101
-    losetup -o 1048576 ${partloop} ${image}
+    losetup -o 1048576 ${partloop} ${boot_img}
     mkfs.ext4 ${partloop}
     local mnt=/tmp/boot-mnt
     rm -rf ${mnt}
@@ -58,9 +79,8 @@ EOF
 
     echo
    	info_msg "copying data"
-    cp -v ${DISTRO}/boot.scr ${mnt}/
-    cp -v ${DISTRO}/uImage ${mnt}/
-#    cp -v /tmp/boot/uImage/fitImage.itb ${mnt}/
+    cp -v ${fit_path}/boot.scr ${mnt}/
+    cp -v ${fit_path}/fitImage.itb ${mnt}/
 
     echo
    	info_msg "cleaning up"

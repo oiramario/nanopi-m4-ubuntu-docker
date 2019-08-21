@@ -126,6 +126,7 @@ RUN set -x \
     && sed -i "s:^CONFIG_TARGET_QEMU_ARM_64BIT.*:CONFIG_TARGET_QEMU_ARM_64BIT=y:" .config \
     && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
     && sed -i "s:# CONFIG_FIT is not set:CONFIG_FIT=y:" .config \
+    && sed -i "s:# CONFIG_LOG is not set:CONFIG_LOG=y:" .config \
     && sed -i "s:#define CONFIG_SYS_BOOTM_LEN	0x800000:#define CONFIG_SYS_BOOTM_LEN	0x5000000:" ./common/bootm.c \
     && make -j$(nproc)
 

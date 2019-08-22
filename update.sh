@@ -75,8 +75,7 @@ cd ..
 tars=(
 "busybox,https://github.com/mirror/busybox/archive/1_31_0.tar.gz"
 "ubuntu-rootfs,http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz"
-"qemu,https://download.qemu.org/qemu-4.0.0.tar.xz"
-"qemu-u-boot,https://github.com/qemu/u-boot/archive/v2019.07.tar.gz"
+"qemu,https://download.qemu.org/qemu-4.1.0.tar.xz"
 "librealsense,https://github.com/IntelRealSense/librealsense/archive/v2.26.0.tar.gz"
 )
 for i in ${tars[@]}

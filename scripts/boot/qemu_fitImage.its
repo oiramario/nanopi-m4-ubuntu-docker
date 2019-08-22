@@ -29,6 +29,20 @@
 				algo = "crc32";
 			};
         };
+
+        initramfs {
+            description = "busybox";
+            data = /incbin/("./ramdisk.cpio.gz");
+            type = "ramdisk";
+            arch = "arm64";
+            os = "linux";
+			compression = "gzip";
+			load = <0x71700000>;
+			entry = <0x71700000>;
+			hash_crc {
+				algo = "crc32";
+			};
+        };
     };
 
     configurations {
@@ -38,6 +52,7 @@
             description = "nanopi-m4";
             kernel = "kernel";
             fdt = "fdt_m4";
+            ramdisk = "initramfs";
         };
     };
 };

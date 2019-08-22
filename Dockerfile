@@ -94,12 +94,13 @@ RUN set -x \
 # busybox
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/busybox.tar.gz" "$BUILD/"
+COPY "patches/busybox" "$BUILD/busybox/patches/"
 RUN set -x \
     && cd busybox \
+    # patch
+    && for x in `ls patches`; do patch -p1 < patches/$x; done \
     # make
     && make defconfig \
-    # static link
-    && sed -i "s:# CONFIG_STATIC is not set:CONFIG_STATIC=y:" .config \
     && make -j$(nproc) \
 \
     && export OUT="$BUILD/initramfs" \
@@ -108,7 +109,7 @@ RUN set -x \
 
 # qemu
 #----------------------------------------------------------------------------------------------------------------#
-RUN apt-get install -y libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev python parted
+RUN apt-get install -y --no-install-recommends pkg-config libglib2.0-dev libpixman-1-dev python
 ADD "packages/qemu.tar.gz" "$BUILD/"
 RUN set -x \
     && cd qemu \
@@ -116,18 +117,14 @@ RUN set -x \
     # make
     && make -j$(nproc)
 
-ADD "packages/qemu-u-boot.tar.gz" "$BUILD/"
+
+COPY "patches/qemu-u-boot" "$BUILD/qemu/roms/u-boot/patches/"
 RUN set -x \
-    # qemu u-boot
-    && cd qemu-u-boot \
+    && cd qemu/roms/u-boot \
+    # patch
+    && for x in `ls patches`; do patch -p1 < patches/$x; done \
     # make
     && make qemu_arm64_defconfig \
-    && sed -i "s:^CONFIG_ARCH_QEMU.*:CONFIG_ARCH_QEMU=y:" .config \
-    && sed -i "s:^CONFIG_TARGET_QEMU_ARM_64BIT.*:CONFIG_TARGET_QEMU_ARM_64BIT=y:" .config \
-    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
-    && sed -i "s:# CONFIG_FIT is not set:CONFIG_FIT=y:" .config \
-    && sed -i "s:# CONFIG_LOG is not set:CONFIG_LOG=y:" .config \
-    && sed -i "s:#define CONFIG_SYS_BOOTM_LEN	0x800000:#define CONFIG_SYS_BOOTM_LEN	0x5000000:" ./common/bootm.c \
     && make -j$(nproc)
 
 

@@ -3,12 +3,13 @@
 
 source functions/common.sh
 
+
 pack_qemu_image()
 {
     # u-boot.bin
     echo
    	info_msg "u-boot.bin"
-    cp -v ${BUILD}/qemu-u-boot/u-boot.bin ${DISTRO}/qemu-u-boot.bin
+    cp -v ${BUILD}/qemu/roms/u-boot/u-boot.bin ${DISTRO}/qemu-u-boot.bin
 
     # boot loader
     local boot=/tmp/qemu_boot
@@ -26,6 +27,25 @@ pack_qemu_image()
    	info_msg "dtb"
     cp -v dts/rockchip/rk3399-nanopi4-rev01.dtb ${boot}/
 
+    # initramfs
+    echo
+   	info_msg "initramfs"
+    local ramdisk=/tmp/qemu_ramdisk
+    [ -d ${ramdisk} ] && rm -rf ${ramdisk}
+    mkdir -p ${ramdisk}
+    cd ${ramdisk}
+    ## busybox
+    cp -rf ${BUILD}/initramfs/* ./
+    ## dptx.bin
+    local dptx_src=${BUILD}/rk-rootfs-build/overlay-firmware/lib/firmware/rockchip/dptx.bin
+    local dptx_dst=${ramdisk}/lib/firmware/rockchip
+    mkdir -p ${dptx_dst}
+    cp -vf ${dptx_src} ${dptx_dst}
+    ## ramdisk.cpio.gz
+    rm -f linuxrc
+    cp -f ${HOME}/scripts/boot/init ./
+    find . | cpio -oH newc | gzip > ${boot}/ramdisk.cpio.gz
+
     # FIT
     echo
    	info_msg "flattened device tree"
@@ -36,8 +56,10 @@ pack_qemu_image()
     [ -d ${fit_path} ] && rm -rf ${fit_path}
     mkdir -p ${fit_path}
     ## mkimage
-    cd ${BUILD}/qemu-u-boot/tools
+    cd ${BUILD}/qemu/roms/u-boot/tools
+   	info_msg "boot.scr"
     ./mkimage -C none -A arm64 -T script -d ${boot}/qemu_boot.cmd ${fit_path}/boot.scr
+   	info_msg "fitImage.itb"
     ./mkimage -f ${boot}/qemu_fitImage.its ${fit_path}/fitImage.itb
 
     # 32M

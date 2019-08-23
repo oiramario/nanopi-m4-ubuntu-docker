@@ -82,12 +82,13 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/u-boot.tar.gz" "$BUILD/"
 ADD "packages/rkbin.tar.gz" "$BUILD/"
+COPY "patches/u-boot" "$BUILD/u-boot/patches/"
 RUN set -x \
     && cd u-boot \
+    # patch
+    && for x in `ls patches`; do patch -p1 < patches/$x; done \
     # make
     && make evb-rk3399_defconfig \
-    # disable boot delay
-    && sed -i "s:^CONFIG_BOOTDELAY.*:CONFIG_BOOTDELAY=0:" .config \
     && make -j$(nproc)
 
 
@@ -110,12 +111,15 @@ RUN set -x \
 # qemu
 #----------------------------------------------------------------------------------------------------------------#
 RUN apt-get install -y --no-install-recommends pkg-config libglib2.0-dev libpixman-1-dev python
+#RUN apt-get install -y libpcap-dev libattr1-dev
 ADD "packages/qemu.tar.gz" "$BUILD/"
 RUN set -x \
     && cd qemu \
     && ./configure --target-list=aarch64-softmmu \
+    #--enable-virtfs --enable-kvm \
     # make
-    && make -j$(nproc)
+    && make -j$(nproc) \
+    && make install
 
 
 COPY "patches/qemu-u-boot" "$BUILD/qemu/roms/u-boot/patches/"

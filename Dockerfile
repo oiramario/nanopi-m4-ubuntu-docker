@@ -7,13 +7,13 @@ LABEL author="oiramario" \
 
 # apt sources
 RUN cat << EOF > /etc/apt/sources.list \
-    && SOURCES="http://mirrors.tuna.tsinghua.edu.cn/ubuntu/" \
+    && SOURCES="http://mirror.tuna.tsinghua.edu.cn/ubuntu/" \
     && echo "\
 deb $SOURCES bionic main restricted universe multiverse \n\
 deb $SOURCES bionic-updates main restricted universe multiverse \n\
 " > /etc/apt/sources.list \
     # dns server
-    && echo "nameserver 8.8.8.8" > /etc/resolv.conf
+    && echo "nameserver 114.114.114.114" > /etc/resolv.conf
 
 # reuses the cache
 RUN apt-get update \
@@ -32,11 +32,13 @@ RUN apt-get update \
         genext2fs \
         # rootfs
         binfmt-support  qemu-user-static \
+        # qemu
+        pkg-config libglib2.0-dev libpixman-1-dev libcap-dev libattr1-dev python \
         # local:en_US.UTF-8
-        locales 
+        locales \
+\
+        && locale-gen en_US.UTF-8
 
-# locale
-RUN locale-gen en_US.UTF-8
 
 # setup build environment
 ENV LANG='en_US.UTF-8' \
@@ -110,13 +112,10 @@ RUN set -x \
 
 # qemu
 #----------------------------------------------------------------------------------------------------------------#
-RUN apt-get install -y --no-install-recommends pkg-config libglib2.0-dev libpixman-1-dev python
-#RUN apt-get install -y libpcap-dev libattr1-dev
 ADD "packages/qemu.tar.gz" "$BUILD/"
 RUN set -x \
     && cd qemu \
-    && ./configure --target-list=aarch64-softmmu \
-    #--enable-virtfs --enable-kvm \
+    && ./configure --target-list=aarch64-softmmu --enable-virtfs --enable-kvm \
     # make
     && make -j$(nproc) \
     && make install
@@ -145,7 +144,6 @@ ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
 # here we go
 #----------------------------------------------------------------------------------------------------------------#
 
-ENV DISTRO=/root/distro \
-    QEMU=${BUILD}/qemu
+ENV DISTRO=/root/distro
 
 WORKDIR /root/scripts

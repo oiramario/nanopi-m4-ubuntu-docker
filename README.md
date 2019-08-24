@@ -71,6 +71,9 @@ OS Image for development with the following tidbits:
 ### qemu
         apt-get install binfmt-support qemu qemu-user-static debootstrap
 
+### vscode
+        snap install code --classic
+
 ### docker
 * install
 

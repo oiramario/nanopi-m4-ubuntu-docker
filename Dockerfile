@@ -130,8 +130,6 @@ RUN set -x \
     && make qemu_arm64_defconfig \
     && make -j$(nproc)
 
-ADD "packages/QEMU_EFI.fd.tar.gz" "${BUILD}/"
-
 
 # ubuntu bionic
 #----------------------------------------------------------------------------------------------------------------#

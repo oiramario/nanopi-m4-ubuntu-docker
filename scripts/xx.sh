@@ -2,7 +2,7 @@
 
 set -x
 
-ROMS=~/program
+ROMS=${DISTRO}
 
 if [ ! -f ${ROMS}/flash0.img ]; then
     dd if=/dev/zero of=${ROMS}/flash0.img bs=1M count=64
@@ -11,11 +11,12 @@ if [ ! -f ${ROMS}/flash0.img ]; then
 fi
 
 if [ ! -f ${ROMS}/hda.img ]; then
-    dd if=/dev/zero of=${ROMS}/hda.img bs=1M count=8192
+    #dd if=/dev/zero of=${ROMS}/hda.img bs=1M count=4096
+    qemu-img create -f qcow2 ${ROMS}/hda.qcow2 4G 
 fi
 
 
-CDROM_IMG=${ROMS}/ubuntu-18.04.1-desktop-amd64.iso
+CDROM_IMG=${ROMS}/ubuntu-18.04.3-server-amd64.iso
 HDA_IMG=${ROMS}/hda.img
  
 make_cdrom_arg()
@@ -31,6 +32,7 @@ make_hda_arg()
 }
  
 HDA_ARGS=`make_hda_arg $HDA_IMG`
+CDROM_ARGS=`make_cdrom_arg $CDROM_IMG`
 if [ $# -eq 1 ]; then
   case $1 in
     install)
@@ -42,8 +44,7 @@ if [ $# -eq 1 ]; then
   esac
 fi
  
-qemu-system-aarch64 -m 1024 -cpu cortex-a57 -M virt,accel=kvm \
+qemu-system-x86_64 -m 4G -cpu host -enable-kvm \
     -monitor none -serial stdio -no-reboot -nographic \
-    -bios ${ROMS}/QEMU_EFI.fd \
-    $CDROM_ARGS \
-    $HDA_ARGS
+    -cdrom $CDROM_IMG \
+    -hda ${ROMS}/hda.qcow2

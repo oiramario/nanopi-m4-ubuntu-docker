@@ -82,7 +82,6 @@ update_archive()
     "busybox,https://github.com/mirror/busybox/archive/1_31_0.tar.gz"
     "ubuntu-rootfs,http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz"
     "qemu,https://download.qemu.org/qemu-4.1.0.tar.xz"
-    "QEMU_EFI.fd,http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/latest/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd"
     "librealsense,https://github.com/IntelRealSense/librealsense/archive/v2.26.0.tar.gz"
     )
     for i in ${tars[@]}
@@ -119,11 +118,6 @@ update_archive()
                     ;;
                 qemu)
                     archive="J"
-                    ;;
-                QEMU_EFI.fd)
-                    # it's single file
-                    tar -vczf ${packages_dir}/${name}.tar.gz ${name}
-                    continue
                     ;;
                 *)
                     ;;

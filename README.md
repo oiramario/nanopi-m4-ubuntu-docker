@@ -72,7 +72,19 @@ OS Image for development with the following tidbits:
         apt-get install binfmt-support qemu qemu-user-static debootstrap
 
 ### vscode
+* install
+
         snap install code --classic
+
+* fix watcher limit
+
+        echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
+        echo '
+        "files.watcherExclude": {
+                "**/.git/objects/**": true,
+                "**/.git/subtree-cache/**": true,
+                "**/node_modules/*/**": true
+        }' >> $HOME/.config/Code/User/settings.json
 
 ### docker
 * install

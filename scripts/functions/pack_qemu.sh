@@ -110,10 +110,4 @@ EOF
     losetup -d ${partloop}
     losetup -d ${devloop}
     sync
-
-    local flash0=/tmp/flash0.img
-    local flash1=/tmp/flash1.img
-    dd if=/dev/zero of= bs=1M count=64
-    dd if=${BUILD}/QEMU_EFI.fd of=${flash0} conv=notrunc
-    dd if=/dev/zero of=${flash1} bs=1M count=64
 }

@@ -9,8 +9,8 @@ LABEL author="oiramario" \
 RUN cat << EOF > /etc/apt/sources.list \
     && SOURCES="http://mirror.tuna.tsinghua.edu.cn/ubuntu/" \
     && echo "\
-deb $SOURCES bionic main restricted universe multiverse \n\
-deb $SOURCES bionic-updates main restricted universe multiverse \n\
+deb ${SOURCES} bionic main restricted universe multiverse \n\
+deb ${SOURCES} bionic-updates main restricted universe multiverse \n\
 " > /etc/apt/sources.list \
     # dns server
     && echo "nameserver 114.114.114.114" > /etc/resolv.conf
@@ -52,13 +52,13 @@ ENV LANG='en_US.UTF-8' \
 
 USER root
 
-WORKDIR $BUILD
+WORKDIR ${BUILD}
 
 # kernel
 #----------------------------------------------------------------------------------------------------------------#
 
-ADD "packages/kernel-rockchip.tar.gz" "$BUILD/"
-COPY "patches/kernel" "$BUILD/kernel-rockchip/patches/"
+ADD "packages/kernel-rockchip.tar.gz" "${BUILD}/"
+COPY "patches/kernel" "${BUILD}/kernel-rockchip/patches/"
 RUN set -x \
     && cd kernel-rockchip \
     # patch
@@ -70,21 +70,21 @@ RUN set -x \
 
 RUN set -x \
     && cd kernel-rockchip \
-    && export OUT="$BUILD/kmodules" \
-    && make INSTALL_MOD_PATH=$OUT modules_install \
+    && export OUT="${BUILD}/kmodules" \
+    && make INSTALL_MOD_PATH=${OUT} modules_install \
     && KREL=`make kernelrelease` \
     # useless
-    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
-    && rm -rf "$OUT/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
+    && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
+    && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
     # strip
-    && (cd $OUT && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
+    && (cd ${OUT} && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
 
 
 # u-boot
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/u-boot.tar.gz" "$BUILD/"
-ADD "packages/rkbin.tar.gz" "$BUILD/"
-COPY "patches/u-boot" "$BUILD/u-boot/patches/"
+ADD "packages/u-boot.tar.gz" "${BUILD}/"
+ADD "packages/rkbin.tar.gz" "${BUILD}/"
+COPY "patches/u-boot" "${BUILD}/u-boot/patches/"
 RUN set -x \
     && cd u-boot \
     # patch
@@ -96,8 +96,8 @@ RUN set -x \
 
 # busybox
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/busybox.tar.gz" "$BUILD/"
-COPY "patches/busybox" "$BUILD/busybox/patches/"
+ADD "packages/busybox.tar.gz" "${BUILD}/"
+COPY "patches/busybox" "${BUILD}/busybox/patches/"
 RUN set -x \
     && cd busybox \
     # patch
@@ -106,22 +106,22 @@ RUN set -x \
     && make defconfig \
     && make -j$(nproc) \
 \
-    && export OUT="$BUILD/initramfs" \
-    && make CONFIG_PREFIX=$OUT install
+    && export OUT="${BUILD}/initramfs" \
+    && make CONFIG_PREFIX=${OUT} install
 
 
 # qemu
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/qemu.tar.gz" "$BUILD/"
+ADD "packages/qemu.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd qemu \
-    && ./configure --target-list=aarch64-softmmu --enable-virtfs --enable-kvm \
+    && ./configure --target-list="aarch64-softmmu,x86_64-softmmu" --enable-virtfs --enable-kvm \
     # make
     && make -j$(nproc) \
     && make install
 
 
-COPY "patches/qemu-u-boot" "$BUILD/qemu/roms/u-boot/patches/"
+COPY "patches/qemu-u-boot" "${BUILD}/qemu/roms/u-boot/patches/"
 RUN set -x \
     && cd qemu/roms/u-boot \
     # patch
@@ -130,20 +130,21 @@ RUN set -x \
     && make qemu_arm64_defconfig \
     && make -j$(nproc)
 
+ADD "packages/QEMU_EFI.fd.tar.gz" "${BUILD}/"
+
 
 # ubuntu bionic
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ubuntu-rootfs.tar.gz" "$BUILD/rootfs"
+ADD "packages/ubuntu-rootfs.tar.gz" "${BUILD}/rootfs"
 
 
 # rockchip rootfs
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rk-rootfs-build.tar.gz" "$BUILD/"
+ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 
 
 # here we go
 #----------------------------------------------------------------------------------------------------------------#
-
 ENV DISTRO=/root/distro
 
 WORKDIR /root/scripts

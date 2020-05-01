@@ -2,7 +2,7 @@
 #----------------------------------------------------------------------------------------------------------------#
 FROM ubuntu:bionic
 LABEL author="oiramario" \
-      version="0.2" \
+      version="0.2.1" \
       email="oiramario@gmail.com"
 
 # apt sources
@@ -32,8 +32,6 @@ RUN apt-get update \
         genext2fs \
         # rootfs
         binfmt-support  qemu-user-static \
-        # qemu
-        pkg-config libglib2.0-dev libpixman-1-dev libcap-dev libattr1-dev python \
         # local:en_US.UTF-8
         locales \
 \
@@ -57,10 +55,10 @@ WORKDIR ${BUILD}
 # kernel
 #----------------------------------------------------------------------------------------------------------------#
 
-ADD "packages/kernel-rockchip.tar.gz" "${BUILD}/"
-COPY "patches/kernel" "${BUILD}/kernel-rockchip/patches/"
+ADD "packages/kernel.tar.gz" "${BUILD}/"
+COPY "patches/kernel" "${BUILD}/kernel/patches/"
 RUN set -x \
-    && cd kernel-rockchip \
+    && cd kernel \
     # patch
     && for x in `ls patches`; do patch -p1 < patches/$x; done \
     # make
@@ -69,7 +67,7 @@ RUN set -x \
 
 
 RUN set -x \
-    && cd kernel-rockchip \
+    && cd kernel \
     && export OUT="${BUILD}/kmodules" \
     && make INSTALL_MOD_PATH=${OUT} modules_install \
     && KREL=`make kernelrelease` \
@@ -77,7 +75,12 @@ RUN set -x \
     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
     # strip
-    && (cd ${OUT} && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
+    && (cd ${OUT} \
+    # remove build and source links
+    && find . -name build | xargs rm -rf \
+    && find . -name source | xargs rm -rf \
+    # strip unneeded
+    && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
 
 
 # u-boot
@@ -110,35 +113,14 @@ RUN set -x \
     && make CONFIG_PREFIX=${OUT} install
 
 
-# qemu
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/qemu.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd qemu \
-    && ./configure --target-list="aarch64-softmmu,x86_64-softmmu" --enable-virtfs --enable-kvm \
-    # make
-    && make -j$(nproc) \
-    && make install
-
-
-COPY "patches/qemu-u-boot" "${BUILD}/qemu/roms/u-boot/patches/"
-RUN set -x \
-    && cd qemu/roms/u-boot \
-    # patch
-    && for x in `ls patches`; do patch -p1 < patches/$x; done \
-    # make
-    && make qemu_arm64_defconfig \
-    && make -j$(nproc)
-
-
-# ubuntu bionic
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ubuntu-rootfs.tar.gz" "${BUILD}/rootfs"
-
-
 # rockchip rootfs
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
+
+
+# ubuntu rootfs
+#----------------------------------------------------------------------------------------------------------------#
+COPY "packages/ubuntu-rootfs.tar.gz" "${BUILD}/"
 
 
 # here we go

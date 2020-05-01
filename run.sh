@@ -11,4 +11,4 @@ docker run -it \
     -v /etc/localtime:/etc/localtime:ro \
     --privileged \
     rk3399:latest \
-    /bin/bash #./make.sh boot
+    /bin/bash #./make.sh rootfs

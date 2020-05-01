@@ -36,6 +36,8 @@ pack_loader_image()
    	info_msg "trust.img"
     tools/trust_merger ${path_fixup} RKTRUST/RK3399TRUST.ini
 
-    cp -v idbloader.img uboot.img trust.img ${DISTRO}/
+    # distro
+    echo
     cp -v rk3399_loader_*.bin ${DISTRO}/MiniLoaderAll.bin
+    cp -v idbloader.img uboot.img trust.img ${DISTRO}/
 }

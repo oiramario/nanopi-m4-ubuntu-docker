@@ -31,7 +31,7 @@ pack_boot_image()
     find . | cpio -oH newc | gzip > ${boot}/ramdisk.cpio.gz
 
     # boot
-    cd ${BUILD}/kernel-rockchip/arch/arm64/boot
+    cd ${BUILD}/kernel/arch/arm64/boot
     ## kernel
     echo
    	info_msg "kernel"

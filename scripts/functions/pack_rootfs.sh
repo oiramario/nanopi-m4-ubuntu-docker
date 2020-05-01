@@ -6,9 +6,23 @@ source functions/common.sh
 
 pack_rootfs_image()
 {
-    local rk_rootfs=${BUILD}/rk-rootfs-build
+    # ubuntu rootfs
+    echo
+   	info_msg "ubuntu rootfs"
     local rootfs_dir=${BUILD}/rootfs
+    if [ -d ${rootfs_dir} ];then
+        umount ${rootfs_dir}/proc/sys/fs/binfmt_misc > /dev/null 2>&1
+        umount ${rootfs_dir}/proc > /dev/null 2>&1
+        umount ${rootfs_dir}/sys > /dev/null 2>&1
+        umount ${rootfs_dir}/dev/pts > /dev/null 2>&1
+        umount ${rootfs_dir}/dev > /dev/null 2>&1
 
+        rm -rf ${rootfs_dir}
+    fi
+    mkdir -p ${rootfs_dir}
+    tar -xpf ${BUILD}/ubuntu-rootfs.tar.gz -C ${rootfs_dir}
+
+    local rk_rootfs=${BUILD}/rk-rootfs-build
     # rockchip packages
     echo
    	info_msg "copy rockchip packages"
@@ -19,7 +33,7 @@ pack_rootfs_image()
     echo
    	info_msg "copy rockchip overlays"
     cp -rf ${rk_rootfs}/overlay/* ${rootfs_dir}/
-    chmod +x ${rootfs_dir}/etc/rc.local 
+    chmod +x ${rootfs_dir}/etc/rc.local
 
     # rockchip firmware
     echo
@@ -37,13 +51,13 @@ pack_rootfs_image()
     echo
    	info_msg "copy bt/wifi/audio modules"
     mkdir -p ${rootfs_dir}/system/lib/modules
-    cd ${BUILD}/kernel-rockchip/drivers/net/wireless/rockchip_wlan
+    cd ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan
     find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules
 
     # kernel modules
-    echo
-   	info_msg "copy kernel modules"
-    cp -rf ${BUILD}/kmodules/* ${rootfs_dir}/
+    # echo
+   	# info_msg "copy kernel modules"
+    # cp -rf ${BUILD}/kmodules/* ${rootfs_dir}/
 
     # debug
     local rk_debug=${rk_rootfs}/overlay-debug
@@ -63,7 +77,7 @@ pack_rootfs_image()
     mount -o bind /dev ${rootfs_dir}/dev
     mount -o bind /dev/pts ${rootfs_dir}/dev/pts
     mount binfmt_misc -t binfmt_misc ${rootfs_dir}/proc/sys/fs/binfmt_misc
-    update-binfmts --enable qemu-aarch64
+    #update-binfmts --enable qemu-aarch64
 
     # building
     echo
@@ -75,9 +89,22 @@ pack_rootfs_image()
     uname -a
 
     #------------------------------------------------------------------------
-    echo -e "\033[36m apt update && upgrade && install packages.................... \033[0m"
+    echo -e "\033[36m configuration.................... \033[0m"
 
     echo "nameserver 8.8.8.8" > /etc/resolv.conf
+
+    echo root:111 | chpasswd
+    useradd -G sudo -m -s /bin/bash flagon
+    echo flagon:111 | chpasswd
+
+    echo oiramario > /etc/hostname
+    echo "127.0.0.1    localhost.localdomain localhost" > /etc/hosts
+    echo "127.0.0.1    oiramario" >> /etc/hosts
+
+    echo "/dev/mmcblk1p6  /      ext4  default,noatime  0  1" >> /etc/fstab
+
+    #------------------------------------------------------------------------
+    echo -e "\033[36m apt update && upgrade && install packages.................... \033[0m"
 
     echo '
     deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ bionic main restricted universe multiverse
@@ -87,12 +114,14 @@ pack_rootfs_image()
     export DEBIAN_FRONTEND=noninteractive 
 
     apt-get update
+    apt-get upgrade -y
 
-    # basic config
-    export LC_ALL=C LANG=C
-    apt-get install -y --no-install-recommends locales apt-utils
-    locale-gen en_US.UTF-8
-    update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_MESSAGES=en_US.UTF-8
+    # Install minimal packages:
+    mkdir -p /etc/bash_completion.d/
+    apt-get install -y --no-install-recommends \
+            init udev dbus rsyslog module-init-tools \
+            iproute2 iputils-ping network-manager \
+            ssh bash-completion htop
 
     # rockchip libdrm
     dpkg -i /packages/libdrm/*.deb
@@ -102,34 +131,6 @@ pack_rootfs_image()
     apt-get install -y --no-install-recommends libdrm2 libx11-6 libx11-xcb1 libxcb-dri2-0 libxcb1
     dpkg -i /packages/libmali/*.deb
     apt-get install -f -y
-
-    # advance config
-    mkdir -p /etc/bash_completion.d/
-    apt-get install -y --no-install-recommends \
-            init udev dbus rsyslog module-init-tools \
-            iproute2 iputils-ping network-manager \
-            ssh bash-completion htop
-
-    # upgrade
-    apt-get upgrade -y
-
-    #------------------------------------------------------------------------
-    echo -e "\033[36m configuration.................... \033[0m"
-
-    passwd root
-    root
-    root
-
-    useradd -m -s /bin/bash flagon
-    passwd flagon
-    111
-    111
-
-    echo "/dev/mmcblk1p6  /      ext4  noatime  0  0" >> /etc/fstab
-
-    echo oiramario > /etc/hostname
-    echo "127.0.0.1    localhost.localdomain localhost" > /etc/hosts
-    echo "127.0.0.1    oiramario" >> /etc/hosts
 
     mkdir -pv /etc/systemd/network
     echo '
@@ -152,18 +153,21 @@ pack_rootfs_image()
     systemctl enable systemd-networkd
     systemctl enable systemd-resolved
     systemctl enable rockchip.service
+    
     systemctl mask systemd-networkd-wait-online.service
     systemctl mask NetworkManager-wait-online.service
-    #rm /lib/systemd/system/wpa_supplicant@.service
+    rm /lib/systemd/system/wpa_supplicant@.service
 
     #------------------------------------------------------------------------
     echo -e "\033[36m clean.................... \033[0m"
 
     rm -rf /packages
+    apt-get autoclean -y
     apt-get autoremove -y
-    apt-get clean -y
-    rm -rf /var/lib/apt/lists/*
- 
+    rm -rf var/lib/apt/lists/*
+    rm -rf var/cache/apt/archives/*.deb
+    rm -rf var/log/*
+    rm -rf tmp/* 
 EOF
     sync
     umount ${rootfs_dir}/proc/sys/fs/binfmt_misc

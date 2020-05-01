@@ -11,25 +11,28 @@ download_dir=$(pwd)/downloads
 packages_dir=$(pwd)/packages
 [ ! -d ${packages_dir} ] && mkdir -p ${packages_dir}
 
+github_url="github.com.cnpmjs.org"
 
 update_sources()
 {
     cd ${download_dir}
 
     local gits=(
-    "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/rkbin.git,rkbin"
-    "stable-4.4-rk3399-linux,https://github.com/rockchip-linux/u-boot.git,u-boot"
-    "nanopi4-linux-v4.4.y,https://github.com/friendlyarm/kernel-rockchip.git,kernel-rockchip"
-    "master,https://github.com/rockchip-linux/rk-rootfs-build.git,rk-rootfs-build"
+    "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
+    "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
+    "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
+    "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
+    "busybox,mirror/busybox.git,1_31_stable"
+#    "librealsense,IntelRealSense/librealsense.git,master"
     )
     for i in ${gits[@]}
     do
         local str=($i)
         local arr=(${str//,/ })
 
-        local branch=${arr[0]}
-        local url=${arr[1]}
-        local dir=${arr[2]}
+        local dir=${arr[0]}
+        local url="https://${github_url}/${arr[1]}"
+        local branch=${arr[2]}
 
         echo
         info_msg "checking ${dir}"
@@ -74,15 +77,10 @@ update_sources()
 }
 
 
-update_archive()
+update_packages()
 {
-    cd ${download_dir}
-
     local tars=(
-    "busybox,https://github.com/mirror/busybox/archive/1_31_0.tar.gz"
-    "ubuntu-rootfs,http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz"
-    "qemu,https://download.qemu.org/qemu-4.1.0.tar.xz"
-    "librealsense,https://github.com/IntelRealSense/librealsense/archive/v2.26.0.tar.gz"
+    "ubuntu-rootfs.tar.gz,http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04-base-arm64.tar.gz"
     )
     for i in ${tars[@]}
     do
@@ -99,40 +97,15 @@ update_archive()
             rm -rf /tmp/${name}
             wget -O /tmp/${name} ${url}
             if [ $? -eq 0 ] ; then
-                cp /tmp/${name} ${download_dir}/
-                # prepare to re-package
-                rm -f ${packages_dir}/${name}.tar.gz
+                cp /tmp/${name} ${download_dir}/${name}
             else
                 error_msg "operation failed"
                 continue
             fi
-        fi
-
-        if [ $? -eq 0 ] && [ ! -f ${packages_dir}/${name}.tar.gz ]; then
-            local archive="z"
-            case "${name}" in
-                ubuntu-rootfs)
-                    # it's .tar.gz already
-                    cp -v ${download_dir}/${name} ${packages_dir}/${name}.tar.gz
-                    continue
-                    ;;
-                qemu)
-                    archive="J"
-                    ;;
-                *)
-                    ;;
-            esac
-
-            info_msg "re-packaging ${name}"
-            local tmp_dir=/tmp/${name}
-            rm -rf ${tmp_dir}
-            mkdir -p ${tmp_dir}
-            eval tar -x${archive}f ${download_dir}/${name} -C ${tmp_dir} --strip-components 1
-            eval tar -czf ${packages_dir}/${name}.tar.gz --exclude-vcs -C /tmp ${name}
         else
-            echo "exists"
-            continue
+            echo "exits"
         fi
+        cp -f ${download_dir}/${name} ${packages_dir}/${name}
     done
 }
 
@@ -145,7 +118,7 @@ help()
 	echo
 	info_msg "Example:"
 	info_msg "	update.sh sources"
-	info_msg "	update.sh archive"
+	info_msg "	update.sh packages"
 	info_msg "	update.sh all"
 	echo
 }
@@ -157,12 +130,12 @@ case "$TARGET" in
 	sources)
 		update_sources
 		;;
-	archive)
-		update_archive
+	packages)
+		update_packages
 		;;
 	all)
 		update_sources
-		update_archive
+		update_packages
 		;;
 	*)
 		error_msg "Unsupported target: $TARGET"

@@ -68,9 +68,6 @@ OS Image for development with the following tidbits:
 
         /etc/init.d/networking restart
 
-### qemu
-        apt-get install binfmt-support qemu qemu-user-static debootstrap
-
 ### vscode
 * install
 
@@ -149,10 +146,3 @@ OS Image for development with the following tidbits:
             git commit -m "add packages"
             git lfs ls-files
             git push origin master
-
-* shadowsocks
-
-        wget https://github.com/shadowsocks/shadowsocks-qt5/releases/download/v3.0.1/Shadowsocks-Qt5-3.0.1-x86_64.AppImage
-        
-        git config --global http.proxy socks5://127.0.0.1:1080
-        git config --global https.proxy socks5://127.0.0.1:1080

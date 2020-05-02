@@ -59,7 +59,7 @@ pack_boot_image()
     [ -f ${boot_img} ] && rm -f ${boot_img}
     echo
    	info_msg "boot.img"
-    genext2fs -b 65536 -d ${fit_path} ${boot_img}
+    genext2fs -b 16384 -d ${fit_path} ${boot_img}
     e2fsck -p -f ${boot_img}
     resize2fs -M ${boot_img}
 }

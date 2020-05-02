@@ -11,7 +11,7 @@ download_dir=$(pwd)/downloads
 packages_dir=$(pwd)/packages
 [ ! -d ${packages_dir} ] && mkdir -p ${packages_dir}
 
-github_url="github.com.cnpmjs.org"
+github_url="https://github.com.cnpmjs.org"
 
 update_sources()
 {
@@ -31,7 +31,7 @@ update_sources()
         local arr=(${str//,/ })
 
         local dir=${arr[0]}
-        local url="https://${github_url}/${arr[1]}"
+        local url="${github_url}/${arr[1]}"
         local branch=${arr[2]}
 
         echo

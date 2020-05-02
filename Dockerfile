@@ -2,7 +2,7 @@
 #----------------------------------------------------------------------------------------------------------------#
 FROM ubuntu:bionic
 LABEL author="oiramario" \
-      version="0.2.1" \
+      version="0.2.2" \
       email="oiramario@gmail.com"
 
 # apt sources
@@ -34,8 +34,7 @@ RUN apt-get update \
         binfmt-support  qemu-user-static \
         # local:en_US.UTF-8
         locales \
-\
-        && locale-gen en_US.UTF-8
+    && locale-gen en_US.UTF-8
 
 
 # setup build environment
@@ -86,7 +85,6 @@ RUN set -x \
 # u-boot
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
-ADD "packages/rkbin.tar.gz" "${BUILD}/"
 COPY "patches/u-boot" "${BUILD}/u-boot/patches/"
 RUN set -x \
     && cd u-boot \
@@ -113,8 +111,9 @@ RUN set -x \
     && make CONFIG_PREFIX=${OUT} install
 
 
-# rockchip rootfs
+# rockchip materials
 #----------------------------------------------------------------------------------------------------------------#
+ADD "packages/rkbin.tar.gz" "${BUILD}/"
 ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 
 

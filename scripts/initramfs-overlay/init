@@ -1,7 +1,6 @@
 #!/bin/sh
 #
 
-echo "initramfs working..."
 mkdir -p /proc /sys /dev
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
@@ -10,6 +9,6 @@ mdev -s
 
 mkdir -p /mnt/sysroot
 mount -t ext4 /dev/mmcblk1p6 /mnt/sysroot
-
-echo "switch to ubuntu rootfs..."
-exec switch_root /mnt/sysroot /sbin/init
+if [ $? -eq 0 ]; then
+    exec switch_root /mnt/sysroot /sbin/init
+fi

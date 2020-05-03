@@ -20,6 +20,8 @@ pack_boot_image()
     cd ${ramdisk}
     ## busybox
     cp -rf ${BUILD}/initramfs/* ./
+    ## overlay
+    cp -rf ${HOME}/scripts/initramfs-overlay/* ./
     ## dptx.bin
     local dptx_src=${BUILD}/rk-rootfs-build/overlay-firmware/lib/firmware/rockchip/dptx.bin
     local dptx_dst=${ramdisk}/lib/firmware/rockchip
@@ -27,7 +29,6 @@ pack_boot_image()
     cp -vf ${dptx_src} ${dptx_dst}
     ## ramdisk.cpio.gz
     rm -f linuxrc
-    cp -f ${HOME}/scripts/boot/init ./
     find . | cpio -oH newc | gzip > ${boot}/ramdisk.cpio.gz
 
     # boot

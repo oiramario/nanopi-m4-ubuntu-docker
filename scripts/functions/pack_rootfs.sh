@@ -27,14 +27,12 @@ pack_rootfs_image()
     # overlay
     echo
    	info_msg "overlay"
-    cp -rf ./overlay/* ${rootfs_dir}/
+    cp -rf ${HOME}/scripts/rootfs-overlay/* ${rootfs_dir}/
 
     # rockchip firmware
     echo
    	info_msg "copy rockchip firmwares"
-    cp -rf ${rk_rootfs}/overlay-firmware/etc ${rootfs_dir}/
-    cp -rf ${rk_rootfs}/overlay-firmware/usr ${rootfs_dir}/
-    cp -rf ${rk_rootfs}/overlay-firmware/lib ${rootfs_dir}/usr/
+    cp -rf ${rk_rootfs}/overlay-firmware/* ${rootfs_dir}/
 
     # choose 64bits
     mv -f ${rootfs_dir}/usr/bin/brcm_patchram_plus1_64 ${rootfs_dir}/usr/bin/brcm_patchram_plus1

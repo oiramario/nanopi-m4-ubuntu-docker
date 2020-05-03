@@ -24,15 +24,22 @@ pack_rootfs_image()
 
     local rk_rootfs=${BUILD}/rk-rootfs-build
 
+    # overlay
+    echo
+   	info_msg "overlay"
+    cp -rf ./overlay/* ${rootfs_dir}/
+
     # rockchip firmware
     echo
    	info_msg "copy rockchip firmwares"
-    cp -rf ${rk_rootfs}/overlay-firmware/* ${rootfs_dir}/
-    # some configs
-    cd ${rootfs_dir}/usr/bin
-    mv -f brcm_patchram_plus1_64 brcm_patchram_plus1
-    mv -f rk_wifi_init_64 rk_wifi_init
-    rm -f brcm_patchram_plus1_32 rk_wifi_init_32
+    cp -rf ${rk_rootfs}/overlay-firmware/etc ${rootfs_dir}/
+    cp -rf ${rk_rootfs}/overlay-firmware/usr ${rootfs_dir}/
+    cp -rf ${rk_rootfs}/overlay-firmware/lib ${rootfs_dir}/usr/
+
+    # choose 64bits
+    mv -f ${rootfs_dir}/usr/bin/brcm_patchram_plus1_64 ${rootfs_dir}/usr/bin/brcm_patchram_plus1
+    mv -f ${rootfs_dir}/usr/bin/rk_wifi_init_64 ${rootfs_dir}/usr/bin/rk_wifi_init
+    rm -f ${rootfs_dir}/usr/bin/brcm_patchram_plus1_32 ${rootfs_dir}/usr/bin/rk_wifi_init_32
     # for wifi_chip save
     mkdir -p ${rootfs_dir}/data
 
@@ -40,8 +47,8 @@ pack_rootfs_image()
     echo
    	info_msg "copy bt/wifi/audio modules"
     mkdir -p ${rootfs_dir}/system/lib/modules
-    cd ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan
-    find . -name "*.ko" | xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules
+    find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
+        xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules/
 
     # kernel modules
     # echo
@@ -89,11 +96,6 @@ set -x
 
 uname -a
 
-#------------------------------------------------------------------------
-echo -e "\033[36m configuration.................... \033[0m"
-
-echo "nameserver 114.114.114.114" > /etc/resolv.conf
-
 passwd root
 root
 root
@@ -103,70 +105,22 @@ passwd guest
 111
 111
 
-echo oiramario > /etc/hostname
-echo "127.0.0.1    localhost.localdomain localhost" > /etc/hosts
-echo "127.0.0.1    oiramario" >> /etc/hosts
-
-echo "resize2fs /dev/mmcblk1p6" > /etc/rc2.d/disk_recovery.sh
-echo 'rm /etc/rc2.d/disk_recovery.sh' >> /etc/rc2.d/disk_recovery.sh
-chmod +x /etc/rc2.d/disk_recovery.sh
-
-echo "/dev/mmcblk1p6  /      ext4  default,noatime  0  1" >> /etc/fstab
-
-#------------------------------------------------------------------------
-echo -e "\033[36m apt update && upgrade && install packages.................... \033[0m"
-
-echo '
-deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ bionic main restricted universe multiverse
-deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ bionic-updates main restricted universe multiverse
-' > /etc/apt/sources.list
-
 export DEBIAN_FRONTEND=noninteractive 
 
 apt-get update
-apt-get upgrade -y
+#apt-get upgrade -y
 
 # Install minimal packages:
-mkdir -p /etc/bash_completion.d/
 apt-get install -y --no-install-recommends \
-        init udev dbus rsyslog module-init-tools \
-        iproute2 iputils-ping network-manager \
-        ssh bash-completion htop
+        init udev dbus rsyslog module-init-tools haveged \
+        resolvconf iproute2 iputils-ping net-tools network-manager \
+        ssh htop bash-completion
 
-# rockchip libdrm
-# dpkg -i /packages/libdrm/*.deb
-# apt-get install -f -y
+dpkg-reconfigure resolvconf
 
-# rockchip libmali
-# apt-get install -y --no-install-recommends libdrm2 libx11-6 libx11-xcb1 libxcb-dri2-0 libxcb1
-# dpkg -i /packages/libmali/*.deb
-# apt-get install -f -y
-
-mkdir -pv /etc/systemd/network
-echo '
-# Use DHCP
-[Match]
-Name=eth0
-[Network]
-DHCP=yes
-' > /etc/systemd/network/eth0.network
-
-# TODO update modules.dep
-# depmod
-
-#------------------------------------------------------------------------
-echo -e "\033[36m custom script.................... \033[0m"
-
+systemctl enable haveged
 systemctl enable systemd-networkd
 systemctl enable systemd-resolved
-# systemctl enable rockchip.service
-
-systemctl mask systemd-networkd-wait-online.service
-systemctl mask NetworkManager-wait-online.service
-# rm /lib/systemd/system/wpa_supplicant@.service
-
-#------------------------------------------------------------------------
-echo -e "\033[36m clean.................... \033[0m"
 
 rm -rf /packages
 apt-get autoclean -y
@@ -176,6 +130,7 @@ rm -rf var/cache/apt/archives/*.deb
 rm -rf var/log/*
 rm -rf tmp/* 
 EOF
+    rm ${rootfs_dir}/usr/bin/qemu-aarch64-static
     sync
     umount ${rootfs_dir}/proc/sys/fs/binfmt_misc
     umount ${rootfs_dir}/proc

@@ -38,8 +38,6 @@ pack_rootfs_image()
     mv -f ${rootfs_dir}/usr/bin/brcm_patchram_plus1_64 ${rootfs_dir}/usr/bin/brcm_patchram_plus1
     mv -f ${rootfs_dir}/usr/bin/rk_wifi_init_64 ${rootfs_dir}/usr/bin/rk_wifi_init
     rm -f ${rootfs_dir}/usr/bin/brcm_patchram_plus1_32 ${rootfs_dir}/usr/bin/rk_wifi_init_32
-    # for wifi_chip save
-    mkdir -p ${rootfs_dir}/data
 
     # bt, wifi, audio firmware
     echo
@@ -98,8 +96,8 @@ passwd root
 root
 root
 
-useradd -m -s /bin/bash guest
-passwd guest
+useradd -m -s /bin/bash flagon
+passwd flagon
 111
 111
 
@@ -108,17 +106,14 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 #apt-get upgrade -y
 
-# Install minimal packages:
 apt-get install -y --no-install-recommends \
-        init udev dbus rsyslog module-init-tools haveged \
-        resolvconf iproute2 iputils-ping net-tools network-manager \
-        ssh htop bash-completion
+        init udev dbus rsyslog module-init-tools \
+        network-manager iputils-ping \
+        bluetooth bluez bluez-tools rfkill \
+#        ssh htop \r
+        bash-completion
 
-dpkg-reconfigure resolvconf
-
-systemctl enable haveged
-systemctl enable systemd-networkd
-systemctl enable systemd-resolved
+touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
 
 rm -rf /packages
 apt-get autoclean -y

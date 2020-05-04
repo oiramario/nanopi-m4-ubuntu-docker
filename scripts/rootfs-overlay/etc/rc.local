@@ -13,6 +13,7 @@
 
 echo rc.local running...
 resize2fs /dev/mmcblk1p6
-ssh-keygen -A
-rm $0
+rk_wifi_init /dev/ttyS0
+#ssh-keygen -A
+#rm $0
 exit 0

@@ -85,13 +85,10 @@ RUN set -x \
 # u-boot
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
-COPY "patches/u-boot" "${BUILD}/u-boot/patches/"
 RUN set -x \
     && cd u-boot \
-    # patch
-    && for x in `ls patches`; do patch -p1 < patches/$x; done \
     # make
-    && make evb-rk3399_defconfig \
+    && make rk3399_defconfig \
     && make -j$(nproc)
 
 

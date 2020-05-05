@@ -21,6 +21,7 @@ update_sources()
     "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
     "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
     "libmali,rockchip-linux/libmali.git,rockchip"
+    "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
     "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
     "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
     "busybox,mirror/busybox.git,1_31_stable"

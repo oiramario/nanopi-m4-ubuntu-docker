@@ -19,11 +19,13 @@ deb ${SOURCES} bionic-updates main restricted universe multiverse \n\
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         # compile
-        patch  make  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  cmake \
+        patch  make  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  pkg-config  cmake \
         # u-boot
         bison  flex \
         # kernel
         bc  libssl-dev  kmod \
+        # libdrm
+        autoconf  xutils-dev  libtool  libpciaccess-dev \
         # initramfs
         cpio \
         # FIT(Flattened Image Tree)
@@ -116,7 +118,8 @@ ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 
 # ubuntu rootfs
 #----------------------------------------------------------------------------------------------------------------#
-COPY "packages/ubuntu-rootfs.tar.gz" "${BUILD}/"
+ENV ROOTFS=${BUILD}/rootfs
+ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 
 # cmake toolchain
@@ -129,19 +132,34 @@ COPY "toolchain.cmake" "${BUILD}/"
 ADD "packages/libmali.tar.gz" "${BUILD}/"
 RUN set -x \
    && cd libmali \
-   && cmake -DCMAKE_INSTALL_PREFIX:PATH="${BUILD}/mali" \
+   && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr/local" \
             -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
    && make install
+
+
+# libdrm
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libdrm.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd libdrm \
+    && ./autogen.sh --prefix="${ROOTFS}/usr/local" --host="${HOST}" \
+                    --disable-intel --disable-vmwgfx --disable-radeon \
+                    --disable-amdgpu --disable-nouveau --disable-freedreno \
+                    --disable-vc4 --enable-rockchip-experimental-api \
+    && make -j$(nproc) \
+    && make install
 
 
 # gbm-drm-gles-cube
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd ogles-cube
-    # && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
-    #    cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-    # && make -j$(nproc)
+    && cd ogles-cube \
+    && PKG_CONFIG_PATH="${ROOTFS}/usr/local/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/local/lib" \
+       cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+    && make -j$(nproc) \
+    && aarch64-linux-gnu-strip --strip-unneeded ./gbm-drm-gles-cube \
+    && cp ./gbm-drm-gles-cube "${ROOTFS}/usr/local/bin/"
 
 # here we go
 #----------------------------------------------------------------------------------------------------------------#

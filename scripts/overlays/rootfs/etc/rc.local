@@ -11,9 +11,15 @@
 #
 # By default this script does nothing.
 
-echo rc.local running...
-resize2fs /dev/mmcblk1p6
-rk_wifi_init /dev/ttyS0
-#ssh-keygen -A
-#rm $0
+# init wifi
+rk_wifi_init /dev/ttyS0 > /tmp/rk_wifi_init.log
+
+# HACK: Prevent blueman from changing rfkill states
+rm /dev/rfkill
+
+# run once script
+if [ -f /etc/init.d/run_once_on_boot.sh ];then
+    /etc/init.d/run_once_on_boot.sh
+fi
+
 exit 0

@@ -119,6 +119,30 @@ ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 COPY "packages/ubuntu-rootfs.tar.gz" "${BUILD}/"
 
 
+# cmake toolchain
+#----------------------------------------------------------------------------------------------------------------#
+COPY "toolchain.cmake" "${BUILD}/"
+
+
+# libmali
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libmali.tar.gz" "${BUILD}/"
+RUN set -x \
+   && cd libmali \
+   && cmake -DCMAKE_INSTALL_PREFIX:PATH="${BUILD}/mali" \
+            -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
+   && make install
+
+
+# gbm-drm-gles-cube
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd ogles-cube
+    # && PKG_CONFIG_PATH="${ROOTFS}/usr/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/lib" \
+    #    cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+    # && make -j$(nproc)
+
 # here we go
 #----------------------------------------------------------------------------------------------------------------#
 ENV DISTRO=/root/distro

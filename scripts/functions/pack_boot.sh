@@ -21,7 +21,7 @@ pack_boot_image()
     ## busybox
     cp -rf ${BUILD}/initramfs/* ./
     ## overlay
-    cp -rf ${HOME}/scripts/initramfs-overlay/* ./
+    cp -rf ${HOME}/scripts/overlays/initramfs/* ./
     ## dptx.bin
     local dptx_src=${BUILD}/rk-rootfs-build/overlay-firmware/lib/firmware/rockchip/dptx.bin
     local dptx_dst=${ramdisk}/lib/firmware/rockchip

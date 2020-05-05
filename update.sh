@@ -20,9 +20,11 @@ update_sources()
     local gits=(
     "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
     "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
+    "libmali,rockchip-linux/libmali.git,rockchip"
     "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
     "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
     "busybox,mirror/busybox.git,1_31_stable"
+    "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
 #    "librealsense,IntelRealSense/librealsense.git,master"
     )
     for i in ${gits[@]}
@@ -69,6 +71,16 @@ update_sources()
                     --exclude=packages/arm64/libmali/libmali-rk-bifrost-*.deb \
                     --exclude=packages-patches \
                     --exclude=ubuntu-build-service"
+            elif [ $dir = "libmali" ];then
+                exclude+=" \
+                    --exclude=lib/arm-linux-gnueabihf \
+                    --exclude=lib/aarch64-linux-gnu/libmali-bifrost-* \
+                    --exclude=lib/aarch64-linux-gnu/libmali-utgard-* \
+                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r9p0-* \
+                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r13p0-* \
+                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
+                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
+                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
             fi
 
             eval tar -czf ${packages_dir}/${dir}.tar.gz $exclude -C . ${dir}

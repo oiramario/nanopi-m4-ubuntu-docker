@@ -27,7 +27,7 @@ pack_rootfs_image()
     # overlay
     echo
    	info_msg "overlay"
-    cp -rf ${HOME}/scripts/rootfs-overlay/* ${rootfs_dir}/
+    cp -rf ${HOME}/scripts/overlays/rootfs/* ${rootfs_dir}/
 
     # rockchip firmware
     echo
@@ -45,6 +45,13 @@ pack_rootfs_image()
     mkdir -p ${rootfs_dir}/system/lib/modules
     find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
         xargs -n1 -i cp {} ${rootfs_dir}/system/lib/modules/
+
+    # mali
+    echo
+   	info_msg "mali"
+    cp -rf ${BUILD}/mali/* ${rootfs_dir}/usr/
+    rm -rf ${rootfs_dir}/usr/lib/pkgconfig
+
 
     # kernel modules
     # echo

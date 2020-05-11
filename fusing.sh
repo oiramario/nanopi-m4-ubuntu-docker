@@ -24,6 +24,9 @@ fi
 idbloader_addr=""
 idbloader_size=""
 
+resource_addr=""
+resource_size=""
+
 uboot_addr=""
 uboot_size=""
 
@@ -58,6 +61,10 @@ do
         idbloader)
             idbloader_addr=${addr}
             idbloader_size=${size}
+            ;;
+        resource)
+            resource_addr=${addr}
+            resource_size=${size}
             ;;
         uboot)
             uboot_addr=${addr}
@@ -107,6 +114,17 @@ fusing_idbloader()
     local name="idbloader"
     local addr=${idbloader_addr}
     local size=${idbloader_size}
+    info_msg "${name}: address=${addr} size=${size}"
+    ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
+    sleep 2
+}
+
+
+fusing_resource()
+{
+    local name="resource"
+    local addr=${resource_addr}
+    local size=${resource_size}
     info_msg "${name}: address=${addr} size=${size}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
     sleep 2
@@ -165,6 +183,7 @@ help()
 	echo
 	info_msg "Example:"
 	info_msg "	fusing.sh loader"
+	info_msg "	fusing.sh resource"
 	info_msg "	fusing.sh boot"
 	info_msg "	fusing.sh rootfs"
 	info_msg "	fusing.sh all"
@@ -182,6 +201,11 @@ case "$TARGET" in
             fusing_trust
         fusing_end
 		;;
+	resource)
+        fusing_begin
+            fusing_resource
+        fusing_end
+		;;
 	boot)
         fusing_begin
             fusing_boot
@@ -195,6 +219,7 @@ case "$TARGET" in
 	all)
         fusing_begin
             fusing_idbloader
+            fusing_resource
             fusing_uboot
             fusing_trust
             fusing_boot

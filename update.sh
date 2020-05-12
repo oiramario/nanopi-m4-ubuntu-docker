@@ -26,7 +26,9 @@ update_sources()
     "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
     "busybox,mirror/busybox.git,1_31_stable"
     "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
-#    "librealsense,IntelRealSense/librealsense.git,master"
+    "eudev,gentoo/eudev.git,v3.2.9"
+    "libusb,libusb/libusb.git,v1.0.23"
+    "librealsense,IntelRealSense/librealsense.git,v2.34.1"
     )
     for i in ${gits[@]}
     do

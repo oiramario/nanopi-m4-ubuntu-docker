@@ -48,7 +48,7 @@ pack_boot_image()
     cd ${boot}/
     cp ${HOME}/scripts/boot/logo.bmp ./
     cp ${HOME}/scripts/boot/logo_kernel.bmp ./
-    ${BUILD}/kernel/scripts/resource_tool --verbose --pack --root=/ --image=${DISTRO}/resource.img logo.bmp logo_kernel.bmp rk3399-nanopi4-rev01.dtb
+    ${BUILD}/kernel/scripts/resource_tool --pack --verbose --image=${DISTRO}/resource.img logo.bmp logo_kernel.bmp rk3399-nanopi4-rev01.dtb
 
     # FIT
     echo

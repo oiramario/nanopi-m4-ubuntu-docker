@@ -26,6 +26,8 @@ RUN apt-get update \
         bc  libssl-dev  kmod \
         # libdrm
         autoconf  xutils-dev  libtool  libpciaccess-dev \
+        # eudev
+        gperf \
         # initramfs
         cpio \
         # FIT(Flattened Image Tree)
@@ -48,6 +50,10 @@ ENV LANG='en_US.UTF-8' \
     ARCH="arm64" \
     HOST="aarch64-linux-gnu" \
     BUILD="/root/build"
+
+ENV ROOTFS="${BUILD}/rootfs"
+ENV PREFIX="${ROOTFS}/usr/local"
+ENV PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 
 USER root
 
@@ -76,12 +82,12 @@ RUN set -x \
     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
     # strip
-    && (cd ${OUT} \
+    && cd ${OUT} \
     # remove build and source links
     && find . -name build | xargs rm -rf \
     && find . -name source | xargs rm -rf \
     # strip unneeded
-    && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded)
+    && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded
 
 
 # u-boot
@@ -118,7 +124,6 @@ ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 
 # ubuntu rootfs
 #----------------------------------------------------------------------------------------------------------------#
-ENV ROOTFS=${BUILD}/rootfs
 ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 
@@ -131,10 +136,12 @@ COPY "toolchain.cmake" "${BUILD}/"
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libmali.tar.gz" "${BUILD}/"
 RUN set -x \
-   && cd libmali \
-   && cmake -DCMAKE_INSTALL_PREFIX:PATH="${ROOTFS}/usr/local" \
-            -DTARGET_SOC=rk3399 -DDP_FEATURE=gbm . \
-   && make install
+    && cd libmali \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+                -DTARGET_SOC=rk3399 \
+                -DDP_FEATURE=gbm \
+                . \
+    && make install
 
 
 # libdrm
@@ -142,10 +149,60 @@ RUN set -x \
 ADD "packages/libdrm.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd libdrm \
-    && ./autogen.sh --prefix="${ROOTFS}/usr/local" --host="${HOST}" \
-                    --disable-intel --disable-vmwgfx --disable-radeon \
-                    --disable-amdgpu --disable-nouveau --disable-freedreno \
-                    --disable-vc4 --enable-rockchip-experimental-api \
+    && ./autogen.sh --prefix="${PREFIX}" --host="${HOST}" \
+                    --disable-intel \
+                    --disable-vmwgfx \
+                    --disable-radeon \
+                    --disable-amdgpu \
+                    --disable-nouveau \
+                    --disable-freedreno \
+                    --disable-vc4 \
+                    --enable-rockchip-experimental-api \
+    && make -j$(nproc) \
+    && make install
+
+
+# eudev
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/eudev.tar.gz" "${BUILD}/"
+RUN set -x \ 
+    && cd eudev \
+    && autoreconf -vfi \
+    && ./configure  --prefix="${PREFIX}" --host="${HOST}" \
+                    --disable-blkid \
+                    --disable-kmod \
+    && make -j$(nproc) \
+    && make install
+
+
+# libusb
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libusb.tar.gz" "${BUILD}/"
+RUN set -x \ 
+    && cd libusb \
+    && autoreconf -vfi \
+    && CFLAGS="-I${PREFIX}/include" LDFLAGS="-L${PREFIX}/lib" \
+       ./configure --prefix="${PREFIX}" --host="${HOST}" \
+    && make -j$(nproc) \
+    && make install
+
+
+# librealsense
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/librealsense.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd librealsense \
+    && mkdir -p "${ROOTFS}/etc/udev/rules.d/" \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DBUILD_WITH_TM2=false \
+                -DBUILD_GRAPHICAL_EXAMPLES=false \
+                -DBUILD_EXAMPLES=false \
+                -DHWM_OVER_XU=false \
+                -DBUILD_WITH_STATIC_CRT=false \
+                -DIMPORT_DEPTH_CAM_FW=false \
+                . \
     && make -j$(nproc) \
     && make install
 
@@ -155,11 +212,20 @@ RUN set -x \
 ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd ogles-cube \
-    && PKG_CONFIG_PATH="${ROOTFS}/usr/local/lib/pkgconfig" LDFLAGS="-L${ROOTFS}/usr/local/lib" \
+    && PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig" LDFLAGS="-L${PREFIX}/lib" \
        cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
     && make -j$(nproc) \
     && aarch64-linux-gnu-strip --strip-unneeded ./gbm-drm-gles-cube \
-    && cp ./gbm-drm-gles-cube "${ROOTFS}/usr/local/bin/"
+    && cp ./gbm-drm-gles-cube "${PREFIX}/bin/"
+
+
+# clean useless
+#----------------------------------------------------------------------------------------------------------------#
+RUN cd "${PREFIX}" \
+    && rm -rf include lib/pkgconfig lib/cmake lib/udev \
+    && rm -f lib/*.a lib/*.la \
+    && find ./lib -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
+
 
 # here we go
 #----------------------------------------------------------------------------------------------------------------#

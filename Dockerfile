@@ -116,15 +116,27 @@ RUN set -x \
     && make CONFIG_PREFIX=${OUT} install
 
 
+# ubuntu rootfs
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
+
+
 # rockchip materials
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/rkbin.tar.gz" "${BUILD}/"
 ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
-
-
-# ubuntu rootfs
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
+RUN set -x \
+    && cd rk-rootfs-build \
+    # rockchip firmware
+    && cp -rf overlay-firmware/* ${ROOTFS}/ \
+    # choose 64bits
+    && mv -f ${ROOTFS}/usr/bin/brcm_patchram_plus1_64 ${ROOTFS}/usr/bin/brcm_patchram_plus1 \
+    && mv -f ${ROOTFS}/usr/bin/rk_wifi_init_64 ${ROOTFS}/usr/bin/rk_wifi_init \
+    && rm -f ${ROOTFS}/usr/bin/brcm_patchram_plus1_32 ${ROOTFS}/usr/bin/rk_wifi_init_32 \
+    # bt, wifi, audio firmware
+    && mkdir -p ${ROOTFS}/system/lib/modules \
+    && find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
+        xargs -n1 -i cp {} ${ROOTFS}/system/lib/modules/
 
 
 # cmake toolchain
@@ -192,12 +204,11 @@ RUN set -x \
 ADD "packages/librealsense.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd librealsense \
-    && mkdir -p "${ROOTFS}/etc/udev/rules.d/" \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DBUILD_WITH_TM2=false \
-                -DBUILD_GRAPHICAL_EXAMPLES=false \
+                -DBUILD_GRAPHICAL_EXAMPLES=true \
                 -DBUILD_EXAMPLES=false \
                 -DHWM_OVER_XU=false \
                 -DBUILD_WITH_STATIC_CRT=false \
@@ -205,6 +216,12 @@ RUN set -x \
                 . \
     && make -j$(nproc) \
     && make install
+
+
+RUN set -x \
+    && cd librealsense \
+    && mkdir -p "${ROOTFS}/etc/udev/rules.d/" \
+    && cp config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
 
 
 # gbm-drm-gles-cube

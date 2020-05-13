@@ -26,24 +26,6 @@ pack_rootfs_image()
    	info_msg "overlay"
     cp -rf ${HOME}/scripts/overlays/rootfs/* ${rootfs}/
 
-    # rockchip firmware
-    local rk_rootfs=${BUILD}/rk-rootfs-build
-    echo
-   	info_msg "copy rockchip firmwares"
-    cp -rf ${rk_rootfs}/overlay-firmware/* ${rootfs}/
-
-    # choose 64bits
-    mv -f ${rootfs}/usr/bin/brcm_patchram_plus1_64 ${rootfs}/usr/bin/brcm_patchram_plus1
-    mv -f ${rootfs}/usr/bin/rk_wifi_init_64 ${rootfs}/usr/bin/rk_wifi_init
-    rm -f ${rootfs}/usr/bin/brcm_patchram_plus1_32 ${rootfs}/usr/bin/rk_wifi_init_32
-
-    # bt, wifi, audio firmware
-    echo
-   	info_msg "copy bt/wifi/audio modules"
-    mkdir -p ${rootfs}/system/lib/modules
-    find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
-        xargs -n1 -i cp {} ${rootfs}/system/lib/modules/
-
     # kernel modules
     # echo
    	# info_msg "copy kernel modules"

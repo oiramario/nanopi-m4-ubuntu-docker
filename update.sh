@@ -29,6 +29,7 @@ update_sources()
     "libusb,libusb/libusb.git,v1.0.23"
     "librealsense,IntelRealSense/librealsense.git,v2.34.1"
     "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
+    "gdb,bminor/binutils-gdb.git,gdb-9-branch"
     )
     for i in ${gits[@]}
     do

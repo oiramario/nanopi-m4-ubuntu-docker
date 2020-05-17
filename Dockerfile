@@ -24,6 +24,8 @@ RUN apt-get update \
         bison  flex \
         # kernel
         bc  libssl-dev  kmod \
+        # gdb
+        texinfo \
         # libdrm
         autoconf  xutils-dev  libtool  libpciaccess-dev \
         # eudev
@@ -232,8 +234,21 @@ RUN set -x \
     && PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig" LDFLAGS="-L${PREFIX}/lib" \
        cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
     && make -j$(nproc) \
-    && aarch64-linux-gnu-strip --strip-unneeded ./gbm-drm-gles-cube \
     && cp ./gbm-drm-gles-cube "${PREFIX}/bin/"
+
+
+# gdb
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/gdb.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd gdb \
+    # gdb
+    && mkdir build && cd build \
+    && ../configure --target="${HOST}" --host="${HOST}" \
+    && make -j$(nproc) \
+    && cp gdb/gdb ${PREFIX}/bin/ \
+    # gdbserver
+    && cp gdb/gdbserver/gdbserver ${PREFIX}/bin/
 
 
 # clean useless
@@ -241,7 +256,8 @@ RUN set -x \
 RUN cd "${PREFIX}" \
     && rm -rf include lib/pkgconfig lib/cmake lib/udev \
     && rm -f lib/*.a lib/*.la \
-    && find ./lib -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
+    && find lib -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded \
+    && aarch64-linux-gnu-strip --strip-unneeded ./bin/*
 
 
 # here we go

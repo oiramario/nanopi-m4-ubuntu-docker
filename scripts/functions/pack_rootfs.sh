@@ -21,6 +21,12 @@ pack_rootfs_image()
     mkdir -p ${rootfs}
     cp -rfp ${ROOTFS}/* ${rootfs}/
 
+    # so
+    echo
+   	info_msg "so"
+    cp -rfp /opt/devkit/lib/*.so* ${rootfs}/usr/local/lib/
+    find ${rootfs}/usr/local/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
+
     # overlay
     echo
    	info_msg "overlay"
@@ -62,16 +68,6 @@ set -x
 
 uname -a
 
-passwd root
-root
-root
-
-useradd -m -s /bin/bash flagon
-passwd flagon
-111
-111
-adduser flagon sudo
-
 export DEBIAN_FRONTEND=noninteractive 
 
 apt-get update
@@ -83,6 +79,17 @@ apt-get install -y --no-install-recommends \
         bluetooth bluez bluez-tools rfkill \
         sudo ssh htop file \
         bash-completion
+
+passwd root
+root
+root
+
+useradd -m -s /bin/bash flagon
+passwd flagon
+111
+111
+usermod -aG sudo flagon
+echo "AllowUsers flagon" >> /etc/ssh/sshd_config
 
 systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service

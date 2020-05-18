@@ -53,17 +53,13 @@ ENV LANG='en_US.UTF-8' \
     HOST="aarch64-linux-gnu" \
     BUILD="/root/build"
 
-ENV ROOTFS="${BUILD}/rootfs"
-ENV PREFIX="${ROOTFS}/usr/local"
-ENV PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-
 USER root
 
 WORKDIR ${BUILD}
 
+
 # kernel
 #----------------------------------------------------------------------------------------------------------------#
-
 ADD "packages/kernel.tar.gz" "${BUILD}/"
 COPY "patches/kernel" "${BUILD}/kernel/patches/"
 RUN set -x \
@@ -75,21 +71,21 @@ RUN set -x \
     && make -j$(nproc)
 
 
-RUN set -x \
-    && cd kernel \
-    && export OUT="${BUILD}/kmodules" \
-    && make INSTALL_MOD_PATH=${OUT} modules_install \
-    && KREL=`make kernelrelease` \
-    # useless
-    && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
-    && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
-    # strip
-    && cd ${OUT} \
-    # remove build and source links
-    && find . -name build | xargs rm -rf \
-    && find . -name source | xargs rm -rf \
-    # strip unneeded
-    && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded
+# RUN set -x \
+#     && cd kernel \
+#     && export OUT="${BUILD}/kmodules" \
+#     && make INSTALL_MOD_PATH=${OUT} modules_install \
+#     && KREL=`make kernelrelease` \
+#     # useless
+#     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
+#     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
+#     # strip
+#     && cd ${OUT} \
+#     # remove build and source links
+#     && find . -name build | xargs rm -rf \
+#     && find . -name source | xargs rm -rf \
+#     # strip unneeded
+#     && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded
 
 
 # u-boot
@@ -113,13 +109,12 @@ RUN set -x \
     # make
     && make defconfig \
     && make -j$(nproc) \
-\
-    && export OUT="${BUILD}/initramfs" \
-    && make CONFIG_PREFIX=${OUT} install
+    && make CONFIG_PREFIX=${BUILD}/initramfs install
 
 
 # ubuntu rootfs
 #----------------------------------------------------------------------------------------------------------------#
+ENV ROOTFS="${BUILD}/rootfs"
 ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 
@@ -141,8 +136,12 @@ RUN set -x \
         xargs -n1 -i cp {} ${ROOTFS}/system/lib/modules/
 
 
-# cmake toolchain
+# compile settings
 #----------------------------------------------------------------------------------------------------------------#
+ENV PREFIX=/opt/devkit
+ENV PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig
+ENV CFLAGS="-I${PREFIX}/include"
+ENV LDFLAGS="-L${PREFIX}/lib"
 COPY "toolchain.cmake" "${BUILD}/"
 
 
@@ -151,7 +150,7 @@ COPY "toolchain.cmake" "${BUILD}/"
 ADD "packages/libmali.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd libmali \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DTARGET_SOC=rk3399 \
                 -DDP_FEATURE=gbm \
                 . \
@@ -163,7 +162,7 @@ RUN set -x \
 ADD "packages/libdrm.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd libdrm \
-    && ./autogen.sh --prefix="${PREFIX}" --host="${HOST}" \
+    && ./autogen.sh --prefix=${PREFIX} --host=${HOST} \
                     --disable-intel \
                     --disable-vmwgfx \
                     --disable-radeon \
@@ -182,7 +181,7 @@ ADD "packages/eudev.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd eudev \
     && autoreconf -vfi \
-    && ./configure  --prefix="${PREFIX}" --host="${HOST}" \
+    && ./configure  --prefix=${PREFIX} --host=${HOST} \
                     --disable-blkid \
                     --disable-kmod \
     && make -j$(nproc) \
@@ -195,8 +194,7 @@ ADD "packages/libusb.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd libusb \
     && autoreconf -vfi \
-    && CFLAGS="-I${PREFIX}/include" LDFLAGS="-L${PREFIX}/lib" \
-       ./configure --prefix="${PREFIX}" --host="${HOST}" \
+    && ./configure --prefix=${PREFIX} --host=${HOST} \
     && make -j$(nproc) \
     && make install
 
@@ -208,7 +206,7 @@ RUN set -x \
     && cd librealsense \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_TOOLCHAIN_FILE=${BUILD}/toolchain.cmake \
                 -DBUILD_WITH_TM2=false \
                 -DBUILD_GRAPHICAL_EXAMPLES=true \
                 -DBUILD_EXAMPLES=false \
@@ -222,19 +220,8 @@ RUN set -x \
 
 RUN set -x \
     && cd librealsense \
-    && mkdir -p "${ROOTFS}/etc/udev/rules.d/" \
+    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
     && cp config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
-
-
-# gbm-drm-gles-cube
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd ogles-cube \
-    && PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig" LDFLAGS="-L${PREFIX}/lib" \
-       cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-    && make -j$(nproc) \
-    && cp ./gbm-drm-gles-cube "${PREFIX}/bin/"
 
 
 # gdb
@@ -242,26 +229,40 @@ RUN set -x \
 ADD "packages/gdb.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gdb \
-    # gdb
     && mkdir build && cd build \
-    && ../configure --target="${HOST}" --host="${HOST}" \
-    && make -j$(nproc) \
-    && cp gdb/gdb ${PREFIX}/bin/ \
+    && ../configure --host=${HOST} \
+    && make -j$(nproc)
+
+RUN set -x \
+    && cd gdb/build \
+    # gdb
+    && cp gdb/gdb ${PREFIX}/ \
     # gdbserver
-    && cp gdb/gdbserver/gdbserver ${PREFIX}/bin/
+    && cp gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/
+
+
+# gbm-drm-gles-cube
+#----------------------------------------------------------------------------------------------------------------#
+# ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
+# RUN set -x \
+#     && cd ogles-cube \
+#     && cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+#     && make -j$(nproc) \
+#     && cp ./gbm-drm-gles-cube "${ROOTFS}/opt/"
 
 
 # clean useless
 #----------------------------------------------------------------------------------------------------------------#
-RUN cd "${PREFIX}" \
-    && rm -rf include lib/pkgconfig lib/cmake lib/udev \
-    && rm -f lib/*.a lib/*.la \
-    && find lib -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded \
-    && aarch64-linux-gnu-strip --strip-unneeded ./bin/*
+# RUN cd "${PREFIX}" \
+#     && rm -rf include lib/pkgconfig lib/cmake lib/udev \
+#     && rm -f lib/*.a lib/*.la \
+#     && find lib -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded \
+#     && aarch64-linux-gnu-strip --strip-unneeded ./bin/*
 
 
-# here we go
+# ready to make
 #----------------------------------------------------------------------------------------------------------------#
 ENV DISTRO=/root/distro
+ENV DEVKIT=/root/devkit
 
 WORKDIR /root/scripts

@@ -5,8 +5,18 @@
 source scripts/functions/common.sh
 
 
-DISTRO=$(pwd)/distro
-[ -d $DISTRO ] && rm -rf $DISTRO
+clear_distro()
+{
+	DISTRO=$(pwd)/distro
+	[ -d $DISTRO ] && rm -vrf $DISTRO
+}
+
+
+clear_devkit()
+{
+	DEVKIT=/opt/devkit
+	[ -d $DEVKIT ] && sudo rm -vrf $DEVKIT
+}
 
 
 clear_docker()
@@ -50,6 +60,8 @@ help()
 	info_msg "	clean.sh [target]"
 	echo
 	info_msg "Example:"
+	info_msg "	clean.sh distro"
+	info_msg "	clean.sh devkit"
 	info_msg "	clean.sh docker"
 	info_msg "	clean.sh packages"
 	info_msg "	clean.sh all"
@@ -60,6 +72,12 @@ help()
 ######################################################################################
 TARGET="$1"
 case "$TARGET" in
+	distro)
+		clear_distro
+		;;
+	devkit)
+		clear_devkit
+		;;
 	docker)
 		clear_docker
 		;;
@@ -67,6 +85,8 @@ case "$TARGET" in
 		clear_packages
 		;;
 	all)
+		clear_distro
+		clear_devkit
 		clear_docker
 		clear_packages
 		;;

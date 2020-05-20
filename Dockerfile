@@ -230,15 +230,19 @@ ADD "packages/gdb.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gdb \
     && mkdir build && cd build \
-    && ../configure --host=${HOST} \
+    && ../configure --host=x86_64-linux-gnu --target=${HOST} \
     && make -j$(nproc)
 
 RUN set -x \
-    && cd gdb/build \
+    && cd gdb/gdb/gdbserver \
+    && ./configure --host=${HOST} --target=${HOST} \
+    && make -j$(nproc)
+
+RUN set -x \
     # gdb
-    && cp gdb/gdb ${PREFIX}/ \
+    && cp gdb/build/gdb/gdb ${PREFIX}/  \
     # gdbserver
-    && cp gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/
+    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/
 
 
 # gbm-drm-gles-cube

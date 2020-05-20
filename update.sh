@@ -87,7 +87,7 @@ update_sources()
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
             fi
 
-            eval tar -czf ${packages_dir}/${dir}.tar.gz $exclude -C . ${dir}
+            eval tar -czf ${packages_dir}/${dir}.tar.gz $exclude -C . ${dir} --checkpoint=1000 --checkpoint-action=dot --totals
         fi
     done
 }
@@ -126,40 +126,9 @@ update_packages()
 }
 
 
-help()
-{
-	echo
-	info_msg "Usage:"
-	info_msg "	update.sh [target]"
-	echo
-	info_msg "Example:"
-	info_msg "	update.sh sources"
-	info_msg "	update.sh packages"
-	info_msg "	update.sh all"
-	echo
-}
-
-
 ######################################################################################
-TARGET="$1"
-case "$TARGET" in
-	sources)
-		update_sources
-		;;
-	packages)
-		update_packages
-		;;
-	all)
-		update_sources
-		update_packages
-		;;
-	*)
-		error_msg "Unsupported target: $TARGET"
-		help
-		exit -1
-		;;
-esac
-
+update_sources
+update_packages
 
 
 echo

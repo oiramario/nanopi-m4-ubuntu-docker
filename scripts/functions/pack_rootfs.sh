@@ -122,10 +122,15 @@ EOF
 
     dd if=/dev/zero of=${rootfs_img} bs=1M count=1024
     mkfs.ext4 ${rootfs_img}
+    sync
     mkdir -p ${rootfs_mnt}
     mount ${rootfs_img} ${rootfs_mnt}
-    cp -rfp ${rootfs}/* ${rootfs_mnt}
-    umount ${rootfs_mnt}
-    e2fsck -p -f ${rootfs_img}
-    resize2fs -M ${rootfs_img}
+    if [ $? -eq 0 ] ; then
+        cp -rfp ${rootfs}/* ${rootfs_mnt}
+        umount ${rootfs_mnt}
+        e2fsck -p -f ${rootfs_img}
+        resize2fs -M ${rootfs_img}
+    else
+        error_msg "something wrong..."
+    fi
 }

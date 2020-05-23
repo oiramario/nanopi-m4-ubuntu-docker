@@ -208,9 +208,8 @@ RUN set -x \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=${BUILD}/toolchain.cmake \
                 -DBUILD_WITH_TM2=false \
-                -DBUILD_GRAPHICAL_EXAMPLES=true \
+                -DBUILD_GRAPHICAL_EXAMPLES=false \
                 -DBUILD_EXAMPLES=false \
-                -DHWM_OVER_XU=false \
                 -DBUILD_WITH_STATIC_CRT=false \
                 -DIMPORT_DEPTH_CAM_FW=false \
                 . \

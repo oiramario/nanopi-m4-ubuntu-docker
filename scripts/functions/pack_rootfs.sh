@@ -71,14 +71,13 @@ uname -a
 export DEBIAN_FRONTEND=noninteractive 
 
 apt-get update
-#apt-get upgrade -y
+apt-get upgrade -y
 
 apt-get install -y --no-install-recommends \
         init udev dbus rsyslog module-init-tools \
         network-manager iputils-ping \
         bluetooth bluez bluez-tools rfkill \
-        sudo ssh htop file \
-        bash-completion
+        sudo ssh htop file mlocate bash-completion
 
 passwd root
 root

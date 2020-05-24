@@ -211,6 +211,7 @@ RUN set -x \
                 -DBUILD_GRAPHICAL_EXAMPLES=false \
                 -DBUILD_EXAMPLES=false \
                 -DBUILD_WITH_STATIC_CRT=false \
+                -DFORCE_RSUSB_BACKEND=true \
                 -DIMPORT_DEPTH_CAM_FW=false \
                 . \
     && make -j$(nproc) \
@@ -218,9 +219,8 @@ RUN set -x \
 
 
 RUN set -x \
-    && cd librealsense \
     && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
-    && cp config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
+    && cp librealsense/config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
 
 
 # gdb

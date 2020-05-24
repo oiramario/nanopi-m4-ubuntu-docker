@@ -71,7 +71,7 @@ uname -a
 export DEBIAN_FRONTEND=noninteractive 
 
 apt-get update
-apt-get upgrade -y
+#apt-get upgrade -y
 
 apt-get install -y --no-install-recommends \
         init udev dbus rsyslog module-init-tools \
@@ -94,8 +94,8 @@ systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service
 rm /lib/systemd/system/wpa_supplicant@.service
 
-apt-get autoclean -y
-apt-get autoremove -y
+#apt-get autoclean -y
+#apt-get autoremove -y
 rm -rf var/lib/apt/lists/*
 rm -rf var/cache/apt/archives/*.deb
 rm -rf var/log/*

@@ -205,20 +205,26 @@ ADD "packages/librealsense.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd librealsense \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
-                -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=${BUILD}/toolchain.cmake \
+                -DCMAKE_BUILD_TYPE=Release \
+                # downloading slowly
                 -DBUILD_WITH_TM2=false \
-                -DBUILD_GRAPHICAL_EXAMPLES=false \
-                -DBUILD_EXAMPLES=false \
-                -DBUILD_WITH_STATIC_CRT=false \
-                -DFORCE_RSUSB_BACKEND=true \
                 -DIMPORT_DEPTH_CAM_FW=false \
+                # no examples
+                -DBUILD_GRAPHICAL_EXAMPLES=false \
+                -DBUILD_GLSL_EXTENSIONS=false \
+                -DBUILD_EXAMPLES=false \
+                # dynamic link CRT
+                -DBUILD_WITH_STATIC_CRT=false \
+                # avoid kernel patch
+                -DFORCE_RSUSB_BACKEND=true \
                 . \
     && make -j$(nproc) \
     && make install
 
 
 RUN set -x \
+    # setting-up permissions for realsense devices
     && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
     && cp librealsense/config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
 
@@ -238,20 +244,20 @@ RUN set -x \
     && make -j$(nproc)
 
 RUN set -x \
-    # gdb
+    # gdb(host)
     && cp gdb/build/gdb/gdb ${PREFIX}/  \
-    # gdbserver
+    # gdbserver(target)
     && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/
 
 
 # gbm-drm-gles-cube
 #----------------------------------------------------------------------------------------------------------------#
-# ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
-# RUN set -x \
-#     && cd ogles-cube \
-#     && cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-#     && make -j$(nproc) \
-#     && cp ./gbm-drm-gles-cube "${ROOTFS}/opt/"
+ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd ogles-cube \
+    && cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+    && make -j$(nproc) \
+    && cp ./gbm-drm-gles-cube "${ROOTFS}/opt/"
 
 
 # clean useless

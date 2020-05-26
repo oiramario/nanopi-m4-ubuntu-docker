@@ -18,18 +18,18 @@ update_sources()
     cd ${download_dir}
 
     local gits=(
-    "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
     "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
+    "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
+    "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
+    "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
     "libmali,rockchip-linux/libmali.git,rockchip"
     "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
-    "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
     "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
     "busybox,mirror/busybox.git,1_31_stable"
     "eudev,gentoo/eudev.git,v3.2.9"
     "libusb,libusb/libusb.git,v1.0.23"
     "librealsense,IntelRealSense/librealsense.git,v2.34.1"
     "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
-    "gdb,bminor/binutils-gdb.git,gdb-9-branch"
     )
     for i in ${gits[@]}
     do

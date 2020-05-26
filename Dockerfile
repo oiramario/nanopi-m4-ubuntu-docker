@@ -265,7 +265,7 @@ RUN set -x \
           60-drm.rules \
           ${ROOTFS}/etc/udev/rules.d/ \
     && cp ${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh ${ROOTFS}/usr/local/bin/
-          
+
 
 # strip so
 #----------------------------------------------------------------------------------------------------------------#

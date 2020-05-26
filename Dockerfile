@@ -61,31 +61,11 @@ WORKDIR ${BUILD}
 # kernel
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/kernel.tar.gz" "${BUILD}/"
-COPY "patches/kernel" "${BUILD}/kernel/patches/"
 RUN set -x \
     && cd kernel \
-    # patch
-    && for x in `ls patches`; do patch -p1 < patches/$x; done \
     # make
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
-
-
-# RUN set -x \
-#     && cd kernel \
-#     && export OUT="${BUILD}/kmodules" \
-#     && make INSTALL_MOD_PATH=${OUT} modules_install \
-#     && KREL=`make kernelrelease` \
-#     # useless
-#     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
-#     && rm -rf "${OUT}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan" \
-#     # strip
-#     && cd ${OUT} \
-#     # remove build and source links
-#     && find . -name build | xargs rm -rf \
-#     && find . -name source | xargs rm -rf \
-#     # strip unneeded
-#     && find . -name \*.ko | xargs aarch64-linux-gnu-strip --strip-unneeded
 
 
 # u-boot
@@ -101,39 +81,22 @@ RUN set -x \
 # busybox
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/busybox.tar.gz" "${BUILD}/"
-COPY "patches/busybox" "${BUILD}/busybox/patches/"
 RUN set -x \
     && cd busybox \
-    # patch
-    && for x in `ls patches`; do patch -p1 < patches/$x; done \
     # make
     && make defconfig \
+    # static link
+    && sed -i "s:# CONFIG_STATIC is not set:CONFIG_STATIC=y:" .config \
     && make -j$(nproc) \
     && make CONFIG_PREFIX=${BUILD}/initramfs install
+
+COPY "overlays/initramfs/*" "${BUILD}/initramfs/"
 
 
 # ubuntu rootfs
 #----------------------------------------------------------------------------------------------------------------#
 ENV ROOTFS="${BUILD}/rootfs"
 ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
-
-
-# rockchip materials
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rkbin.tar.gz" "${BUILD}/"
-ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd rk-rootfs-build \
-    # rockchip firmware
-    && cp -rf overlay-firmware/* ${ROOTFS}/ \
-    # choose 64bits
-    && mv -f ${ROOTFS}/usr/bin/brcm_patchram_plus1_64 ${ROOTFS}/usr/bin/brcm_patchram_plus1 \
-    && mv -f ${ROOTFS}/usr/bin/rk_wifi_init_64 ${ROOTFS}/usr/bin/rk_wifi_init \
-    && rm -f ${ROOTFS}/usr/bin/brcm_patchram_plus1_32 ${ROOTFS}/usr/bin/rk_wifi_init_32 \
-    # bt, wifi, audio firmware
-    && mkdir -p ${ROOTFS}/system/lib/modules \
-    && find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
-        xargs -n1 -i cp {} ${ROOTFS}/system/lib/modules/
 
 
 # compile settings
@@ -246,8 +209,10 @@ RUN set -x \
 RUN set -x \
     # gdb(host)
     && cp gdb/build/gdb/gdb ${PREFIX}/  \
+    && x86_64-linux-gnu-strip --strip-unneeded ${PREFIX}/gdb \
     # gdbserver(target)
-    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/
+    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/ \
+    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/usr/local/bin/gdbserver
 
 
 # gbm-drm-gles-cube
@@ -257,16 +222,56 @@ RUN set -x \
     && cd ogles-cube \
     && cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
     && make -j$(nproc) \
-    && cp ./gbm-drm-gles-cube "${ROOTFS}/opt/"
+    && cp ./gbm-drm-gles-cube ${ROOTFS}/opt/ \
+    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/opt/gbm-drm-gles-cube
 
 
-# clean useless
+# rootfs overlay
 #----------------------------------------------------------------------------------------------------------------#
-# RUN cd "${PREFIX}" \
-#     && rm -rf include lib/pkgconfig lib/cmake lib/udev \
-#     && rm -f lib/*.a lib/*.la \
-#     && find lib -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded \
-#     && aarch64-linux-gnu-strip --strip-unneeded ./bin/*
+COPY "overlays/rootfs/" "${ROOTFS}/"
+
+
+# rockchip materials
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/rkbin.tar.gz" "${BUILD}/"
+ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd rk-rootfs-build \
+    # rockchip firmware
+    && cp -rf overlay-firmware/* ${ROOTFS}/ \
+    && cd ${ROOTFS}/usr/bin/ \
+    # choose 64bits
+    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
+    && mv -f rk_wifi_init_64 rk_wifi_init \
+    && rm -f brcm_patchram_plus1_32 rk_wifi_init_32 \
+    # remove useless
+    && rm -f npu* upgrade_tool \
+    # bt, wifi, audio firmware
+    && mkdir -p ${ROOTFS}/system/lib/modules \
+    && find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
+        xargs -n1 -i cp {} ${ROOTFS}/system/lib/modules/ \
+    # power manager
+    && cd ${BUILD}/rk-rootfs-build/overlay/etc/Powermanager \
+    && cp triggerhappy.service ${ROOTFS}/lib/systemd/system/ \
+    && cp power-key.sh ${ROOTFS}/usr/bin/ \
+    && cp power-key.conf ${ROOTFS}/etc/triggerhappy/triggers.d/ \
+    && cp triggerhappy ${ROOTFS}/etc/init.d/ \
+    # udev rules
+    && cd ${BUILD}/rk-rootfs-build/overlay/etc/udev/rules.d \
+    && cp 50-hevc-rk3399.rules \
+          50-mail.rules \
+          50-vpu-rk3399.rules \
+          60-media.rules \
+          60-drm.rules \
+          ${ROOTFS}/etc/udev/rules.d/ \
+    && cp ${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh ${ROOTFS}/usr/local/bin/
+          
+
+# strip so
+#----------------------------------------------------------------------------------------------------------------#
+RUN set -x \
+    && cp -rfp ${PREFIX}/lib/*.so* ${ROOTFS}/usr/local/lib/ \
+    && find ${ROOTFS}/usr/local/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
 
 
 # ready to make

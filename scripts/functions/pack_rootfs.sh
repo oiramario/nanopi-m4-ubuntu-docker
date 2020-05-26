@@ -27,11 +27,6 @@ pack_rootfs_image()
     cp -rfp /opt/devkit/lib/*.so* ${rootfs}/usr/local/lib/
     find ${rootfs}/usr/local/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
 
-    # overlay
-    echo
-   	info_msg "overlay"
-    cp -rf ${HOME}/scripts/overlays/rootfs/* ${rootfs}/
-
     # kernel modules
     # echo
    	# info_msg "copy kernel modules"
@@ -68,17 +63,6 @@ set -x
 
 uname -a
 
-export DEBIAN_FRONTEND=noninteractive 
-
-apt-get update
-#apt-get upgrade -y
-
-apt-get install -y --no-install-recommends \
-        init udev dbus rsyslog module-init-tools \
-        network-manager iputils-ping \
-        bluetooth bluez bluez-tools rfkill \
-        sudo ssh htop file mlocate bash-completion
-
 passwd root
 root
 root
@@ -88,6 +72,19 @@ passwd flagon
 111
 111
 usermod -aG sudo flagon
+
+export DEBIAN_FRONTEND=noninteractive 
+
+apt-get update
+#apt-get upgrade -y
+
+apt-get install -y --no-install-recommends \
+        init udev dbus rsyslog module-init-tools \
+        network-manager iputils-ping bluetooth bluez bluez-tools rfkill \
+        gstreamer1.0-plugins-base gstreamer1.0-tools gstreamer1.0-plugins-good \
+        gstreamer1.0-alsa gstreamer1.0-plugins-base-apps alsa-base alsa-utils \
+        pm-utils triggerhappy sudo ssh htop file mlocate bash-completion
+
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config
 
 systemctl mask systemd-networkd-wait-online.service

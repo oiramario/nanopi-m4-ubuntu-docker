@@ -27,6 +27,7 @@ update_sources()
     "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
     "busybox,mirror/busybox.git,1_31_stable"
     "eudev,gentoo/eudev.git,v3.2.9"
+    "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     "libusb,libusb/libusb.git,v1.0.23"
     "librealsense,IntelRealSense/librealsense.git,v2.34.1"
     "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
@@ -68,11 +69,8 @@ update_sources()
                     --exclude=*.md \
                     --exclude=${dir}/mk-*.sh \
                     --exclude=overlay-firmware/usr/share/npu_fw \
-                    --exclude=packages/armhf \
-                    --exclude=packages/arm64/others \
-                    --exclude=packages/arm64/video \
-                    --exclude=packages/arm64/xserver \
-                    --exclude=packages/arm64/libmali/libmali-rk-bifrost-*.deb \
+                    --exclude=packages \
+                    --exclude=overlay-debug \
                     --exclude=packages-patches \
                     --exclude=ubuntu-build-service"
             elif [ $dir = "libmali" ];then

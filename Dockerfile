@@ -267,6 +267,15 @@ RUN set -x \
     && cp ${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh ${ROOTFS}/usr/local/bin/
 
 
+# k380 keyboard
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/k380-function-keys-conf.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd k380-function-keys-conf \
+    && make -j$(nproc) \
+    && DESTDIR=${ROOTFS} make install
+
+
 # strip so
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \

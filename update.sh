@@ -25,6 +25,7 @@ update_sources()
     "libmali,rockchip-linux/libmali.git,rockchip"
     "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
     "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
+    "rk-mpp,rockchip-linux/mpp.git,develop"
     "busybox,mirror/busybox.git,1_31_stable"
     "eudev,gentoo/eudev.git,v3.2.9"
     "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
@@ -69,6 +70,7 @@ update_sources()
                     --exclude=*.md \
                     --exclude=${dir}/mk-*.sh \
                     --exclude=overlay-firmware/usr/share/npu_fw \
+                    --exclude=overlay-firmware/usr/share/npu_fw_pcie \
                     --exclude=packages \
                     --exclude=overlay-debug \
                     --exclude=packages-patches \

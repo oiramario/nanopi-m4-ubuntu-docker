@@ -264,7 +264,28 @@ RUN set -x \
           60-media.rules \
           60-drm.rules \
           ${ROOTFS}/etc/udev/rules.d/ \
-    && cp ${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh ${ROOTFS}/usr/local/bin/
+    && cp ${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh ${ROOTFS}/usr/local/bin/ \
+    # gst environment variables
+    && cp ${BUILD}/rk-rootfs-build/overlay/etc/profile.d/gst.sh ${ROOTFS}/etc/profile.d/
+
+
+# mpp
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/rk-mpp.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd rk-mpp \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DHAVE_DRM=ON \
+                . \
+    && make -j$(nproc) \
+    && make install
+
+
+RUN set -x \
+    # copy mpp utils
+    && cp /opt/devkit/bin/* ${ROOTFS}/usr/local/bin/
 
 
 # k380 keyboard

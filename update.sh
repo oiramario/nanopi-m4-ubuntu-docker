@@ -19,19 +19,24 @@ update_sources()
 
     local gits=(
     "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
-    "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
     "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
+    "busybox,mirror/busybox.git,1_31_stable"
     "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
     "libmali,rockchip-linux/libmali.git,rockchip"
     "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
-    "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
-    "rk-mpp,rockchip-linux/mpp.git,develop"
-    "busybox,mirror/busybox.git,1_31_stable"
-    "eudev,gentoo/eudev.git,v3.2.9"
-    "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     "libusb,libusb/libusb.git,v1.0.23"
-    "librealsense,IntelRealSense/librealsense.git,v2.34.1"
+    "librealsense,IntelRealSense/librealsense.git,v2.35.0"
     "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
+    "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
+    "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
+    "mpp,rockchip-linux/mpp.git,develop"
+    "x264,mirror/x264.git,stable"
+    "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
+    "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
+    "alsa-utils,alsa-project/alsa-utils.git,v1.2.2"
+    "mpv,rockchip-linux/mpv.git,master"
+    "gl4es,ptitSeb/gl4es.git,v1.1.2"
+    "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
     for i in ${gits[@]}
     do

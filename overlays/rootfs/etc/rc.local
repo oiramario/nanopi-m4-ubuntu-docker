@@ -19,4 +19,6 @@ if [ -f /etc/init.d/run_once_on_boot.sh ];then
     /etc/init.d/run_once_on_boot.sh
 fi
 
+alsactl store
+
 exit 0

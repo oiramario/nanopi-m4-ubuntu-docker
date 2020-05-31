@@ -21,12 +21,6 @@ pack_rootfs_image()
     mkdir -p ${rootfs}
     cp -rfp ${ROOTFS}/* ${rootfs}/
 
-    # so
-    echo
-   	info_msg "so"
-    cp -rfp /opt/devkit/lib/*.so* ${rootfs}/usr/local/lib/
-    find ${rootfs}/usr/local/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
-
     # kernel modules
     # echo
    	# info_msg "copy kernel modules"
@@ -79,10 +73,10 @@ apt-get update
 #apt-get upgrade -y
 
 apt-get install -y --no-install-recommends \
-        init udev dbus rsyslog module-init-tools \
+        init dbus rsyslog module-init-tools \
         network-manager iputils-ping bluetooth bluez bluez-tools rfkill \
         gstreamer1.0-plugins-base gstreamer1.0-tools gstreamer1.0-plugins-good \
-        gstreamer1.0-alsa gstreamer1.0-plugins-base-apps alsa-base alsa-utils \
+        gstreamer1.0-alsa gstreamer1.0-plugins-base-apps \
         pm-utils triggerhappy sudo ssh htop file mlocate bash-completion
 
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config

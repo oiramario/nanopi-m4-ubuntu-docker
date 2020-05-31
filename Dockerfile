@@ -2,7 +2,7 @@
 #----------------------------------------------------------------------------------------------------------------#
 FROM ubuntu:bionic
 LABEL author="oiramario" \
-      version="0.2.2" \
+      version="0.3.0" \
       email="oiramario@gmail.com"
 
 # apt sources
@@ -38,6 +38,10 @@ RUN apt-get update \
         genext2fs \
         # rootfs
         binfmt-support  qemu-user-static \
+        # mpv
+        python \
+        # alsa-utils
+        autopoint  libncurses5-dev \
         # local:en_US.UTF-8
         locales \
     && locale-gen en_US.UTF-8
@@ -90,6 +94,7 @@ RUN set -x \
     && make -j$(nproc) \
     && make CONFIG_PREFIX=${BUILD}/initramfs install
 
+# overlay
 COPY "overlays/initramfs/*" "${BUILD}/initramfs/"
 
 
@@ -97,6 +102,8 @@ COPY "overlays/initramfs/*" "${BUILD}/initramfs/"
 #----------------------------------------------------------------------------------------------------------------#
 ENV ROOTFS="${BUILD}/rootfs"
 ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
+# overlay
+COPY "overlays/rootfs/" "${ROOTFS}/"
 
 
 # compile settings
@@ -106,6 +113,30 @@ ENV PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig
 ENV CFLAGS="-I${PREFIX}/include"
 ENV LDFLAGS="-L${PREFIX}/lib"
 COPY "toolchain.cmake" "${BUILD}/"
+RUN mkdir -p ${PREFIX}
+
+
+# gdb
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/gdb.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd gdb \
+    && mkdir build && cd build \
+    && ../configure --host=x86_64-linux-gnu --target=${HOST} \
+    && make -j$(nproc)
+
+RUN set -x \
+    && cd gdb/gdb/gdbserver \
+    && ./configure --host=${HOST} --target=${HOST} \
+    && make -j$(nproc)
+
+RUN set -x \
+    # gdb(host)
+    && cp gdb/build/gdb/gdb ${PREFIX}/  \
+    && x86_64-linux-gnu-strip --strip-unneeded ${PREFIX}/gdb \
+    # gdbserver(target)
+    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/ \
+    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/usr/local/bin/gdbserver
 
 
 # libmali
@@ -138,26 +169,14 @@ RUN set -x \
     && make install
 
 
-# eudev
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/eudev.tar.gz" "${BUILD}/"
-RUN set -x \ 
-    && cd eudev \
-    && autoreconf -vfi \
-    && ./configure  --prefix=${PREFIX} --host=${HOST} \
-                    --disable-blkid \
-                    --disable-kmod \
-    && make -j$(nproc) \
-    && make install
-
-
 # libusb
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libusb.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd libusb \
     && autoreconf -vfi \
-    && ./configure --prefix=${PREFIX} --host=${HOST} \
+    && ./configure  --prefix=${PREFIX} --host=${HOST} \
+                    --disable-udev \
     && make -j$(nproc) \
     && make install
 
@@ -171,48 +190,23 @@ RUN set -x \
                 -DCMAKE_TOOLCHAIN_FILE=${BUILD}/toolchain.cmake \
                 -DCMAKE_BUILD_TYPE=Release \
                 # downloading slowly
-                -DBUILD_WITH_TM2=false \
-                -DIMPORT_DEPTH_CAM_FW=false \
+                -DBUILD_WITH_TM2=OFF \
+                -DIMPORT_DEPTH_CAM_FW=OFF \
                 # no examples
-                -DBUILD_GRAPHICAL_EXAMPLES=false \
-                -DBUILD_GLSL_EXTENSIONS=false \
-                -DBUILD_EXAMPLES=false \
+                -DBUILD_GRAPHICAL_EXAMPLES=OFF \
+                -DBUILD_GLSL_EXTENSIONS=OFF \
+                -DBUILD_EXAMPLES=OFF \
                 # dynamic link CRT
-                -DBUILD_WITH_STATIC_CRT=false \
+                -DBUILD_WITH_STATIC_CRT=OFF \
                 # avoid kernel patch
-                -DFORCE_RSUSB_BACKEND=true \
+                -DFORCE_RSUSB_BACKEND=ON \
                 . \
     && make -j$(nproc) \
     && make install
 
-
 RUN set -x \
     # setting-up permissions for realsense devices
-    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
     && cp librealsense/config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
-
-
-# gdb
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/gdb.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd gdb \
-    && mkdir build && cd build \
-    && ../configure --host=x86_64-linux-gnu --target=${HOST} \
-    && make -j$(nproc)
-
-RUN set -x \
-    && cd gdb/gdb/gdbserver \
-    && ./configure --host=${HOST} --target=${HOST} \
-    && make -j$(nproc)
-
-RUN set -x \
-    # gdb(host)
-    && cp gdb/build/gdb/gdb ${PREFIX}/  \
-    && x86_64-linux-gnu-strip --strip-unneeded ${PREFIX}/gdb \
-    # gdbserver(target)
-    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/ \
-    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/usr/local/bin/gdbserver
 
 
 # gbm-drm-gles-cube
@@ -224,11 +218,6 @@ RUN set -x \
     && make -j$(nproc) \
     && cp ./gbm-drm-gles-cube ${ROOTFS}/opt/ \
     && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/opt/gbm-drm-gles-cube
-
-
-# rootfs overlay
-#----------------------------------------------------------------------------------------------------------------#
-COPY "overlays/rootfs/" "${ROOTFS}/"
 
 
 # rockchip materials
@@ -247,7 +236,7 @@ RUN set -x \
     # remove useless
     && rm -f npu* upgrade_tool \
     # bt, wifi, audio firmware
-    && mkdir -p ${ROOTFS}/system/lib/modules \
+    && mkdir -p ${ROOTFS}/system/lib/modules/ \
     && find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
         xargs -n1 -i cp {} ${ROOTFS}/system/lib/modules/ \
     # power manager
@@ -271,21 +260,138 @@ RUN set -x \
 
 # mpp
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rk-mpp.tar.gz" "${BUILD}/"
+ADD "packages/mpp.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd rk-mpp \
+    && cd mpp \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
+                -DENABLE_SHARED=ON \
+                -DENABLE_STATIC=OFF \
                 -DHAVE_DRM=ON \
                 . \
     && make -j$(nproc) \
     && make install
 
 
+# ffmpeg
+#----------------------------------------------------------------------------------------------------------------#
+# x264
+ADD "packages/x264.tar.gz" "${BUILD}/"
 RUN set -x \
-    # copy mpp utils
-    && cp /opt/devkit/bin/* ${ROOTFS}/usr/local/bin/
+    && cd x264 \
+    && ./configure  --prefix=${PREFIX} \
+                    --host=${HOST} \
+                    --cross-prefix=${CROSS_COMPILE} \
+                    --enable-shared \
+                    --disable-asm \
+                    --disable-opencl \
+    && make -j$(nproc) \
+    && make install
+
+
+# ffmpeg
+ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd ffmpeg \
+    && ./configure  --prefix=${PREFIX} \
+                    --target-os=linux \
+                    --arch="aarch64" \
+                    --cpu="cortex-a53" \
+                    --enable-cross-compile \
+                    --cc=aarch64-linux-gnu-gcc \
+                    --ar=aarch64-linux-gnu-ar \
+                    --strip=aarch64-linux-gnu-strip \
+                    --enable-rpath \
+                    # options
+                    --enable-shared \
+                    --disable-static \
+                    --disable-debug \
+                    --enable-version3 \
+                    --enable-libdrm \
+                    --enable-rkmpp \
+                    --enable-libx264 \
+                    --enable-nonfree \
+                    --enable-gpl \
+                    --disable-doc \
+    && make -j$(nproc) \
+    && make install
+
+
+# alsa-lib
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd alsa-lib \
+    && autoreconf -vfi \
+    && ./configure  --host=${HOST} \
+                    --disable-python \
+                    --enable-shared \
+    && make -j$(nproc) \
+    && make install
+
+
+# alsa-utils
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/alsa-utils.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd alsa-utils \
+    && autoreconf -vfi \
+    && ./configure  --host=${HOST} \
+                    --prefix=${PREFIX} \
+                    --with-udev-rules-dir="${ROOTFS}/etc/udev/rules.d/" \
+                    --disable-alsamixer \
+                    --disable-nls \
+                    --disable-xmlto \
+                    --disable-bat \
+    && make -j$(nproc) \
+    && make install
+
+# reinstall to prefix directory
+RUN set -x \
+    && cd alsa-lib \
+    && make install DESTDIR=${PREFIX}
+
+
+# mpv
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/mpv.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd mpv \
+    && ./bootstrap.py \
+    && CC=aarch64-linux-gnu-gcc \
+       AR=aarch64-linux-gnu-ar \
+       ./waf configure  --prefix=${PREFIX} \
+                        --enable-libmpv-shared \
+                        --enable-egl-drm \
+                        --disable-lua \
+                        --disable-javascript \
+                        --disable-libass \
+                        --disable-zlib \
+    && ./waf build -j$(nproc) \
+    && ./waf install
+
+
+# gl4es
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/gl4es.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd gl4es \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBCMHOST=1 \
+                -DNOEGL=1 \
+                -DNOX11=1 \
+                -DDEFAULT_ES=2 \
+                -DUSE_CLOCK=ON \
+                .. \
+    && make -j$(nproc)
+
+RUN set -x \
+    && cd gl4es/build \
+    && cp lib/libGL.so.1 ${ROOTFS}/usr/local/lib/
 
 
 # k380 keyboard
@@ -302,6 +408,14 @@ RUN set -x \
 RUN set -x \
     && cp -rfp ${PREFIX}/lib/*.so* ${ROOTFS}/usr/local/lib/ \
     && find ${ROOTFS}/usr/local/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
+
+
+# copy bind
+#----------------------------------------------------------------------------------------------------------------#
+RUN set -x \
+    # copy utils
+    && cp /opt/devkit/bin/* ${ROOTFS}/usr/local/bin/ \
+    && cp /opt/devkit/sbin/* ${ROOTFS}/usr/local/sbin/
 
 
 # ready to make

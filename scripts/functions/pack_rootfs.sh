@@ -73,10 +73,13 @@ apt-get update
 apt-get upgrade -y
 
 apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y --no-install-recommends \
-        init dbus rsyslog module-init-tools \
-        network-manager rfkill iputils-ping bluetooth bluez bluez-tools \
-        pm-utils triggerhappy sudo ssh htop file mlocate bash-completion \
-        alsa-base
+        init dbus rsyslog module-init-tools systemd 
+
+apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y --no-install-recommends \
+        network-manager rfkill iputils-ping bluetooth bluez bluez-tools
+
+apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y --no-install-recommends \
+        pm-utils triggerhappy sudo ssh htop file mlocate bash-completion alsa-base alsa-utils
 
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config
 

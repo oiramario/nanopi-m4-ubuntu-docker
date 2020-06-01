@@ -102,8 +102,6 @@ COPY "overlays/initramfs/*" "${BUILD}/initramfs/"
 #----------------------------------------------------------------------------------------------------------------#
 ENV ROOTFS="${BUILD}/rootfs"
 ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
-# overlay
-COPY "overlays/rootfs/" "${ROOTFS}/"
 
 
 # compile settings
@@ -328,32 +326,10 @@ ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd alsa-lib \
     && autoreconf -vfi \
-    && ./configure  --exec-prefix=${PREFIX} \
+    && ./configure  --prefix=${PREFIX} \
                     --host=${HOST} \
                     --disable-python \
                     --enable-shared \
-    && make -j$(nproc) \
-    && make install
-
-# alsa.conf
-RUN set -x \
-    && cp -rfp /usr/share/alsa ${ROOTFS}/usr/share/
-
-
-# alsa-utils
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/alsa-utils.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd alsa-utils \
-    && autoreconf -vfi \
-    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
-    && ./configure  --prefix=${PREFIX} \
-                    --host=${HOST} \
-                    --with-udev-rules-dir="${ROOTFS}/etc/udev/rules.d/" \
-                    --disable-alsamixer \
-                    --disable-nls \
-                    --disable-xmlto \
-                    --disable-bat \
     && make -j$(nproc) \
     && make install
 
@@ -408,6 +384,11 @@ RUN set -x \
     && DESTDIR=${ROOTFS} make install
 
 
+# overlay
+#----------------------------------------------------------------------------------------------------------------#
+COPY "overlays/rootfs/" "${ROOTFS}/"
+
+
 # strip so
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
@@ -419,8 +400,7 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
     # copy utils
-    && cp /opt/devkit/bin/* ${ROOTFS}/usr/local/bin/ \
-    && cp /opt/devkit/sbin/* ${ROOTFS}/usr/local/sbin/
+    && cp /opt/devkit/bin/* ${ROOTFS}/usr/local/bin/
 
 
 # ready to make

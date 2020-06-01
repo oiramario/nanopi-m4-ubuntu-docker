@@ -33,7 +33,6 @@ update_sources()
     "x264,mirror/x264.git,stable"
     "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
     "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
-    "alsa-utils,alsa-project/alsa-utils.git,v1.2.2"
     "mpv,rockchip-linux/mpv.git,master"
     "gl4es,ptitSeb/gl4es.git,v1.1.2"
     "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"

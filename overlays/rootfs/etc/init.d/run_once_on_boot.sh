@@ -30,7 +30,6 @@ if [ $? -eq 0 ] ; then
     amixer set 'OUT MIXR DAC R1' on
     amixer set 'Stereo DAC MIXL DAC L1' on
     amixer set 'Stereo DAC MIXR DAC R1' on
-    mkdir -p /var/lib/alsa/
     alsactl store
 fi
 

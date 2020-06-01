@@ -206,6 +206,7 @@ RUN set -x \
 
 RUN set -x \
     # setting-up permissions for realsense devices
+    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
     && cp librealsense/config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
 
 
@@ -243,10 +244,12 @@ RUN set -x \
     && cd ${BUILD}/rk-rootfs-build/overlay/etc/Powermanager \
     && cp triggerhappy.service ${ROOTFS}/lib/systemd/system/ \
     && cp power-key.sh ${ROOTFS}/usr/bin/ \
+    && mkdir -p ${ROOTFS}/etc/triggerhappy/triggers.d/ \
     && cp power-key.conf ${ROOTFS}/etc/triggerhappy/triggers.d/ \
     && cp triggerhappy ${ROOTFS}/etc/init.d/ \
     # udev rules
     && cd ${BUILD}/rk-rootfs-build/overlay/etc/udev/rules.d \
+    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
     && cp 50-hevc-rk3399.rules \
           50-mail.rules \
           50-vpu-rk3399.rules \
@@ -255,6 +258,7 @@ RUN set -x \
           ${ROOTFS}/etc/udev/rules.d/ \
     && cp ${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh ${ROOTFS}/usr/local/bin/ \
     # gst environment variables
+    && mkdir -p ${ROOTFS}/etc/profile.d/ \
     && cp ${BUILD}/rk-rootfs-build/overlay/etc/profile.d/gst.sh ${ROOTFS}/etc/profile.d/
 
 
@@ -324,11 +328,16 @@ ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd alsa-lib \
     && autoreconf -vfi \
-    && ./configure  --host=${HOST} \
+    && ./configure  --exec-prefix=${PREFIX} \
+                    --host=${HOST} \
                     --disable-python \
                     --enable-shared \
     && make -j$(nproc) \
     && make install
+
+# alsa.conf
+RUN set -x \
+    && cp -rfp /usr/share/alsa ${ROOTFS}/usr/share/
 
 
 # alsa-utils
@@ -337,8 +346,9 @@ ADD "packages/alsa-utils.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd alsa-utils \
     && autoreconf -vfi \
-    && ./configure  --host=${HOST} \
-                    --prefix=${PREFIX} \
+    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
+    && ./configure  --prefix=${PREFIX} \
+                    --host=${HOST} \
                     --with-udev-rules-dir="${ROOTFS}/etc/udev/rules.d/" \
                     --disable-alsamixer \
                     --disable-nls \
@@ -346,11 +356,6 @@ RUN set -x \
                     --disable-bat \
     && make -j$(nproc) \
     && make install
-
-# reinstall to prefix directory
-RUN set -x \
-    && cd alsa-lib \
-    && make install DESTDIR=${PREFIX}
 
 
 # mpv

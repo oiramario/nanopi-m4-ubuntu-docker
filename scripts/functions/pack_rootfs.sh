@@ -70,27 +70,35 @@ usermod -aG sudo flagon
 export DEBIAN_FRONTEND=noninteractive 
 
 apt-get update
-#apt-get upgrade -y
+apt-get upgrade -y
 
-apt-get install -y --no-install-recommends \
+apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y --no-install-recommends \
         init dbus rsyslog module-init-tools \
-        network-manager iputils-ping bluetooth bluez bluez-tools rfkill \
-        gstreamer1.0-plugins-base gstreamer1.0-tools gstreamer1.0-plugins-good \
-        gstreamer1.0-alsa gstreamer1.0-plugins-base-apps \
-        pm-utils triggerhappy sudo ssh htop file mlocate bash-completion
+        network-manager rfkill iputils-ping bluetooth bluez bluez-tools \
+        pm-utils triggerhappy sudo ssh htop file mlocate bash-completion \
+        alsa-base
 
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config
+
+# all devices managed
+mkdir -p /etc/NetworkManager/conf.d
+touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
+
+# rkwifibt
+mkdir -p /data/cfg
+touch /data/wifi_chip
+touch /data/cfg/device_info.txt
 
 systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service
 rm /lib/systemd/system/wpa_supplicant@.service
 
-# apt-get autoclean -y
-# apt-get autoremove -y
-# rm -rf /var/lib/apt/lists/*
-# rm -rf /var/cache/apt/archives/*.deb
-# rm -rf /var/log/*
-# rm -rf /tmp/*
+apt-get autoclean -y
+apt-get autoremove -y
+rm -rf /var/lib/apt/lists/*
+rm -rf /var/cache/apt/archives/*.deb
+rm -rf /var/log/*
+rm -rf /tmp/*
 EOF
     rm ${rootfs}/usr/bin/qemu-aarch64-static
     sync

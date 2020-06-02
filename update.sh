@@ -11,31 +11,37 @@ download_dir=$(pwd)/downloads
 packages_dir=$(pwd)/packages
 [ ! -d ${packages_dir} ] && mkdir -p ${packages_dir}
 
-github_url="https://github.com.cnpmjs.org"
+github_url=(
+    "https://git.sdut.me"
+    "https://github.com.cnpmjs.org"
+    "https://github.com"
+)
 
 update_sources()
 {
     cd ${download_dir}
 
     local gits=(
-    "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
-    "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
-    "busybox,mirror/busybox.git,1_31_stable"
-    "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
-    "libmali,rockchip-linux/libmali.git,rockchip"
-    "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
-    "libusb,libusb/libusb.git,v1.0.23"
-    "librealsense,IntelRealSense/librealsense.git,v2.35.0"
-    "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
-    "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
-    "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
-    "mpp,rockchip-linux/mpp.git,develop"
-    "x264,mirror/x264.git,stable"
-    "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
-    "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
-    "mpv,rockchip-linux/mpv.git,master"
-    "gl4es,ptitSeb/gl4es.git,v1.1.2"
-    "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
+        "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
+        "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
+        "busybox,mirror/busybox.git,1_31_stable"
+        "libmali,rockchip-linux/libmali.git,rockchip"
+        "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
+        "mpp,rockchip-linux/mpp.git,develop"
+        "x264,mirror/x264.git,stable"
+        "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
+        "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
+        "mpv,rockchip-linux/mpv.git,master"
+        "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
+        "libusb,libusb/libusb.git,v1.0.23"
+        "librealsense,IntelRealSense/librealsense.git,v2.35.0"
+        "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
+        "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
+        "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
+        "gl4es,ptitSeb/gl4es.git,v1.1.2"
+        "sdl,spurious/SDL-mirror.git,release-2.0.12"
+        "sdlpal,sdlpal/sdlpal.git,master"
+        "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
     for i in ${gits[@]}
     do
@@ -43,31 +49,45 @@ update_sources()
         local arr=(${str//,/ })
 
         local dir=${arr[0]}
-        local url="${github_url}/${arr[1]}"
         local branch=${arr[2]}
 
+        local pack=1
         echo
         info_msg "checking ${dir}"
-        if [ ! -d ${dir} ];then
-            git clone --depth 1 --branch ${branch} --single-branch ${url} ${dir}
-        else
-            local ret=$(git -C ${dir} pull)
-            if [ $? -eq 0 ]; then
-                if [[ ${ret} =~ "Already up to date." ]];then
+        # try 3 times
+        for n in {0..2}
+        do
+            # change github mirror
+            local url="${github_url[$n]}/${arr[1]}"
+            if [ ! -d ${dir} ]
+            then
+                git clone --depth 1 --branch ${branch} --single-branch ${url} ${dir}
+                git submodule update --init --recursive
+            else
+                local ret=$(git -C ${dir} pull)
+                if [[ ${ret} =~ "Already up to date." ]]
+                then
                     echo "up-to-date sources"
-                    if [ -f ${packages_dir}/${dir}.tar.gz ]; then
-                        echo "up-to-date package"
-                        continue
+                    if [ -f ${packages_dir}/${dir}.tar.gz ]
+                    then
+                        pack=0
+                        break
                     fi
                 fi
-            else
-                error_msg "operation failed"
-                continue
             fi
-        fi
 
-        if [ $? -eq 0 ] ; then
-            info_msg "packaging ${dir}"
+            if [ $? -eq 0 ]
+            then
+                break
+            else
+                error_msg "operation failed, try again(${n})..."
+                sleep 1
+                echo
+            fi
+        done
+
+        if [ $pack -eq 1 ] ; then
+            echo "packaging"
             local exclude="--exclude-vcs"
             if [ ${dir} = "rk-rootfs-build" ];then
                 exclude+=" \
@@ -89,6 +109,8 @@ update_sources()
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
+            elif [ $dir = "sdlpal" ];then
+                exclude=""
             fi
 
             eval tar -czf ${packages_dir}/${dir}.tar.gz $exclude -C . ${dir} --checkpoint=1000 --checkpoint-action=dot --totals

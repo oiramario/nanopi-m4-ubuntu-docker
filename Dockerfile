@@ -256,8 +256,8 @@ RUN set -x \
     && cp gdb/build/gdb/gdb ${PREFIX}/  \
     && x86_64-linux-gnu-strip --strip-unneeded ${PREFIX}/gdb \
     # gdbserver(target)
-    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/local/bin/ \
-    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/usr/local/bin/gdbserver
+    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/bin/ \
+    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/usr/bin/gdbserver
 
 
 # libusb
@@ -385,11 +385,11 @@ RUN set -x \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DSDL_STATIC=OFF \
-                -DSDL_TEST=ON \
                 .. \
     && make -j$(nproc) \
     && make install
 
+# for cross-compile
 RUN set -x \
     && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/
 
@@ -421,15 +421,15 @@ COPY "overlays/rootfs/" "${ROOTFS}/"
 # strip so
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
-    && cp -rfp ${PREFIX}/lib/*.so* ${ROOTFS}/usr/local/lib/ \
-    && find ${ROOTFS}/usr/local/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
+    && cp -rfp ${PREFIX}/lib/*.so* ${ROOTFS}/usr/lib/ \
+    && find ${ROOTFS}/usr/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
 
 
 # copy bind
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
     # copy utils
-    && cp /opt/devkit/bin/* ${ROOTFS}/usr/local/bin/
+    && cp /opt/devkit/bin/* ${ROOTFS}/usr/bin/
 
 
 # ready to make

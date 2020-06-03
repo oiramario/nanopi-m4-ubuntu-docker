@@ -358,13 +358,16 @@ RUN set -x \
 ADD "packages/gl4es.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gl4es \
+    && rm -f ./include/EGL/eglplatform.h \
+    && sed -i "s?DRM_MODE_CONNECTED?DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA?" ./src/glx/gbm.c \
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DNOX11=ON \
-                -DNOEGL=ON \
+                -DGBM=ON \
                 -DDEFAULT_ES=2 \
+                -DUSE_CLOCK=ON \
                 .. \
     && make -j$(nproc)
 
@@ -401,7 +404,18 @@ ADD "packages/sdlpal.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd sdlpal/unix \
     && sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" Makefile \
-    && sed -i "s:LDFLAGS = \`\$(SDL_CONFIG):LDFLAGS += \`\$(SDL_CONFIG):" Makefile
+    && sed -i "s?LDFLAGS += -lGL -pthread?LDFLAGS += -lGL -ldrm -pthread -L/opt/devkit/lib -Wl,-rpath,/opt/devkit/lib?" Makefile \
+    && make -j$(nproc)
+
+# copy for test
+RUN set -x \
+    && mkdir -p ${ROOTFS}/opt/test \
+    && cp sdlpal/unix/sdlpal ${ROOTFS}/opt/test/
+
+
+# for cross-compile
+RUN set -x \
+    && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/
 
 
 # k380 keyboard

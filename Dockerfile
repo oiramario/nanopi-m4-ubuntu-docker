@@ -114,18 +114,6 @@ COPY "toolchain.cmake" "${BUILD}/"
 RUN mkdir -p ${PREFIX}
 
 
-# libmali
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/libmali.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd libmali \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                -DTARGET_SOC=rk3399 \
-                -DDP_FEATURE=gbm \
-                . \
-    && make install
-
-
 # libdrm
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libdrm.tar.gz" "${BUILD}/"
@@ -140,6 +128,37 @@ RUN set -x \
                     --disable-freedreno \
                     --disable-vc4 \
                     --enable-rockchip-experimental-api \
+    && make -j$(nproc) \
+    && make install
+
+
+# libmali
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libmali.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd libmali \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DTARGET_SOC=rk3399 \
+                -DDP_FEATURE=gbm \
+                . \
+    && make install
+
+# create gbm symlink
+RUN set -x \
+    && cd ${PREFIX}/lib \
+    && ln -s libMali.so libgbm.so
+
+
+# alsa-lib
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd alsa-lib \
+    && autoreconf -vfi \
+    && ./configure  --prefix=${PREFIX} \
+                    --host=${HOST} \
+                    --disable-python \
+                    --enable-shared \
     && make -j$(nproc) \
     && make install
 
@@ -160,9 +179,8 @@ RUN set -x \
     && make install
 
 
-# ffmpeg
-#----------------------------------------------------------------------------------------------------------------#
 # x264
+#----------------------------------------------------------------------------------------------------------------#
 ADD "packages/x264.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd x264 \
@@ -177,6 +195,7 @@ RUN set -x \
 
 
 # ffmpeg
+#----------------------------------------------------------------------------------------------------------------#
 ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd ffmpeg \
@@ -204,21 +223,7 @@ RUN set -x \
     && make install
 
 
-# alsa-lib
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd alsa-lib \
-    && autoreconf -vfi \
-    && ./configure  --prefix=${PREFIX} \
-                    --host=${HOST} \
-                    --disable-python \
-                    --enable-shared \
-    && make -j$(nproc) \
-    && make install
-
-
-# mpv
+# mpv --hwdec=rkmpp --vo=gpu --gpu-context=drm --drm-connector=0.HDMI-A-1 --gpu-api=opengl --opengl-es=yes --audio-device=alsa/plughw  ./AngeryBird.mp4
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/mpv.tar.gz" "${BUILD}/"
 RUN set -x \
@@ -358,7 +363,8 @@ RUN set -x \
 ADD "packages/gl4es.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gl4es \
-    && rm -f ./include/EGL/eglplatform.h \
+    # use libMali
+#    && rm -rf ./include/GL ./include/EGL ./include/GLES ./include/KHR \
     && sed -i "s?DRM_MODE_CONNECTED?DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA?" ./src/glx/gbm.c \
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
@@ -397,21 +403,20 @@ RUN set -x \
     && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/
 
 
-# sdlpal
+# SDL_VIDEODRIVER=KMSDRM SDL_RENDER_DRIVER=opengles2 LIBGL_FB=4 SDL_VIDEO_GL_DRIVER=libGLESv2.so SDL_VIDEO_EGL_DRIVER=libEGL.so ./sdlpal
 #----------------------------------------------------------------------------------------------------------------#
 RUN apt-get install -y git
 ADD "packages/sdlpal.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd sdlpal/unix \
     && sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" Makefile \
-    && sed -i "s?LDFLAGS += -lGL -pthread?LDFLAGS += -lGL -ldrm -pthread -L/opt/devkit/lib -Wl,-rpath,/opt/devkit/lib?" Makefile \
+    && sed -i "s?LDFLAGS += -lGL -pthread?LDFLAGS += -lGL -pthread -ldrm?" Makefile \
     && make -j$(nproc)
 
 # copy for test
 RUN set -x \
-    && mkdir -p ${ROOTFS}/opt/test \
-    && cp sdlpal/unix/sdlpal ${ROOTFS}/opt/test/
-
+    && mkdir -p ${ROOTFS}/opt/test/pal \
+    && cp sdlpal/unix/sdlpal ${ROOTFS}/opt/test/pal/
 
 # for cross-compile
 RUN set -x \
@@ -430,6 +435,9 @@ RUN set -x \
 # overlay
 #----------------------------------------------------------------------------------------------------------------#
 COPY "overlays/rootfs/" "${ROOTFS}/"
+
+RUN set -x \
+    && aarch64-linux-gnu-g++ ${ROOTFS}/opt/test/sdl_test.cpp `sdl2-config --cflags --libs` -o ${ROOTFS}/opt/test/sdl_test
 
 
 # strip so

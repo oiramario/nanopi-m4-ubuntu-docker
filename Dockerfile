@@ -360,28 +360,31 @@ RUN set -x \
 
 # gl4es
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/gl4es.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd gl4es \
-    # use libMali
-#    && rm -rf ./include/GL ./include/EGL ./include/GLES ./include/KHR \
-    && sed -i "s?DRM_MODE_CONNECTED?DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA?" ./src/glx/gbm.c \
-    && mkdir build && cd build \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DNOX11=ON \
-                -DGBM=ON \
-                -DDEFAULT_ES=2 \
-                -DUSE_CLOCK=ON \
-                .. \
-    && make -j$(nproc)
+# ADD "packages/gl4es.tar.gz" "${BUILD}/"
+# RUN set -x \
+#     && cd gl4es \
+#     # use libMali
+# #    && rm -rf ./include/GL ./include/EGL ./include/GLES ./include/KHR \
+#     && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/glx/gbm.c \
+#     && sed -i "s://#define DEBUG:#define DEBUG:" ./src/glx/glx.c \
+#     && sed -i "s://#define DEBUG:#define DEBUG:" ./src/gl/preproc.c \
+#     && mkdir build && cd build \
+#     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+#                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+#                 -DCMAKE_BUILD_TYPE=Debug \
+#                 -DSTATICLIB=OFF \
+#                 -DNOX11=ON \
+#                 -DGBM=ON \
+#                 -DDEFAULT_ES=2 \
+#                 -DUSE_CLOCK=ON \
+#                 .. \
+#     && make -j$(nproc)
 
-RUN set -x \
-    && cd gl4es/build \
-    && cp lib/libGL.so.1 ${PREFIX}/lib/ \
-    && cd ${PREFIX}/lib \
-    && ln -s libGL.so.1 libGL.so
+# RUN set -x \
+#     && cd gl4es \
+#     && cp lib/libGL.so.1 ${PREFIX}/lib/ \
+#     && cd ${PREFIX}/lib \
+#     && ln -s libGL.so.1 libGL.so
 
 
 # sdl
@@ -389,6 +392,10 @@ RUN set -x \
 ADD "packages/sdl.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd sdl \
+    # tricks for checking libudev.h(keyboard && mouse)
+    && touch /usr/include/libudev.h \
+    # rk3399 hdmi output
+    && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& conn->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/video/kmsdrm/SDL_kmsdrmvideo.c \
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -403,14 +410,15 @@ RUN set -x \
     && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/
 
 
-# SDL_VIDEODRIVER=KMSDRM SDL_RENDER_DRIVER=opengles2 LIBGL_FB=4 SDL_VIDEO_GL_DRIVER=libGLESv2.so SDL_VIDEO_EGL_DRIVER=libEGL.so ./sdlpal
+# sdlpal
 #----------------------------------------------------------------------------------------------------------------#
 RUN apt-get install -y git
 ADD "packages/sdlpal.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd sdlpal/unix \
+    && sed -i "s:# define PAL_HAS_GLSL 1:# define PAL_HAS_GLSLx 0:" pal_config.h \
     && sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" Makefile \
-    && sed -i "s?LDFLAGS += -lGL -pthread?LDFLAGS += -lGL -pthread -ldrm?" Makefile \
+    && sed -i "s?LDFLAGS += -lGL -pthread?LDFLAGS += -pthread?" Makefile \
     && make -j$(nproc)
 
 # copy for test
@@ -418,9 +426,13 @@ RUN set -x \
     && mkdir -p ${ROOTFS}/opt/test/pal \
     && cp sdlpal/unix/sdlpal ${ROOTFS}/opt/test/pal/
 
-# for cross-compile
-RUN set -x \
-    && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/
+# environment variables
+# RUN set -x \
+#     && echo "export \
+#     SDL_VIDEODRIVER=KMSDRM \
+#     SDL_RENDER_DRIVER=opengles2 \
+#     SDL_VIDEO_GL_DRIVER=libGLESv2.so \
+#     SDL_VIDEO_EGL_DRIVER=libEGL.so" >> /etc/profile
 
 
 # k380 keyboard

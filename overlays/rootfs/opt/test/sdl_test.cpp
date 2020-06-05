@@ -1,56 +1,96 @@
-/*This source code copyrighted by Lazy Foo' Productions (2004-2019)
-and may not be redistributed without written permission.*/
-
-//Using SDL and standard IO
 #include <SDL.h>
-#include <stdio.h>
+#include <iostream>
+#include <vector>
 
-//Screen dimension constants
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 480;
-
-int main( int argc, char* args[] )
+int main( int argc, char** argv )
 {
-    //The window we'll be rendering to
-    SDL_Window* window = NULL;
+    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+    SDL_Init( 0 );
 
-    //The surface contained by the window
-    SDL_Surface* screenSurface = NULL;
-
-    //Initialize SDL
-    if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+    std::cout << "Testing video drivers..." << '\n';
+    std::vector< bool > drivers( SDL_GetNumVideoDrivers() );
+    for( int i = 0; i < drivers.size(); ++i )
     {
-        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
-    }
-    else
-    {
-        //Create window
-        window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL );
-        if( window == NULL )
-        {
-            printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
-        }
-        else
-        {
-            //Get window surface
-            screenSurface = SDL_GetWindowSurface( window );
-
-            //Fill the surface white
-            SDL_FillRect( screenSurface, NULL, SDL_MapRGB( screenSurface->format, 0xFF, 0xFF, 0xFF ) );
-
-            //Update the surface
-            SDL_UpdateWindowSurface( window );
-
-            //Wait two seconds
-            SDL_Delay( 2000 );
-        }
+        drivers[ i ] = ( 0 == SDL_VideoInit( SDL_GetVideoDriver( i ) ) );
+        SDL_VideoQuit();
     }
 
-    //Destroy window
+    std::cout << "SDL_VIDEODRIVER available:";
+    for( int i = 0; i < drivers.size(); ++i )
+    {
+        std::cout << " " << SDL_GetVideoDriver( i );
+    }
+    std::cout << '\n';
+
+    std::cout << "SDL_VIDEODRIVER usable   :";
+    for( int i = 0; i < drivers.size(); ++i )
+    {
+        if( !drivers[ i ] ) continue;
+        std::cout << " " << SDL_GetVideoDriver( i );
+    }
+    std::cout << '\n';
+
+    if( SDL_Init( SDL_INIT_EVERYTHING ) < 0 )
+    {
+        std::cerr << "SDL_Init(): " << SDL_GetError() << '\n';
+        return EXIT_FAILURE;
+    }
+    std::cout << "SDL_VIDEODRIVER selected : " << SDL_GetCurrentVideoDriver() << '\n';
+
+    SDL_Window* window = SDL_CreateWindow
+        (
+        "SDL2",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        640, 480,
+        SDL_WINDOW_SHOWN
+        );
+    if( nullptr == window )
+    {
+        std::cerr << "SDL_CreateWindow(): " << SDL_GetError() << '\n';
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "SDL_RENDER_DRIVER available:";
+    for( int i = 0; i < SDL_GetNumRenderDrivers(); ++i )
+    {
+        SDL_RendererInfo info;
+        SDL_GetRenderDriverInfo( i, &info );
+        std::cout << " " << info.name;
+    }
+    std::cout << '\n';
+
+    SDL_Renderer* renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED );
+    if( nullptr == renderer )
+    {
+        std::cerr << "SDL_CreateRenderer(): " << SDL_GetError() << '\n';
+        return EXIT_FAILURE;
+    }
+    SDL_RendererInfo info;
+    SDL_GetRendererInfo( renderer, &info );
+    std::cout << "SDL_RENDER_DRIVER selected : " << info.name << '\n';
+
+    bool running = true;
+    unsigned char i = 0;
+    while( running )
+    {
+        SDL_Event ev;
+        while( SDL_PollEvent( &ev ) )
+        {
+            if( ( ev.type == SDL_QUIT ) ||
+                ( ev.type == SDL_KEYDOWN && ev.key.keysym.sym == SDLK_ESCAPE ) )
+            {
+                running = false;
+            }
+        }
+
+        SDL_SetRenderDrawColor( renderer, i, i, i, SDL_ALPHA_OPAQUE );
+        SDL_RenderClear( renderer );
+        SDL_RenderPresent( renderer );
+        i++;
+    }
+
+    SDL_DestroyRenderer( renderer );
     SDL_DestroyWindow( window );
-
-    //Quit SDL subsystems
     SDL_Quit();
-
     return 0;
 }

@@ -1,8 +1,10 @@
-# configure
-#----------------------------------------------------------------------------------------------------------------#
+#######################################
+# configure cross-compile environment #
+#######################################
+
 FROM ubuntu:bionic
 LABEL author="oiramario" \
-      version="0.3.0" \
+      version="0.4.0" \
       email="oiramario@gmail.com"
 
 # apt sources
@@ -19,38 +21,30 @@ deb ${SOURCES} bionic-updates main restricted universe multiverse \n\
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         # compile
-        patch  make  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  pkg-config  cmake \
+        git  patch  make  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  pkg-config  cmake \
         # u-boot
         bison  flex \
         # kernel
         bc  libssl-dev  kmod \
-        # gdb
-        texinfo \
+        # initramfs
+        device-tree-compiler  cpio  genext2fs \
         # libdrm
         autoconf  xutils-dev  libtool  libpciaccess-dev \
-        # eudev
-        gperf \
-        # initramfs
-        cpio \
-        # FIT(Flattened Image Tree)
-        device-tree-compiler \
-        # boot.img
-        genext2fs \
-        # rootfs
-        binfmt-support  qemu-user-static \
         # mpv
         python \
-        # alsa-utils
-        autopoint  libncurses5-dev \
+        # gdb
+        texinfo \
+        # rootfs
+        binfmt-support  qemu-user-static \
         # local:en_US.UTF-8
         locales \
     && locale-gen en_US.UTF-8
 
 
 # setup build environment
-ENV LANG='en_US.UTF-8' \
-    LANGUAGE='en_US:en' \
-    LC_ALL='en_US.UTF-8' \
+ENV LANG="en_US.UTF-8" \
+    LANGUAGE="en_US:en" \
+    LC_ALL="en_US.UTF-8" \
     TERM=screen \
     CROSS_COMPILE="aarch64-linux-gnu-" \
     ARCH="arm64" \
@@ -62,11 +56,16 @@ USER root
 WORKDIR ${BUILD}
 
 
+
+####################
+# operating system #
+####################
+
 # u-boot
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd u-boot \
+    && cd "u-boot" \
     # make
     && make rk3399_defconfig \
     && make -j$(nproc)
@@ -76,7 +75,7 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/kernel.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd kernel \
+    && cd "kernel" \
     # make
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
@@ -86,16 +85,18 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/busybox.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd busybox \
+    && cd "busybox" \
     # make
     && make defconfig \
     # static link
     && sed -i "s:# CONFIG_STATIC is not set:CONFIG_STATIC=y:" .config \
     && make -j$(nproc) \
-    && make CONFIG_PREFIX=${BUILD}/initramfs install
+    && make CONFIG_PREFIX="${BUILD}/initramfs" install
 
-# overlay
-COPY "overlays/initramfs/*" "${BUILD}/initramfs/"
+# init
+COPY "archives/initramfs/*" "${BUILD}/initramfs/"
+RUN set -x \
+    && rm -f "linuxrc"
 
 
 # ubuntu rootfs
@@ -104,22 +105,69 @@ ENV ROOTFS="${BUILD}/rootfs"
 ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 
+# rockchip materials
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/rkbin.tar.gz" "${BUILD}/"
+ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "rk-rootfs-build" \
+    # copy dptx.bin to initramfs
+    && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
+    && cp "overlay-firmware/lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
+    \
+    # rockchip firmware
+    && cp -rf overlay-firmware/* "${ROOTFS}/" \
+    && cd "${ROOTFS}/usr/bin" \
+    # 64bits wifi/bt
+    && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
+    && mv -f "rk_wifi_init_64" "rk_wifi_init" \
+    # bt, wifi, audio firmware
+    && mkdir -p "${ROOTFS}/system/lib/modules" \
+    && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan" -name "*.ko" | \
+            xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
+    \
+    # power manager
+    && cd "${BUILD}/rk-rootfs-build/overlay/etc/Powermanager" \
+    && cp "triggerhappy.service" "${ROOTFS}/lib/systemd/system/" \
+    && cp "power-key.sh" "${ROOTFS}/usr/bin/" \
+    && mkdir -p "${ROOTFS}/etc/triggerhappy/triggers.d" \
+    && cp "power-key.conf" "${ROOTFS}/etc/triggerhappy/triggers.d/" \
+    && cp "triggerhappy" "${ROOTFS}/etc/init.d/" \
+    \
+    # udev rules
+    && mkdir -p "${ROOTFS}/etc/udev/rules.d" \
+    && cd "${BUILD}/rk-rootfs-build/overlay/etc/udev/rules.d" \
+    && cp "50-hevc-rk3399.rules" \
+          "50-mail.rules" \
+          "50-vpu-rk3399.rules" \
+          "60-media.rules" \
+          "60-drm.rules" \
+          "${ROOTFS}/etc/udev/rules.d/" \
+    && cp "${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh" "${ROOTFS}/usr/local/bin/"
+
+
+
+############
+# run-time #
+############
+
 # compile settings
 #----------------------------------------------------------------------------------------------------------------#
-ENV PREFIX=/opt/devkit
-ENV PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig
+ENV PREFIX="/opt/devkit"
+ENV PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 ENV CFLAGS="-I${PREFIX}/include"
 ENV LDFLAGS="-L${PREFIX}/lib"
-COPY "toolchain.cmake" "${BUILD}/"
-RUN mkdir -p ${PREFIX}
+COPY "archives/toolchain.cmake" "${BUILD}/"
+#RUN mkdir -p "${PREFIX}"
 
 
 # libdrm
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libdrm.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd libdrm \
-    && ./autogen.sh --prefix=${PREFIX} --host=${HOST} \
+    && cd "libdrm" \
+    && ./autogen.sh --prefix="${PREFIX}" \
+                    --host="${HOST}" \
                     --disable-intel \
                     --disable-vmwgfx \
                     --disable-radeon \
@@ -136,8 +184,8 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libmali.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd libmali \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+    && cd "libmali" \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DTARGET_SOC=rk3399 \
                 -DDP_FEATURE=gbm \
                 . \
@@ -145,18 +193,18 @@ RUN set -x \
 
 # create gbm symlink
 RUN set -x \
-    && cd ${PREFIX}/lib \
-    && ln -s libMali.so libgbm.so
+    && cd "${PREFIX}/lib" \
+    && ln -s "libMali.so" "libgbm.so"
 
 
 # alsa-lib
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd alsa-lib \
+    && cd "alsa-lib" \
     && autoreconf -vfi \
-    && ./configure  --prefix=${PREFIX} \
-                    --host=${HOST} \
+    && ./configure  --prefix="${PREFIX}" \
+                    --host="${HOST}" \
                     --disable-python \
                     --enable-shared \
     && make -j$(nproc) \
@@ -167,8 +215,8 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/mpp.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd mpp \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+    && cd "mpp" \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DENABLE_SHARED=ON \
@@ -179,99 +227,39 @@ RUN set -x \
     && make install
 
 
-# x264
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/x264.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd x264 \
-    && ./configure  --prefix=${PREFIX} \
-                    --host=${HOST} \
-                    --cross-prefix=${CROSS_COMPILE} \
-                    --enable-shared \
-                    --disable-asm \
-                    --disable-opencl \
-    && make -j$(nproc) \
-    && make install
-
-
-# ffmpeg
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd ffmpeg \
-    && ./configure  --prefix=${PREFIX} \
-                    --target-os=linux \
-                    --arch="aarch64" \
-                    --cpu="cortex-a53" \
-                    --enable-cross-compile \
-                    --cc=aarch64-linux-gnu-gcc \
-                    --ar=aarch64-linux-gnu-ar \
-                    --strip=aarch64-linux-gnu-strip \
-                    --enable-rpath \
-                    # options
-                    --enable-shared \
-                    --disable-static \
-                    --disable-debug \
-                    --enable-version3 \
-                    --enable-libdrm \
-                    --enable-rkmpp \
-                    --enable-libx264 \
-                    --enable-nonfree \
-                    --enable-gpl \
-                    --disable-doc \
-    && make -j$(nproc) \
-    && make install
-
-
-# mpv --hwdec=rkmpp --vo=gpu --gpu-context=drm --drm-connector=0.HDMI-A-1 --gpu-api=opengl --opengl-es=yes --audio-device=alsa/plughw  ./AngeryBird.mp4
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/mpv.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd mpv \
-    && ./bootstrap.py \
-    && CC=aarch64-linux-gnu-gcc \
-       AR=aarch64-linux-gnu-ar \
-       ./waf configure  --prefix=${PREFIX} \
-                        --enable-libmpv-shared \
-                        --enable-egl-drm \
-                        --disable-lua \
-                        --disable-javascript \
-                        --disable-libass \
-                        --disable-zlib \
-    && ./waf build -j$(nproc) \
-    && ./waf install
-
-
 # gdb
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/gdb.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd gdb \
-    && mkdir build && cd build \
-    && ../configure --host=x86_64-linux-gnu --target=${HOST} \
+    && cd "gdb" \
+    && mkdir "build" && cd "build" \
+    && ../configure --host="x86_64-linux-gnu" \
+                    --target="${HOST}" \
     && make -j$(nproc)
 
 RUN set -x \
-    && cd gdb/gdb/gdbserver \
-    && ./configure --host=${HOST} --target=${HOST} \
+    && cd "gdb/gdb/gdbserver" \
+    && ./configure  --host="${HOST}" \
+                    --target="${HOST}" \
     && make -j$(nproc)
 
 RUN set -x \
     # gdb(host)
-    && cp gdb/build/gdb/gdb ${PREFIX}/  \
-    && x86_64-linux-gnu-strip --strip-unneeded ${PREFIX}/gdb \
+    && cp "gdb/build/gdb/gdb" "${PREFIX}/"  \
+    && x86_64-linux-gnu-strip --strip-unneeded "${PREFIX}/gdb" \
     # gdbserver(target)
-    && cp gdb/gdb/gdbserver/gdbserver ${ROOTFS}/usr/bin/ \
-    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/usr/bin/gdbserver
+    && cp "gdb/gdb/gdbserver/gdbserver" "${ROOTFS}/usr/bin/" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/usr/bin/gdbserver"
 
 
 # libusb
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libusb.tar.gz" "${BUILD}/"
 RUN set -x \ 
-    && cd libusb \
+    && cd "libusb" \
     && autoreconf -vfi \
-    && ./configure  --prefix=${PREFIX} --host=${HOST} \
+    && ./configure  --prefix="${PREFIX}" \
+                    --host="${HOST}" \
                     --disable-udev \
     && make -j$(nproc) \
     && make install
@@ -281,9 +269,9 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/librealsense.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd librealsense \
+    && cd "librealsense" \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
-                -DCMAKE_TOOLCHAIN_FILE=${BUILD}/toolchain.cmake \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 # downloading slowly
                 -DBUILD_WITH_TM2=OFF \
@@ -302,60 +290,141 @@ RUN set -x \
 
 RUN set -x \
     # setting-up permissions for realsense devices
-    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
-    && cp librealsense/config/99-realsense-libusb.rules ${ROOTFS}/etc/udev/rules.d/
+    && mkdir -p "${ROOTFS}/etc/udev/rules.d/" \
+    && cp "librealsense/config/99-realsense-libusb.rules" "${ROOTFS}/etc/udev/rules.d/"
+
+
+# x264
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/x264.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "x264" \
+    && ./configure  --prefix="${PREFIX}" \
+                    --host="${HOST}" \
+                    --cross-prefix="${CROSS_COMPILE}" \
+                    --enable-static \
+                    --enable-pic \
+                    --disable-cli \
+                    --disable-asm \
+                    --disable-opencl \
+                    --disable-swscale \
+    && make -j$(nproc) \
+    && make install
+
+
+# ffmpeg
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "ffmpeg" \
+    && ./configure  --prefix="${PREFIX}" \
+                    --target-os="linux" \
+                    --enable-cross-compile \
+                    --arch="aarch64" \
+                    --cpu="cortex-a53" \
+                    --cc="${CROSS_COMPILE}gcc" \
+                    --ar="${CROSS_COMPILE}ar" \
+                    --strip="${CROSS_COMPILE}strip" \
+                    --enable-rpath \
+                    # options
+                    --enable-shared \
+                    --disable-static \
+                    --disable-debug \
+                    --enable-version3 \
+                    --enable-libdrm \
+                    --enable-rkmpp \
+                    --enable-libx264 \
+                    --enable-nonfree \
+                    --enable-gpl \
+                    --disable-doc \
+    && make -j$(nproc) \
+    && make install
+
+
+# sdl
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/sdl.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "sdl" \
+    # tricks for checking libudev.h(keyboard && mouse)
+    && touch "/usr/include/libudev.h" \
+    # rk3399 hdmi output
+    && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& conn->connector_type == DRM_MODE_CONNECTOR_HDMIA:" "./src/video/kmsdrm/SDL_kmsdrmvideo.c" \
+    && mkdir "build" && cd "build" \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DSDL_STATIC=OFF \
+                .. \
+    && make -j$(nproc) \
+    && make install
+
+COPY "archives/sdl_test.cpp" "${BUILD}/sdl/"
+RUN set -x \
+    # for cross-compile
+    && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/ \
+    # test
+    && mkdir -p "${ROOTFS}/opt/test/" \
+    && ${CROSS_COMPILE}g++ "${BUILD}/sdl/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${ROOTFS}/opt/test/sdl_test"
+
+
+
+###############
+# application #
+###############
+
+# mpv
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/mpv.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "mpv" \
+    && ./bootstrap.py \
+    && CC=${CROSS_COMPILE}gcc \
+       AR=${CROSS_COMPILE}ar \
+       ./waf configure  --prefix="${PREFIX}" \
+                        --enable-libmpv-shared \
+                        --enable-egl-drm \
+                        --enable-sdl2 \
+                        --disable-lua \
+                        --disable-javascript \
+                        --disable-libass \
+                        --disable-zlib \
+    && ./waf build -j$(nproc) \
+    && ./waf install
+
+RUN set -x \
+    && aarch64-linux-gnu-strip --strip-unneeded "${PREFIX}/bin/mpv"
+
+
+# sdlpal
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/sdlpal.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "sdlpal/unix" \
+    # do not link GL
+    && sed -i "s:# define PAL_HAS_GLSL 1:# define PAL_HAS_GLSLx 0:" "pal_config.h" \
+    && sed -i "s:LDFLAGS += -lGL -pthread:LDFLAGS += -pthread:" "Makefile" \
+    # cross-compile
+    && sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" "Makefile" \
+    && make -j$(nproc)
+
+RUN set -x \
+    && mkdir -p "${ROOTFS}/opt/test/pal" \
+    && cp "sdlpal/unix/sdlpal" "${ROOTFS}/opt/test/pal/" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/test/pal/sdlpal"
 
 
 # gbm-drm-gles-cube
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd ogles-cube \
-    && cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+    && cd "ogles-cube" \
+    && cmake    -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                . \
     && make -j$(nproc) \
-    && cp ./gbm-drm-gles-cube ${ROOTFS}/opt/ \
-    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/opt/gbm-drm-gles-cube
-
-
-# rockchip materials
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rkbin.tar.gz" "${BUILD}/"
-ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd rk-rootfs-build \
-    # rockchip firmware
-    && cp -rf overlay-firmware/* ${ROOTFS}/ \
-    && cd ${ROOTFS}/usr/bin/ \
-    # choose 64bits
-    && mv -f brcm_patchram_plus1_64 brcm_patchram_plus1 \
-    && mv -f rk_wifi_init_64 rk_wifi_init \
-    && rm -f brcm_patchram_plus1_32 rk_wifi_init_32 \
-    # remove useless
-    && rm -f npu* upgrade_tool \
-    # bt, wifi, audio firmware
-    && mkdir -p ${ROOTFS}/system/lib/modules/ \
-    && find ${BUILD}/kernel/drivers/net/wireless/rockchip_wlan -name "*.ko" | \
-        xargs -n1 -i cp {} ${ROOTFS}/system/lib/modules/ \
-    # power manager
-    && cd ${BUILD}/rk-rootfs-build/overlay/etc/Powermanager \
-    && cp triggerhappy.service ${ROOTFS}/lib/systemd/system/ \
-    && cp power-key.sh ${ROOTFS}/usr/bin/ \
-    && mkdir -p ${ROOTFS}/etc/triggerhappy/triggers.d/ \
-    && cp power-key.conf ${ROOTFS}/etc/triggerhappy/triggers.d/ \
-    && cp triggerhappy ${ROOTFS}/etc/init.d/ \
-    # udev rules
-    && cd ${BUILD}/rk-rootfs-build/overlay/etc/udev/rules.d \
-    && mkdir -p ${ROOTFS}/etc/udev/rules.d/ \
-    && cp 50-hevc-rk3399.rules \
-          50-mail.rules \
-          50-vpu-rk3399.rules \
-          60-media.rules \
-          60-drm.rules \
-          ${ROOTFS}/etc/udev/rules.d/ \
-    && cp ${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh ${ROOTFS}/usr/local/bin/ \
-    # gst environment variables
-    && mkdir -p ${ROOTFS}/etc/profile.d/ \
-    && cp ${BUILD}/rk-rootfs-build/overlay/etc/profile.d/gst.sh ${ROOTFS}/etc/profile.d/
+    && cp "gbm-drm-gles-cube" "${ROOTFS}/opt/test/" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/test/gbm-drm-gles-cube"
 
 
 # gl4es
@@ -387,88 +456,40 @@ RUN set -x \
 #     && ln -s libGL.so.1 libGL.so
 
 
-# sdl
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/sdl.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd sdl \
-    # tricks for checking libudev.h(keyboard && mouse)
-    && touch /usr/include/libudev.h \
-    # rk3399 hdmi output
-    && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& conn->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/video/kmsdrm/SDL_kmsdrmvideo.c \
-    && mkdir build && cd build \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DSDL_STATIC=OFF \
-                .. \
-    && make -j$(nproc) \
-    && make install
-
-# for cross-compile
-RUN set -x \
-    && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/
-
-
-# sdlpal
-#----------------------------------------------------------------------------------------------------------------#
-RUN apt-get install -y git
-ADD "packages/sdlpal.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd sdlpal/unix \
-    && sed -i "s:# define PAL_HAS_GLSL 1:# define PAL_HAS_GLSLx 0:" pal_config.h \
-    && sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" Makefile \
-    && sed -i "s?LDFLAGS += -lGL -pthread?LDFLAGS += -pthread?" Makefile \
-    && make -j$(nproc)
-
-# copy for test
-RUN set -x \
-    && mkdir -p ${ROOTFS}/opt/test/pal \
-    && cp sdlpal/unix/sdlpal ${ROOTFS}/opt/test/pal/
-
-# environment variables
-# RUN set -x \
-#     && echo "export \
-#     SDL_VIDEODRIVER=KMSDRM \
-#     SDL_RENDER_DRIVER=opengles2 \
-#     SDL_VIDEO_GL_DRIVER=libGLESv2.so \
-#     SDL_VIDEO_EGL_DRIVER=libEGL.so" >> /etc/profile
-
+##################
+# pre-deployment #
+##################
 
 # k380 keyboard
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/k380-function-keys-conf.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd k380-function-keys-conf \
+    && cd "k380-function-keys-conf" \
     && make -j$(nproc) \
-    && DESTDIR=${ROOTFS} make install
+    && DESTDIR="${ROOTFS}" make install
 
 
 # overlay
 #----------------------------------------------------------------------------------------------------------------#
-COPY "overlays/rootfs/" "${ROOTFS}/"
-
-RUN set -x \
-    && aarch64-linux-gnu-g++ ${ROOTFS}/opt/test/sdl_test.cpp `sdl2-config --cflags --libs` -o ${ROOTFS}/opt/test/sdl_test
+COPY "archives/rootfs/" "${ROOTFS}/"
 
 
 # strip so
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
-    && cp -rfp ${PREFIX}/lib/*.so* ${ROOTFS}/usr/lib/ \
-    && find ${ROOTFS}/usr/lib/ -name \*.so | xargs aarch64-linux-gnu-strip --strip-unneeded
+    && cp -rfp ${PREFIX}/lib/*.so* "${ROOTFS}/usr/lib/" \
+    && find ${ROOTFS}/usr/lib -name \*.so | xargs ${CROSS_COMPILE}strip --strip-unneeded
 
 
 # copy bind
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
     # copy utils
-    && cp /opt/devkit/bin/* ${ROOTFS}/usr/bin/
+    && cp /${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
 
 
 # ready to make
 #----------------------------------------------------------------------------------------------------------------#
-ENV DISTRO=/root/distro
-ENV DEVKIT=/root/devkit
-
-WORKDIR /root/scripts
+ENV DISTRO="/root/distro"
+ENV DEVKIT="/root/devkit"
+WORKDIR "/root/scripts"

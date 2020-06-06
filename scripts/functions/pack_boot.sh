@@ -14,19 +14,7 @@ pack_boot_image()
     # initramfs
     echo
    	info_msg "initramfs"
-    local ramdisk=/tmp/ramdisk
-    [ -d ${ramdisk} ] && rm -rf ${ramdisk}
-    mkdir -p ${ramdisk}
-    cd ${ramdisk}
-    ## busybox
-    cp -rf ${BUILD}/initramfs/* ./
-    ## dptx.bin
-    local dptx_src=${BUILD}/rk-rootfs-build/overlay-firmware/lib/firmware/rockchip/dptx.bin
-    local dptx_dst=${ramdisk}/lib/firmware/rockchip
-    mkdir -p ${dptx_dst}
-    cp -vf ${dptx_src} ${dptx_dst}
-    ## ramdisk.cpio.gz
-    rm -f linuxrc
+    cd ${BUILD}/initramfs
     find . | cpio -oH newc | gzip > ${boot}/ramdisk.cpio.gz
 
     # boot

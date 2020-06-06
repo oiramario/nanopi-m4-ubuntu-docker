@@ -25,22 +25,22 @@ update_sources()
         "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
         "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
         "busybox,mirror/busybox.git,1_31_stable"
+        "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
+        "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
         "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
         "libmali,rockchip-linux/libmali.git,rockchip"
         "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
         "mpp,rockchip-linux/mpp.git,develop"
-        "x264,mirror/x264.git,stable"
-        "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
-        "mpv,rockchip-linux/mpv.git,master"
         "gdb,bminor/binutils-gdb.git,gdb-9-branch"
         "libusb,libusb/libusb.git,v1.0.23"
         "librealsense,IntelRealSense/librealsense.git,v2.35.0"
-        "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
-        "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
-        "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
-        "gl4es,ptitSeb/gl4es.git,master"
+        "x264,mirror/x264.git,stable"
+        "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
         "sdl,spurious/SDL-mirror.git,release-2.0.12"
+        "mpv,rockchip-linux/mpv.git,master"
         "sdlpal,sdlpal/sdlpal.git,master"
+        "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
+        "gl4es,ptitSeb/gl4es.git,master"
         "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
     for i in ${gits[@]}
@@ -95,6 +95,10 @@ update_sources()
                     --exclude=${dir}/mk-*.sh \
                     --exclude=overlay-firmware/usr/share/npu_fw \
                     --exclude=overlay-firmware/usr/share/npu_fw_pcie \
+                    --exclude=overlay-firmware/usr/bin/npu* \
+                    --exclude=overlay-firmware/usr/bin/upgrade_tool \
+                    --exclude=overlay-firmware/usr/bin/brcm_patchram_plus1_32 \
+                    --exclude=overlay-firmware/usr/bin/rk_wifi_init_32 \
                     --exclude=packages \
                     --exclude=overlay-debug \
                     --exclude=packages-patches \

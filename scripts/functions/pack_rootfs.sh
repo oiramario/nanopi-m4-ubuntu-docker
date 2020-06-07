@@ -26,18 +26,6 @@ pack_rootfs_image()
    	# info_msg "copy kernel modules"
     # cp -rf ${BUILD}/kmodules/* ${rootfs}/
 
-    # rockchip packages
-    # echo
-   	# info_msg "copy rockchip packages"
-    # mkdir -p ${rootfs}/packages
-    # cp -rf ${rk_rootfs}/packages/arm64/* ${rootfs}/packages/
-
-    # rockchip overlay
-    # echo
-   	# info_msg "copy rockchip overlays"
-    # cp -rf ${rk_rootfs}/overlay/* ${rootfs}/
-    # chmod +x ${rootfs}/etc/rc.local
-
     # mount
     echo
    	info_msg "mount"

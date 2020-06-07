@@ -357,15 +357,9 @@ RUN set -x \
                 -DSDL_STATIC=OFF \
                 .. \
     && make -j$(nproc) \
-    && make install
-
-COPY "archives/sdl_test.cpp" "${BUILD}/sdl/"
-RUN set -x \
+    && make install \
     # for cross-compile
-    && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/ \
-    # test
-    && mkdir -p "${ROOTFS}/opt/test/" \
-    && ${CROSS_COMPILE}g++ "${BUILD}/sdl/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${ROOTFS}/opt/test/sdl_test"
+    && cp ${PREFIX}/bin/sdl2-config /usr/local/bin/
 
 
 
@@ -409,22 +403,29 @@ RUN set -x \
     && make -j$(nproc)
 
 RUN set -x \
-    && mkdir -p "${ROOTFS}/opt/test/pal" \
-    && cp "sdlpal/unix/sdlpal" "${ROOTFS}/opt/test/pal/" \
-    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/test/pal/sdlpal"
+    && mkdir -p "${ROOTFS}/opt/pal" \
+    && cp "sdlpal/unix/sdlpal" "${ROOTFS}/opt/pal/" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/pal/sdlpal"
 
 
-# gbm-drm-gles-cube
+# sdl_test
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ogles-cube.tar.gz" "${BUILD}/"
+COPY "archives/sdl_test.cpp" "${BUILD}/sdl_test/"
 RUN set -x \
-    && cd "ogles-cube" \
+    && ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${PREFIX}/bin/sdl_test"
+
+
+# ogles_realsense_test
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/ogles_realsense_test.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "ogles_realsense_test" \
     && cmake    -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 . \
     && make -j$(nproc) \
-    && cp "gbm-drm-gles-cube" "${ROOTFS}/opt/test/" \
-    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/test/gbm-drm-gles-cube"
+    && cp "gbm-drm-gles-cube" "${PREFIX}/bin/ogles_realsense_test" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${PREFIX}/bin/ogles_realsense_test"
 
 
 # gl4es

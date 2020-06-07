@@ -1,5 +1,6 @@
 # Functions:
 # pack_boot_image
+#set -x
 
 source functions/common.sh
 
@@ -26,7 +27,12 @@ pack_boot_image()
     ## dtb
     echo
    	info_msg "dtb(s)"
+    ## nanopi4-rev* dtb
     cp -v dts/rockchip/rk3399-nanopi4-rev0*.dtb ${boot}/
+    ## enable rga
+    for dtb in `ls ${boot}/rk3399-nanopi4-rev0*.dtb`; do
+        fdtput -t s ${dtb} /rga status "okay"
+	done
 
     # resource
     echo

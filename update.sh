@@ -31,7 +31,7 @@ update_sources()
         "libmali,rockchip-linux/libmali.git,rockchip"
         "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
         "mpp,rockchip-linux/mpp.git,develop"
-        "gdb,bminor/binutils-gdb.git,gdb-9-branch"
+        "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
         "libusb,libusb/libusb.git,v1.0.23"
         "librealsense,IntelRealSense/librealsense.git,v2.35.0"
         "x264,mirror/x264.git,stable"
@@ -39,7 +39,7 @@ update_sources()
         "sdl,spurious/SDL-mirror.git,release-2.0.12"
         "mpv,rockchip-linux/mpv.git,master"
         "sdlpal,sdlpal/sdlpal.git,master"
-        "ogles-cube,oiramario/gbm-drm-gles-cube.git,master"
+        "ogles_realsense_test,oiramario/gbm-drm-gles-cube.git,master"
         "gl4es,ptitSeb/gl4es.git,master"
         "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )

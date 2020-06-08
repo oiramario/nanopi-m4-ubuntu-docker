@@ -27,6 +27,7 @@ update_sources()
         "busybox,mirror/busybox.git,1_31_stable"
         "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
         "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
+        "eudev,gentoo/eudev.git,v3.2.9"
         "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
         "libmali,rockchip-linux/libmali.git,rockchip"
         "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
@@ -41,6 +42,10 @@ update_sources()
         "sdlpal,sdlpal/sdlpal.git,master"
         "ogles_realsense_test,oiramario/gbm-drm-gles-cube.git,master"
         "gl4es,ptitSeb/gl4es.git,master"
+        "libjpeg,libjpeg-turbo/libjpeg-turbo.git,2.0.4"
+        "zlib,madler/zlib.git,v1.2.11"
+        "libpng,glennrp/libpng.git,libpng16"
+        "glmark2,glmark2/glmark2.git,release-2020.04"
         "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
     for i in ${gits[@]}

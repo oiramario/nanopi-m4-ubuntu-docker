@@ -28,6 +28,8 @@ RUN apt-get update \
         bc  libssl-dev  kmod \
         # initramfs
         device-tree-compiler  cpio  genext2fs \
+        # eudev
+        gperf \
         # libdrm
         autoconf  xutils-dev  libtool  libpciaccess-dev \
         # mpv
@@ -159,6 +161,30 @@ ENV CFLAGS="-I${PREFIX}/include"
 ENV LDFLAGS="-L${PREFIX}/lib"
 COPY "archives/toolchain.cmake" "${BUILD}/"
 #RUN mkdir -p "${PREFIX}"
+
+
+# eudev
+#----------------------------------------------------------------------------------------------------------------#
+RUN apt-get install gperf -y
+ADD "packages/eudev.tar.gz" "${BUILD}/"
+RUN set -x \ 
+    && cd eudev \
+    && autoreconf -vfi \
+    && ./configure  --prefix="${PREFIX}" --host="${HOST}" \
+                    --enable-hwdb=yes \
+                    --enable-rule-generator=yes \
+                    --enable-mtd_probe=yes \
+                    --disable-static \
+                    --disable-blkid \
+                    --disable-kmod \
+    && make -j$(nproc) \
+    && make install
+
+RUN set -x \ 
+    && cp -rf ${PREFIX}/etc/udev ${ROOTFS}/etc/ \
+    && cp -f ${PREFIX}/bin/udevadm ${ROOTFS}/bin/ \
+    && cp -f ${PREFIX}/sbin/udevadm ${PREFIX}/sbin/udevd ${ROOTFS}/sbin/ \
+    && cp -rf ${PREFIX}/lib/udev ${ROOTFS}/lib/
 
 
 # libdrm
@@ -430,31 +456,93 @@ RUN set -x \
 
 # gl4es
 #----------------------------------------------------------------------------------------------------------------#
-# ADD "packages/gl4es.tar.gz" "${BUILD}/"
-# RUN set -x \
-#     && cd gl4es \
-#     # use libMali
-# #    && rm -rf ./include/GL ./include/EGL ./include/GLES ./include/KHR \
-#     && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/glx/gbm.c \
-#     && sed -i "s://#define DEBUG:#define DEBUG:" ./src/glx/glx.c \
-#     && sed -i "s://#define DEBUG:#define DEBUG:" ./src/gl/preproc.c \
-#     && mkdir build && cd build \
-#     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-#                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-#                 -DCMAKE_BUILD_TYPE=Debug \
-#                 -DSTATICLIB=OFF \
-#                 -DNOX11=ON \
-#                 -DGBM=ON \
-#                 -DDEFAULT_ES=2 \
-#                 -DUSE_CLOCK=ON \
-#                 .. \
-#     && make -j$(nproc)
+ADD "packages/gl4es.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd gl4es \
+    # use libMali
+#    && rm -rf ./include/GL ./include/EGL ./include/GLES ./include/KHR \
+    && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/glx/gbm.c \
+    && sed -i "s://#define DEBUG:#define DEBUG:" ./src/glx/glx.c \
+    && sed -i "s://#define DEBUG:#define DEBUG:" ./src/gl/preproc.c \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DSTATICLIB=OFF \
+                -DNOX11=ON \
+                -DGBM=ON \
+                -DDEFAULT_ES=2 \
+                -DUSE_CLOCK=ON \
+                .. \
+    && make -j$(nproc)
 
-# RUN set -x \
-#     && cd gl4es \
-#     && cp lib/libGL.so.1 ${PREFIX}/lib/ \
-#     && cd ${PREFIX}/lib \
-#     && ln -s libGL.so.1 libGL.so
+RUN set -x \
+    && cd gl4es \
+    && cp lib/libGL.so.1 ${PREFIX}/lib/ \
+    && cd ${PREFIX}/lib \
+    && ln -s libGL.so.1 libGL.so
+
+
+# libjpeg
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libjpeg.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd libjpeg \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DENABLE_STATIC=OFF \
+                .. \
+    && make -j$(nproc) \
+    && make install
+
+
+# zlib
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/zlib.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd zlib \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DINSTALL_PKGCONFIG_DIR="${PREFIX}/lib/pkgconfig" \
+                -DCMAKE_BUILD_TYPE=Release \
+                .. \
+    && make -j$(nproc) \
+    && make install
+
+
+# libpng
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libpng.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd libpng \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DM_LIBRARY="/usr/aarch64-linux-gnu/lib" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DPNG_STATIC=OFF \
+                -DPNG_EXECUTABLES=OFF \
+                -DPNG_TESTS=OFF \
+                .. \
+    && make -j$(nproc) \
+    && make install
+
+
+# glmark2
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/glmark2.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd glmark2 \
+    && ./waf configure  CC=${CROSS_COMPILE}gcc \
+                        CXX=${CROSS_COMPILE}g++ \
+                        --prefix="${PREFIX}" \
+                        --no-debug \
+                        --with-flavors=drm-gl,drm-glesv2 \
+    && ./waf build -j$(nproc) \
+    && ./waf install
 
 
 ##################

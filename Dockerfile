@@ -157,20 +157,17 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ENV PREFIX="/opt/devkit"
 ENV PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-ENV CFLAGS="-I${PREFIX}/include"
-ENV LDFLAGS="-L${PREFIX}/lib"
 COPY "archives/toolchain.cmake" "${BUILD}/"
-#RUN mkdir -p "${PREFIX}"
 
 
 # eudev
 #----------------------------------------------------------------------------------------------------------------#
-RUN apt-get install gperf -y
 ADD "packages/eudev.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd eudev \
     && autoreconf -vfi \
-    && ./configure  --prefix="${PREFIX}" --host="${HOST}" \
+    && ./configure  --prefix="${PREFIX}" \
+                    --host="${HOST}" \
                     --enable-hwdb=yes \
                     --enable-rule-generator=yes \
                     --enable-mtd_probe=yes \
@@ -253,40 +250,112 @@ RUN set -x \
     && make install
 
 
-# gdb
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/gdb.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "gdb" \
-    && mkdir "build" && cd "build" \
-    && ../configure --host="x86_64-linux-gnu" \
-                    --target="${HOST}" \
-    && make -j$(nproc)
-
-RUN set -x \
-    && cd "gdb/gdb/gdbserver" \
-    && ./configure  --host="${HOST}" \
-                    --target="${HOST}" \
-    && make -j$(nproc)
-
-RUN set -x \
-    # gdb(host)
-    && cp "gdb/build/gdb/gdb" "${PREFIX}/"  \
-    && x86_64-linux-gnu-strip --strip-unneeded "${PREFIX}/gdb" \
-    # gdbserver(target)
-    && cp "gdb/gdb/gdbserver/gdbserver" "${ROOTFS}/usr/bin/" \
-    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/usr/bin/gdbserver"
-
-
 # libusb
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libusb.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd "libusb" \
     && autoreconf -vfi \
+    && ./configure  CFLAGS="-I${PREFIX}/include" \
+                    LDFLAGS="-L${PREFIX}/lib" \
+                    --prefix="${PREFIX}" \
+                    --host="${HOST}" \
+    && make -j$(nproc) \
+    && make install
+
+
+# zlib
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/zlib.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd zlib \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DINSTALL_PKGCONFIG_DIR="${PREFIX}/lib/pkgconfig" \
+                -DCMAKE_BUILD_TYPE=Release \
+                .. \
+    && make -j$(nproc) \
+    && make install
+
+
+# libjpeg
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libjpeg.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd libjpeg \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DENABLE_STATIC=OFF \
+                .. \
+    && make -j$(nproc) \
+    && make install
+
+
+# libpng
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/libpng.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd libpng \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DM_LIBRARY="/usr/aarch64-linux-gnu/lib" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DPNG_STATIC=OFF \
+                -DPNG_EXECUTABLES=OFF \
+                -DPNG_TESTS=OFF \
+                .. \
+    && make -j$(nproc) \
+    && make install
+
+
+# x264
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/x264.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "x264" \
     && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
-                    --disable-udev \
+                    --cross-prefix="${CROSS_COMPILE}" \
+                    --enable-static \
+                    --enable-pic \
+                    --disable-cli \
+                    --disable-asm \
+                    --disable-opencl \
+                    --disable-swscale \
+    && make -j$(nproc) \
+    && make install
+
+
+# ffmpeg
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "ffmpeg" \
+    && LDFLAGS="-L${PREFIX}/lib" \
+       ./configure  --prefix="${PREFIX}" \
+                    --target-os="linux" \
+                    --enable-cross-compile \
+                    --arch="aarch64" \
+                    --cpu="cortex-a53" \
+                    --cc="${CROSS_COMPILE}gcc" \
+                    --ar="${CROSS_COMPILE}ar" \
+                    --strip="${CROSS_COMPILE}strip" \
+                    --enable-rpath \
+                    # options
+                    --enable-shared \
+                    --disable-static \
+                    --disable-debug \
+                    --disable-doc \
+                    --enable-version3 \
+                    --enable-libdrm \
+                    --enable-rkmpp \
+                    --enable-libx264 \
+                    --enable-nonfree \
+                    --enable-gpl \
     && make -j$(nproc) \
     && make install
 
@@ -320,60 +389,11 @@ RUN set -x \
     && cp "librealsense/config/99-realsense-libusb.rules" "${ROOTFS}/etc/udev/rules.d/"
 
 
-# x264
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/x264.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "x264" \
-    && ./configure  --prefix="${PREFIX}" \
-                    --host="${HOST}" \
-                    --cross-prefix="${CROSS_COMPILE}" \
-                    --enable-static \
-                    --enable-pic \
-                    --disable-cli \
-                    --disable-asm \
-                    --disable-opencl \
-                    --disable-swscale \
-    && make -j$(nproc) \
-    && make install
-
-
-# ffmpeg
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "ffmpeg" \
-    && ./configure  --prefix="${PREFIX}" \
-                    --target-os="linux" \
-                    --enable-cross-compile \
-                    --arch="aarch64" \
-                    --cpu="cortex-a53" \
-                    --cc="${CROSS_COMPILE}gcc" \
-                    --ar="${CROSS_COMPILE}ar" \
-                    --strip="${CROSS_COMPILE}strip" \
-                    --enable-rpath \
-                    # options
-                    --enable-shared \
-                    --disable-static \
-                    --disable-debug \
-                    --enable-version3 \
-                    --enable-libdrm \
-                    --enable-rkmpp \
-                    --enable-libx264 \
-                    --enable-nonfree \
-                    --enable-gpl \
-                    --disable-doc \
-    && make -j$(nproc) \
-    && make install
-
-
 # sdl
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/sdl.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "sdl" \
-    # tricks for checking libudev.h(keyboard && mouse)
-    && touch "/usr/include/libudev.h" \
     # rk3399 hdmi output
     && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& conn->connector_type == DRM_MODE_CONNECTOR_HDMIA:" "./src/video/kmsdrm/SDL_kmsdrmvideo.c" \
     && mkdir "build" && cd "build" \
@@ -393,22 +413,47 @@ RUN set -x \
 # application #
 ###############
 
+# gdb
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/gdb.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "gdb" \
+    && mkdir "build" && cd "build" \
+    && ../configure --host="x86_64-linux-gnu" \
+                    --target="${HOST}" \
+    && make -j$(nproc)
+
+RUN set -x \
+    && cd "gdb/gdb/gdbserver" \
+    && ./configure  --host="${HOST}" \
+                    --target="${HOST}" \
+    && make -j$(nproc)
+
+RUN set -x \
+    # gdb(host)
+    && cp "gdb/build/gdb/gdb" "${PREFIX}/"  \
+    && x86_64-linux-gnu-strip --strip-unneeded "${PREFIX}/gdb" \
+    # gdbserver(target)
+    && cp "gdb/gdb/gdbserver/gdbserver" "${ROOTFS}/usr/bin/" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/usr/bin/gdbserver"
+
+
 # mpv
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/mpv.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "mpv" \
     && ./bootstrap.py \
-    && CC=${CROSS_COMPILE}gcc \
-       AR=${CROSS_COMPILE}ar \
-       ./waf configure  --prefix="${PREFIX}" \
+    && ./waf configure  CC=${CROSS_COMPILE}gcc \
+                        CFLAGS="-I${PREFIX}/include" \
+                        LDFLAGS="-L${PREFIX}/lib" \
+                        --prefix="${PREFIX}" \
                         --enable-libmpv-shared \
                         --enable-egl-drm \
                         --enable-sdl2 \
                         --disable-lua \
                         --disable-javascript \
                         --disable-libass \
-                        --disable-zlib \
     && ./waf build -j$(nproc) \
     && ./waf install
 
@@ -418,6 +463,7 @@ RUN set -x \
 
 # sdlpal
 #----------------------------------------------------------------------------------------------------------------#
+ADD "archives/pal.tar.gz" "${ROOTFS}/opt/"
 ADD "packages/sdlpal.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "sdlpal/unix" \
@@ -429,29 +475,38 @@ RUN set -x \
     && make -j$(nproc)
 
 RUN set -x \
-    && mkdir -p "${ROOTFS}/opt/pal" \
     && cp "sdlpal/unix/sdlpal" "${ROOTFS}/opt/pal/" \
     && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/pal/sdlpal"
+
+
+
+#############
+# unit-test #
+#############
+
+# media
+#----------------------------------------------------------------------------------------------------------------#
+COPY "archives/media/*" "${ROOTFS}/opt/"
 
 
 # sdl_test
 #----------------------------------------------------------------------------------------------------------------#
 COPY "archives/sdl_test.cpp" "${BUILD}/sdl_test/"
 RUN set -x \
-    && ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${PREFIX}/bin/sdl_test"
+    && ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${PREFIX}/opt/sdl_test"
 
 
-# ogles_realsense_test
+# realsense_test
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/ogles_realsense_test.tar.gz" "${BUILD}/"
+ADD "packages/realsense_test.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd "ogles_realsense_test" \
+    && cd "realsense_test" \
     && cmake    -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 . \
     && make -j$(nproc) \
-    && cp "gbm-drm-gles-cube" "${PREFIX}/bin/ogles_realsense_test" \
-    && aarch64-linux-gnu-strip --strip-unneeded "${PREFIX}/bin/ogles_realsense_test"
+    && cp "gbm-drm-gles-cube" "${PREFIX}/opt/realsense_test" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${PREFIX}/opt/realsense_test"
 
 
 # gl4es
@@ -459,11 +514,7 @@ RUN set -x \
 ADD "packages/gl4es.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gl4es \
-    # use libMali
-#    && rm -rf ./include/GL ./include/EGL ./include/GLES ./include/KHR \
     && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/glx/gbm.c \
-    && sed -i "s://#define DEBUG:#define DEBUG:" ./src/glx/glx.c \
-    && sed -i "s://#define DEBUG:#define DEBUG:" ./src/gl/preproc.c \
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -483,66 +534,35 @@ RUN set -x \
     && ln -s libGL.so.1 libGL.so
 
 
-# libjpeg
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/libjpeg.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd libjpeg \
-    && mkdir build && cd build \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DENABLE_STATIC=OFF \
-                .. \
-    && make -j$(nproc) \
-    && make install
-
-
-# zlib
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/zlib.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd zlib \
-    && mkdir build && cd build \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                -DINSTALL_PKGCONFIG_DIR="${PREFIX}/lib/pkgconfig" \
-                -DCMAKE_BUILD_TYPE=Release \
-                .. \
-    && make -j$(nproc) \
-    && make install
-
-
-# libpng
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/libpng.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd libpng \
-    && mkdir build && cd build \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                -DM_LIBRARY="/usr/aarch64-linux-gnu/lib" \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DPNG_STATIC=OFF \
-                -DPNG_EXECUTABLES=OFF \
-                -DPNG_TESTS=OFF \
-                .. \
-    && make -j$(nproc) \
-    && make install
-
-
 # glmark2
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/glmark2.tar.gz" "${BUILD}/"
+ENV CFLAGS="-I${PREFIX}/include"
+ENV LDFLAGS="-L${PREFIX}/lib"
 RUN set -x \
     && cd glmark2 \
+    # avoid EGL conflict
+    && mv "${PREFIX}/include/EGL" "${PREFIX}/include/EGL_mali" \
+    && sed -i "s:DRM_MODE_CONNECTED == connector_->connection:DRM_MODE_CONNECTED == connector_->connection \&\& connector_->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/native-state-drm.cpp \
     && ./waf configure  CC=${CROSS_COMPILE}gcc \
                         CXX=${CROSS_COMPILE}g++ \
-                        --prefix="${PREFIX}" \
+                        LDFLAGS="-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib" \
                         --no-debug \
-                        --with-flavors=drm-gl,drm-glesv2 \
+                        --prefix="${PREFIX}" \
+                        --data-path="/opt/glmark2/data" \
+                        --with-flavors=drm-glesv2,drm-gl \
     && ./waf build -j$(nproc) \
-    && ./waf install
+    && ./waf install \
+    # recovery EGL
+    && mv "${PREFIX}/include/EGL_mali" "${PREFIX}/include/EGL"
+
+RUN set -x \
+    && cp -rf /opt/glmark2 ${ROOTFS}/opt/ \
+    && cd "${PREFIX}/bin/" \
+    && mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ \
+    && cd ${ROOTFS}/opt/glmark2/ \
+    && aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm"
+
 
 
 ##################
@@ -574,7 +594,8 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
     # copy utils
-    && cp /${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
+    && cp /${PREFIX}/bin/* "${ROOTFS}/usr/bin/" \
+    && cp /${PREFIX}/sbin/* "${ROOTFS}/usr/sbin/"
 
 
 # ready to make

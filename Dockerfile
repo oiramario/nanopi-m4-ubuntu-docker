@@ -493,7 +493,8 @@ COPY "archives/media/*" "${ROOTFS}/opt/"
 #----------------------------------------------------------------------------------------------------------------#
 COPY "archives/sdl_test.cpp" "${BUILD}/sdl_test/"
 RUN set -x \
-    && ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${PREFIX}/opt/sdl_test"
+    && ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${ROOTFS}/opt/sdl_test" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/sdl_test"
 
 
 # realsense_test
@@ -505,8 +506,8 @@ RUN set -x \
                 -DCMAKE_BUILD_TYPE=Release \
                 . \
     && make -j$(nproc) \
-    && cp "gbm-drm-gles-cube" "${PREFIX}/opt/realsense_test" \
-    && aarch64-linux-gnu-strip --strip-unneeded "${PREFIX}/opt/realsense_test"
+    && cp "gbm-drm-gles-cube" "${ROOTFS}/opt/realsense_test" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/realsense_test"
 
 
 # gl4es
@@ -546,7 +547,7 @@ RUN set -x \
     && sed -i "s:DRM_MODE_CONNECTED == connector_->connection:DRM_MODE_CONNECTED == connector_->connection \&\& connector_->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/native-state-drm.cpp \
     && ./waf configure  CC=${CROSS_COMPILE}gcc \
                         CXX=${CROSS_COMPILE}g++ \
-                        LDFLAGS="-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib" \
+                        LDFLAGS="-L${PREFIX}/lib -lz" \
                         --no-debug \
                         --prefix="${PREFIX}" \
                         --data-path="/opt/glmark2/data" \

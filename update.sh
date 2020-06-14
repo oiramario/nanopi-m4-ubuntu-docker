@@ -131,7 +131,6 @@ update_sources()
 update_packages()
 {
     local tars=(
-#    "ubuntu-rootfs.tar.gz,http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/ubuntu-base-18.04.4-base-arm64.tar.gz"
     "ubuntu-rootfs.tar.gz,http://cdimage.ubuntu.com/ubuntu-base/releases/focal/release/ubuntu-base-20.04-base-arm64.tar.gz"
     )
     for i in ${tars[@]}

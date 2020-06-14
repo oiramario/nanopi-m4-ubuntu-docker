@@ -4,7 +4,7 @@
 
 FROM ubuntu:focal
 LABEL author="oiramario" \
-      version="0.4.0" \
+      version="0.5.0" \
       email="oiramario@gmail.com"
 
 USER root
@@ -407,7 +407,9 @@ RUN set -x \
     # rk3399 hdmi output
     && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& conn->connector_type == DRM_MODE_CONNECTOR_HDMIA:" "./src/video/kmsdrm/SDL_kmsdrmvideo.c" \
     && mkdir "build" && cd "build" \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+    && CFLAGS="-I${PREFIX}/include" \
+       LDFLAGS="-L${PREFIX}/lib" \
+       cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DSDL_STATIC=OFF \
@@ -502,10 +504,10 @@ COPY "archives/media/*" "${ROOTFS}/opt/"
 
 # sdl_test
 #----------------------------------------------------------------------------------------------------------------#
-COPY "archives/sdl_test.cpp" "${BUILD}/sdl_test/"
+COPY "archives/sdl_video_test.cpp" "${BUILD}/sdl_test/"
 RUN set -x \
-    && ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_test.cpp" `sdl2-config --cflags --libs` -o "${ROOTFS}/opt/sdl_test" \
-    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/sdl_test"
+    && ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_video_test.cpp" `sdl2-config --cflags --libs` -o "${ROOTFS}/opt/sdl_video_test" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/sdl_video_test"
 
 
 # realsense_test
@@ -549,8 +551,6 @@ RUN set -x \
 # glmark2
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/glmark2.tar.gz" "${BUILD}/"
-ENV CFLAGS="-I${PREFIX}/include"
-ENV LDFLAGS="-L${PREFIX}/lib"
 RUN set -x \
     && cd glmark2 \
     # avoid EGL conflict
@@ -558,6 +558,7 @@ RUN set -x \
     && sed -i "s:DRM_MODE_CONNECTED == connector_->connection:DRM_MODE_CONNECTED == connector_->connection \&\& connector_->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/native-state-drm.cpp \
     && ./waf configure  CC=${CROSS_COMPILE}gcc \
                         CXX=${CROSS_COMPILE}g++ \
+                        CFLAGS="-I${PREFIX}/include" \
                         LDFLAGS="-L${PREFIX}/lib -lz" \
                         --no-debug \
                         --prefix="${PREFIX}" \

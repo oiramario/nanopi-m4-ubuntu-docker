@@ -2,26 +2,30 @@
 # configure cross-compile environment #
 #######################################
 
-FROM ubuntu:bionic
+FROM ubuntu:focal
 LABEL author="oiramario" \
       version="0.4.0" \
       email="oiramario@gmail.com"
 
+USER root
+
 # apt sources
 RUN cat << EOF > /etc/apt/sources.list \
-    && SOURCES="http://mirror.tuna.tsinghua.edu.cn/ubuntu/" \
+    && SOURCES="http://mirrors.tuna.tsinghua.edu.cn/ubuntu/" \
     && echo "\
-deb ${SOURCES} bionic main restricted universe multiverse \n\
-deb ${SOURCES} bionic-updates main restricted universe multiverse \n\
+deb ${SOURCES} focal main restricted universe multiverse \n\
+deb ${SOURCES} focal-updates main restricted universe multiverse \n\
 " > /etc/apt/sources.list \
     # dns server
     && echo "nameserver 114.114.114.114" > /etc/resolv.conf
 
 # reuses the cache
-RUN apt-get update \
+RUN apt-get update -y \
+    && apt-get upgrade -y \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         # compile
-        git  patch  make  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu  pkg-config  cmake \
+        git  patch  make  pkg-config  cmake \
+        gcc  g++  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu \
         # u-boot
         bison  flex \
         # kernel
@@ -53,9 +57,8 @@ ENV LANG="en_US.UTF-8" \
     HOST="aarch64-linux-gnu" \
     BUILD="/root/build"
 
-USER root
-
 WORKDIR ${BUILD}
+COPY "patch/" "$BUILD/patch/"
 
 
 
@@ -68,6 +71,9 @@ WORKDIR ${BUILD}
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "u-boot" \
+    # rgcc9-no-Werror
+    && PATCH="$BUILD/patch/u-boot" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
     && make rk3399_defconfig \
     && make -j$(nproc)
@@ -77,7 +83,7 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/kernel.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd "kernel" \
+    && cd kernel \
     # make
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
@@ -88,10 +94,11 @@ RUN set -x \
 ADD "packages/busybox.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "busybox" \
+    # replace stime, static link
+    && PATCH="$BUILD/patch/busybox" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
     && make defconfig \
-    # static link
-    && sed -i "s:# CONFIG_STATIC is not set:CONFIG_STATIC=y:" .config \
     && make -j$(nproc) \
     && make CONFIG_PREFIX="${BUILD}/initramfs" install
 
@@ -118,7 +125,10 @@ RUN set -x \
     && cp "overlay-firmware/lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
     \
     # rockchip firmware
-    && cp -rf overlay-firmware/* "${ROOTFS}/" \
+    && cp -rf overlay-firmware/etc "${ROOTFS}/" \
+    && cp -rf overlay-firmware/system "${ROOTFS}/" \
+    && cp -rf overlay-firmware/usr "${ROOTFS}/" \
+    && cp -rf overlay-firmware/lib "${ROOTFS}/usr/" \
     && cd "${ROOTFS}/usr/bin" \
     # 64bits wifi/bt
     && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
@@ -418,6 +428,7 @@ RUN set -x \
 ADD "packages/gdb.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "gdb" \
+    && gcc -v \
     && mkdir "build" && cd "build" \
     && ../configure --host="x86_64-linux-gnu" \
                     --target="${HOST}" \

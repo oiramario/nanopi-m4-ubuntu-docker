@@ -38,7 +38,7 @@ update_sources()
         "libpng,glennrp/libpng.git,libpng16"
         "x264,mirror/x264.git,stable"
         "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
-        "librealsense,IntelRealSense/librealsense.git,v2.35.0"
+        "librealsense,IntelRealSense/librealsense.git,v2.35.2"
         "sdl,spurious/SDL-mirror.git,release-2.0.12"
         "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
         "mpv,rockchip-linux/mpv.git,master"
@@ -131,7 +131,8 @@ update_sources()
 update_packages()
 {
     local tars=(
-    "ubuntu-rootfs.tar.gz,http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/ubuntu-base-18.04.4-base-arm64.tar.gz"
+#    "ubuntu-rootfs.tar.gz,http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/ubuntu-base-18.04.4-base-arm64.tar.gz"
+    "ubuntu-rootfs.tar.gz,http://cdimage.ubuntu.com/ubuntu-base/releases/focal/release/ubuntu-base-20.04-base-arm64.tar.gz"
     )
     for i in ${tars[@]}
     do
@@ -149,6 +150,7 @@ update_packages()
             wget -O /tmp/${name} ${url}
             if [ $? -eq 0 ] ; then
                 cp /tmp/${name} ${download_dir}/${name}
+                rm -f ${packages_dir}/${name}
             else
                 error_msg "operation failed"
                 continue
@@ -156,7 +158,10 @@ update_packages()
         else
             echo "exits"
         fi
-        cp -f ${download_dir}/${name} ${packages_dir}/${name}
+
+        if [ ! -f ${packages_dir}/${name} ]; then
+            cp -f ${download_dir}/${name} ${packages_dir}/${name}
+        fi
     done
 }
 

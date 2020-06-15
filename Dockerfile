@@ -58,7 +58,6 @@ ENV LANG="en_US.UTF-8" \
     BUILD="/root/build"
 
 WORKDIR ${BUILD}
-COPY "patch/" "$BUILD/patch/"
 
 
 
@@ -69,9 +68,10 @@ COPY "patch/" "$BUILD/patch/"
 # u-boot
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
+COPY "patch/u-boot" "$BUILD/patch/u-boot"
 RUN set -x \
     && cd "u-boot" \
-    # rgcc9-no-Werror
+    # gcc9-no-Werror
     && PATCH="$BUILD/patch/u-boot" \
     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
@@ -92,6 +92,7 @@ RUN set -x \
 # busybox
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/busybox.tar.gz" "${BUILD}/"
+COPY "patch/busybox" "$BUILD/patch/busybox"
 RUN set -x \
     && cd "busybox" \
     # replace stime, static link
@@ -373,8 +374,12 @@ RUN set -x \
 # librealsense
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/librealsense.tar.gz" "${BUILD}/"
+COPY "patch/librealsense" "$BUILD/patch/librealsense"
 RUN set -x \
     && cd "librealsense" \
+    # gcc9-no-Werror
+    && PATCH="$BUILD/patch/librealsense" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
@@ -387,6 +392,8 @@ RUN set -x \
                 -DBUILD_EXAMPLES=OFF \
                 # dynamic link CRT
                 -DBUILD_WITH_STATIC_CRT=OFF \
+                # no wrappers
+                -DBUILD_WRAPPERS=OFF \
                 # avoid kernel patch
                 -DFORCE_RSUSB_BACKEND=ON \
                 . \

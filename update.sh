@@ -93,6 +93,7 @@ update_sources()
 
         if [ $pack -eq 1 ] ; then
             echo "packaging"
+            # exclude some bigger but useless files
             local exclude="--exclude-vcs"
             if [ ${dir} = "rk-rootfs-build" ];then
                 exclude+=" \
@@ -117,7 +118,21 @@ update_sources()
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r13p0-* \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
+                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11-gbm.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
+            elif [ $dir = "librealsense" ];then
+                exclude+=" \
+                    --exclude=wrappers"
+            elif [ $dir = "gdb" ];then
+                exclude+=" \
+                    --exclude=gas \
+                    --exclude=sim \
+                    --exclude=ld \
+                    --exclude=binutils \
+                    --exclude=gold"
+            elif [ $dir = "gl4es" ];then
+                exclude+=" \
+                    --exclude=traces"
             elif [ $dir = "sdlpal" ];then
                 exclude=""
             fi

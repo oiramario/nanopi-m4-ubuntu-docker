@@ -1,0 +1,22 @@
+diff -uNr a/CMake/lrs_options.cmake b/CMake/lrs_options.cmake
+--- a/CMake/lrs_options.cmake	2020-06-14 23:18:47.136308000 +0800
++++ b/CMake/lrs_options.cmake	2020-06-15 18:00:07.229783155 +0800
+@@ -33,3 +33,4 @@
+ option(ANDROID_USB_HOST_UVC "Build UVC backend for Android - deprecated, use FORCE_RSUSB_BACKEND instead" OFF)
+ option(ENABLE_L500_DEPTH_INVALIDATION "Turn on the depth frame validator to automatically catch corrupted frames and restart the sensor" ON)
+ option(CHECK_FOR_UPDATES "Checks for versions updates" OFF)
++option(BUILD_WRAPPERS "Build wrappers" OFF)
+diff -uNr a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2020-06-14 23:18:47.136308000 +0800
++++ b/CMakeLists.txt	2020-06-15 18:00:50.793722056 +0800
+@@ -66,7 +66,9 @@
+ 
+ include(CMake/install_config.cmake)
+ 
+-add_subdirectory(wrappers)
++if (BUILD_WRAPPERS)
++    add_subdirectory(wrappers)
++endif()
+ 
+ if (BUILD_EXAMPLES AND BUILD_GLSL_EXTENSIONS)
+     find_package(glfw3 3.3 QUIET)

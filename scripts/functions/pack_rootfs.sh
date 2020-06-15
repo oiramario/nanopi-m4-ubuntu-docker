@@ -62,25 +62,19 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get upgrade -y
 
-apt-get install -o Dpkg::Options::="--force-confold" --allow-downgrades --allow-remove-essential --allow-change-held-packages -y --no-install-recommends \
-        init dbus rsyslog kmod systemd 
+apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confold" \
+                --allow-downgrades --allow-remove-essential --allow-change-held-packages \
+                init dbus rsyslog kmod systemd 
 
-apt-get install -o Dpkg::Options::="--force-confold" --allow-downgrades --allow-remove-essential --allow-change-held-packages -y --no-install-recommends \
-        network-manager rfkill iputils-ping bluetooth bluez bluez-tools
+apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confold" \
+                --allow-downgrades --allow-remove-essential --allow-change-held-packages \
+                network-manager rfkill iputils-ping bluetooth bluez bluez-tools
 
-apt-get install -o Dpkg::Options::="--force-confold" --allow-downgrades --allow-remove-essential --allow-change-held-packages -y --no-install-recommends \
-        pm-utils triggerhappy sudo ssh htop file mlocate bash-completion alsa-base alsa-utils
+apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confold" \
+                --allow-downgrades --allow-remove-essential --allow-change-held-packages \
+                pm-utils triggerhappy sudo ssh htop file mlocate bash-completion alsa-base alsa-utils
 
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config
-
-# all devices managed
-mkdir -p /etc/NetworkManager/conf.d
-touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
-
-# rkwifibt
-mkdir -p /data/cfg
-touch /data/wifi_chip
-touch /data/cfg/device_info.txt
 
 systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service

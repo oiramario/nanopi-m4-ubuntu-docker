@@ -62,15 +62,15 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get upgrade -y
 
-apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confold" \
+apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
                 init dbus rsyslog kmod systemd 
 
-apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confold" \
+apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
                 network-manager rfkill iputils-ping bluetooth bluez bluez-tools
 
-apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confold" \
+apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
                 pm-utils triggerhappy sudo ssh htop file mlocate bash-completion alsa-base alsa-utils
 

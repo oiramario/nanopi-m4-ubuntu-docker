@@ -154,9 +154,8 @@ RUN set -x \
           "50-mail.rules" \
           "50-vpu-rk3399.rules" \
           "60-media.rules" \
-          "60-drm.rules" \
-          "${ROOTFS}/etc/udev/rules.d/" \
-    && cp "${BUILD}/rk-rootfs-build/overlay/usr/local/bin/drm-hotplug.sh" "${ROOTFS}/usr/local/bin/"
+          "60-rga.rules" \
+          "${ROOTFS}/etc/udev/rules.d/"
 
 
 
@@ -411,8 +410,6 @@ RUN set -x \
 ADD "packages/sdl.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "sdl" \
-    # rk3399 hdmi output
-    && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& conn->connector_type == DRM_MODE_CONNECTOR_HDMIA:" "./src/video/kmsdrm/SDL_kmsdrmvideo.c" \
     && mkdir "build" && cd "build" \
     && CFLAGS="-I${PREFIX}/include" \
        LDFLAGS="-L${PREFIX}/lib" \
@@ -535,7 +532,6 @@ RUN set -x \
 ADD "packages/gl4es.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gl4es \
-    && sed -i "s:DRM_MODE_CONNECTED:DRM_MODE_CONNECTED \&\& connector->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/glx/gbm.c \
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -562,7 +558,6 @@ RUN set -x \
     && cd glmark2 \
     # avoid EGL conflict
     && mv "${PREFIX}/include/EGL" "${PREFIX}/include/EGL_mali" \
-    && sed -i "s:DRM_MODE_CONNECTED == connector_->connection:DRM_MODE_CONNECTED == connector_->connection \&\& connector_->connector_type == DRM_MODE_CONNECTOR_HDMIA:" ./src/native-state-drm.cpp \
     && ./waf configure  CC=${CROSS_COMPILE}gcc \
                         CXX=${CROSS_COMPILE}g++ \
                         CFLAGS="-I${PREFIX}/include" \

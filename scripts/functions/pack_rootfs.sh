@@ -64,15 +64,15 @@ apt-get upgrade -y
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                init dbus rsyslog kmod systemd 
+                init dbus rsyslog kmod systemd
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                network-manager rfkill iputils-ping bluetooth bluez bluez-tools
+                network-manager rfkill iputils-ping bluetooth bluez bluez-tools alsa-base alsa-utils
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                pm-utils triggerhappy sudo ssh htop file mlocate bash-completion alsa-base alsa-utils
+                pm-utils triggerhappy sudo ssh htop file mlocate bash-completion vim
 
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config
 

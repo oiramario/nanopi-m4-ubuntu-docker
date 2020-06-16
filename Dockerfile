@@ -158,15 +158,13 @@ RUN set -x \
           "${ROOTFS}/etc/udev/rules.d/"
 
 
-
-############
-# run-time #
-############
-
 # compile settings
 #----------------------------------------------------------------------------------------------------------------#
 ENV PREFIX="/opt/devkit"
+RUN mkdir -p ${PREFIX}/include ${PREFIX}/lib
 ENV PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+RUN mkdir -p ${PKG_CONFIG_PATH}
+
 COPY "archives/toolchain.cmake" "${BUILD}/"
 
 
@@ -176,23 +174,31 @@ ADD "packages/eudev.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd eudev \
     && autoreconf -vfi \
-    && ./configure  --prefix="${PREFIX}" \
+    && ./configure  --prefix="" \
                     --host="${HOST}" \
                     --enable-hwdb=yes \
                     --enable-rule-generator=yes \
                     --enable-mtd_probe=yes \
                     --disable-static \
                     --disable-blkid \
-                    --disable-kmod \
     && make -j$(nproc) \
     && make install
 
 RUN set -x \ 
-    && cp -rf ${PREFIX}/etc/udev ${ROOTFS}/etc/ \
-    && cp -f ${PREFIX}/bin/udevadm ${ROOTFS}/bin/ \
-    && cp -f ${PREFIX}/sbin/udevadm ${PREFIX}/sbin/udevd ${ROOTFS}/sbin/ \
-    && cp -rf ${PREFIX}/lib/udev ${ROOTFS}/lib/
+    && cp -f /lib/pkgconfig/libudev.pc ${PKG_CONFIG_PATH}/ \
+    && cp -f /include/libudev.h /include/udev.h ${PREFIX}/include/ \
+    && cp -rfp /lib/libudev.so* ${PREFIX}/lib/ \
+    && cp -f /bin/udevadm ${ROOTFS}/bin/ \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/bin/udevadm" \
+    && cp -rfp /sbin/udevd /sbin/udevadm ${ROOTFS}/sbin/ \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/sbin/udevd" \
+    && cp -rf /etc/udev ${ROOTFS}/etc/ \
+    && cp -rf /lib/udev ${ROOTFS}/lib/ 
 
+
+############
+# run-time #
+############
 
 # libdrm
 #----------------------------------------------------------------------------------------------------------------#
@@ -593,11 +599,6 @@ RUN set -x \
     && DESTDIR="${ROOTFS}" make install
 
 
-# overlay
-#----------------------------------------------------------------------------------------------------------------#
-COPY "archives/rootfs/" "${ROOTFS}/"
-
-
 # strip so
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
@@ -609,8 +610,12 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
     # copy utils
-    && cp /${PREFIX}/bin/* "${ROOTFS}/usr/bin/" \
-    && cp /${PREFIX}/sbin/* "${ROOTFS}/usr/sbin/"
+    && cp ${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
+
+
+# overlay
+#----------------------------------------------------------------------------------------------------------------#
+COPY "archives/rootfs/" "${ROOTFS}/"
 
 
 # ready to make

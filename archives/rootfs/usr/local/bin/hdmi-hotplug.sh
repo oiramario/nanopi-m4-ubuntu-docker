@@ -1,14 +1,7 @@
 #!/bin/sh
 
-# Get out of town if something errors
-set -e
+# card 0: mini jack
+# card 1: rockchiphdmi
+pcm_card=${1-0}
 
-HDMI_STATUS=$(</sys/class/drm/card0/card0-HDMI-A-1/status)
-
-if [ "connected" == "$HDMI_STATUS" ]; then
-	export ALSA_PCM_CARD=1
-else 
-	export ALSA_PCM_CARD=0
-fi
-
-exit 0
+sed -i "/^defaults.pcm.card/cdefaults.pcm.card ${pcm_card}" /etc/asound.conf

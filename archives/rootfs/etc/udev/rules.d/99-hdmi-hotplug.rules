@@ -1,1 +1,2 @@
-SUBSYSTEM=="drm", ACTION=="change", ENV{HOTPLUG}=="1", RUN+="/usr/local/bin/hdmi-hotplug.sh"
+KERNEL=="hdmi", SUBSYSTEM=="switch", ATTR{state}=="1", RUN+="/usr/local/bin/hdmi-hotplug.sh 1"
+KERNEL=="hdmi", SUBSYSTEM=="switch", ATTR{state}=="0", RUN+="/usr/local/bin/hdmi-hotplug.sh 0"

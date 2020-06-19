@@ -84,9 +84,23 @@ RUN set -x \
 ADD "packages/kernel.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd kernel \
+    # enable rga
+    && sed -i '/&rga/{ n; s/disabled/okay/; }' ./arch/arm64/boot/dts/rockchip/rk3399-nanopi4-common.dtsi \
     # make
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
+
+# ubuntu rootfs
+ENV ROOTFS="${BUILD}/rootfs"
+ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
+
+RUN set -x \
+    && cd kernel \
+    && make INSTALL_MOD_PATH=${ROOTFS} INSTALL_MOD_STRIP=1 modules_install \
+    && KREL=`make kernelrelease` \
+    # useless
+    && rm -rf "${ROOTFS}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
+    && rm -rf "${ROOTFS}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan"
 
 
 # busybox
@@ -107,12 +121,6 @@ RUN set -x \
 COPY "archives/initramfs/*" "${BUILD}/initramfs/"
 RUN set -x \
     && rm -f "linuxrc"
-
-
-# ubuntu rootfs
-#----------------------------------------------------------------------------------------------------------------#
-ENV ROOTFS="${BUILD}/rootfs"
-ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 
 # rockchip materials
@@ -184,16 +192,19 @@ RUN set -x \
     && make -j$(nproc) \
     && make install
 
-RUN set -x \ 
+RUN set -x \
+    # for cross-compile
     && cp -f /lib/pkgconfig/libudev.pc ${PKG_CONFIG_PATH}/ \
     && cp -f /include/libudev.h /include/udev.h ${PREFIX}/include/ \
     && cp -rfp /lib/libudev.so* ${PREFIX}/lib/ \
+    # utils and configs
     && cp -f /bin/udevadm ${ROOTFS}/bin/ \
     && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/bin/udevadm" \
     && cp -rfp /sbin/udevd /sbin/udevadm ${ROOTFS}/sbin/ \
     && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/sbin/udevd" \
     && cp -rf /etc/udev ${ROOTFS}/etc/ \
     && cp -rf /lib/udev ${ROOTFS}/lib/ 
+
 
 
 ############
@@ -207,6 +218,12 @@ RUN set -x \
     && cd "libdrm" \
     && ./autogen.sh --prefix="${PREFIX}" \
                     --host="${HOST}" \
+                    --disable-dependency-tracking \
+                    --disable-static \
+                    --enable-shared \
+                    --enable-udev \
+                    --disable-cairo-tests \
+                    --disable-manpages \
                     --disable-intel \
                     --disable-vmwgfx \
                     --disable-radeon \
@@ -214,6 +231,11 @@ RUN set -x \
                     --disable-nouveau \
                     --disable-freedreno \
                     --disable-vc4 \
+                    --disable-valgrind \
+                    --disable-omap-experimental-api \
+                    --disable-etnaviv-experimental-api \
+                    --disable-exynos-experimental-api \
+                    --disable-tegra-experimental-api \
                     --enable-rockchip-experimental-api \
     && make -j$(nproc) \
     && make install
@@ -230,10 +252,12 @@ RUN set -x \
                 . \
     && make install
 
-# create gbm symlink
 RUN set -x \
+    # create gbm symlink
     && cd "${PREFIX}/lib" \
-    && ln -s "libMali.so" "libgbm.so"
+    && ln -s "libMali.so" "libgbm.so" \
+    # OpenCL
+    && mv ${PREFIX}/etc/OpenCL ${ROOTFS}/etc/
 
 
 # alsa-lib
@@ -244,9 +268,23 @@ RUN set -x \
     && autoreconf -vfi \
     && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
-                    --disable-python \
                     --enable-shared \
+                    --with-configdir=/usr/share/alsa \
     && make -j$(nproc) \
+    && make install
+
+RUN set -x \
+    # config files
+    && cp -rfp /usr/share/alsa ${ROOTFS}/usr/share/
+
+
+# alsa-config
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/alsa-config.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "alsa-config" \
+    && autoreconf -vfi \
+    && ./configure  --prefix="${ROOTFS}" \
     && make install
 
 
@@ -264,6 +302,16 @@ RUN set -x \
                 . \
     && make -j$(nproc) \
     && make install
+
+RUN set -x \
+    # create mpp/vpu symlink
+    && cd "${PREFIX}/lib" \
+    && ln -s "librockchip_mpp.so" "libmpp.so" \
+    && ln -s "librockchip_vpu.so" "libvpu.so" \
+    # mpp/vpu pkgconfig
+    && cd "pkgconfig" \
+    && cp rockchip_mpp.pc mpp.pc \
+    && cp rockchip_vpu.pc vpu.pc
 
 
 # libusb
@@ -328,24 +376,6 @@ RUN set -x \
     && make install
 
 
-# x264
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/x264.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "x264" \
-    && ./configure  --prefix="${PREFIX}" \
-                    --host="${HOST}" \
-                    --cross-prefix="${CROSS_COMPILE}" \
-                    --enable-static \
-                    --enable-pic \
-                    --disable-cli \
-                    --disable-asm \
-                    --disable-opencl \
-                    --disable-swscale \
-    && make -j$(nproc) \
-    && make install
-
-
 # ffmpeg
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
@@ -369,7 +399,6 @@ RUN set -x \
                     --enable-version3 \
                     --enable-libdrm \
                     --enable-rkmpp \
-                    --enable-libx264 \
                     --enable-nonfree \
                     --enable-gpl \
     && make -j$(nproc) \
@@ -481,7 +510,8 @@ RUN set -x \
     && ./waf install
 
 RUN set -x \
-    && aarch64-linux-gnu-strip --strip-unneeded "${PREFIX}/bin/mpv"
+    && aarch64-linux-gnu-strip --strip-unneeded "${PREFIX}/bin/mpv" \
+    && mv ${PREFIX}/etc/mpv ${ROOTFS}/etc/
 
 
 # sdlpal
@@ -585,6 +615,28 @@ RUN set -x \
     && aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm"
 
 
+# mpp_test
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/mpp_test.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd mpp_test \
+    && sed -i "s:/dev/v4l/by-path/platform-ff680000.rga-video-index0:/dev/v4l/by-path/platform-ff910000.rkisp1-video-index0:" "rkrga/RGA.h" \
+    && mkdir build && cd build \
+    && CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/libdrm -I${PREFIX}/include/rockchip" \
+       CXXFLAGS="-I${PREFIX}/include -I${PREFIX}/include/libdrm -I${PREFIX}/include/rockchip -DSZ_4K=0x00001000" \
+       LDFLAGS="-L${PREFIX}/lib" \
+       cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                .. \
+    && make -j$(nproc)
+
+RUN set -x \
+    && mkdir -p ${ROOTFS}/opt/mpp_test/bin ${ROOTFS}/opt/mpp_test/res \
+    && cp mpp_test/res/Tennis1080p.h264 ${ROOTFS}/opt/mpp_test/res/ \
+    && cp mpp_test/build/mpp_linux_demo ${ROOTFS}/opt/mpp_test/bin/mpp_test \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/mpp_test/bin/mpp_test"
+
 
 ##################
 # pre-deployment #
@@ -602,16 +654,17 @@ RUN set -x \
 # strip so
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
-    && cp -rfp ${PREFIX}/lib/*.so* "${ROOTFS}/usr/lib/" \
-    && find ${ROOTFS}/usr/lib -name \*.so | xargs ${CROSS_COMPILE}strip --strip-unneeded
+    && find ${PREFIX}/lib -name \*.so* | xargs ${CROSS_COMPILE}strip --strip-unneeded \
+    && cp -rfp ${PREFIX}/lib/*.so* "${ROOTFS}/usr/lib/"
 
 
 # copy bind
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
     # copy utils
-    && cp ${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
-
+    && cd ${PREFIX}/bin \
+    && for f in `find ./ -executable -type f`; do xargs ${CROSS_COMPILE}strip --strip-unneeded $f; done \
+    && cp -rfp ${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
 
 # overlay
 #----------------------------------------------------------------------------------------------------------------#

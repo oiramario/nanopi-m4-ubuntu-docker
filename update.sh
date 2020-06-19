@@ -31,12 +31,12 @@ update_sources()
         "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
         "libmali,rockchip-linux/libmali.git,rockchip"
         "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
+        "alsa-config,rockchip-linux/alsa-config.git,master"
         "mpp,rockchip-linux/mpp.git,develop"
         "libusb,libusb/libusb.git,v1.0.23"
         "zlib,madler/zlib.git,v1.2.11"
         "libjpeg,libjpeg-turbo/libjpeg-turbo.git,2.0.4"
         "libpng,glennrp/libpng.git,libpng16"
-        "x264,mirror/x264.git,stable"
         "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
         "librealsense,IntelRealSense/librealsense.git,v2.35.2"
         "sdl,spurious/SDL-mirror.git,release-2.0.12"
@@ -46,6 +46,7 @@ update_sources()
         "realsense_test,oiramario/gbm-drm-gles-cube.git,master"
         "gl4es,ptitSeb/gl4es.git,master"
         "glmark2,glmark2/glmark2.git,release-2020.04"
+        "mpp_test,sliver-chen/mpp_linux_cpp.git,master"
         "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
     for i in ${gits[@]}

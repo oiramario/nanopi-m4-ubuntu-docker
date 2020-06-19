@@ -43,7 +43,7 @@ case "$TARGET" in
 		pack_loader_image
 		pack_boot_image
 		pack_rootfs_image
-		pack_dev_kit
+#		pack_dev_kit
 		;;
 	*)
 		error_msg "Unsupported target: $TARGET"

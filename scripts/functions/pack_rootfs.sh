@@ -21,11 +21,6 @@ pack_rootfs_image()
     mkdir -p ${rootfs}
     cp -rfp ${ROOTFS}/* ${rootfs}/
 
-    # kernel modules
-    # echo
-   	# info_msg "copy kernel modules"
-    # cp -rf ${BUILD}/kmodules/* ${rootfs}/
-
     # mount
     echo
    	info_msg "mount"
@@ -72,7 +67,7 @@ apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Option
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                pm-utils triggerhappy sudo ssh htop file mlocate bash-completion vim
+                pm-utils triggerhappy sudo ssh htop file mlocate bash-completion usbmount vim
 
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config
 

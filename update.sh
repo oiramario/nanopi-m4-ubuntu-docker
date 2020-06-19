@@ -46,7 +46,7 @@ update_sources()
         "realsense_test,oiramario/gbm-drm-gles-cube.git,master"
         "gl4es,ptitSeb/gl4es.git,master"
         "glmark2,glmark2/glmark2.git,release-2020.04"
-        "mpp_test,sliver-chen/mpp_linux_cpp.git,master"
+        "rga_test,wzyy2/rga-v4l2-demo.git,master"
         "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
     for i in ${gits[@]}

@@ -4,7 +4,7 @@
 
 FROM ubuntu:focal
 LABEL author="oiramario" \
-      version="0.5.0" \
+      version="0.5.1" \
       email="oiramario@gmail.com"
 
 USER root
@@ -82,25 +82,15 @@ RUN set -x \
 # kernel
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/kernel.tar.gz" "${BUILD}/"
+COPY "patch/kernel" "$BUILD/patch/kernel"
 RUN set -x \
     && cd kernel \
     # enable rga
-    && sed -i '/&rga/{ n; s/disabled/okay/; }' ./arch/arm64/boot/dts/rockchip/rk3399-nanopi4-common.dtsi \
+    && PATCH="$BUILD/patch/kernel" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
-
-# ubuntu rootfs
-ENV ROOTFS="${BUILD}/rootfs"
-ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
-
-RUN set -x \
-    && cd kernel \
-    && make INSTALL_MOD_PATH=${ROOTFS} INSTALL_MOD_STRIP=1 modules_install \
-    && KREL=`make kernelrelease` \
-    # useless
-    && rm -rf "${ROOTFS}/lib/modules/$KREL/kernel/drivers/gpu/arm/mali400/" \
-    && rm -rf "${ROOTFS}/lib/modules/$KREL/kernel/drivers/net/wireless/rockchip_wlan"
 
 
 # busybox
@@ -123,6 +113,12 @@ RUN set -x \
     && rm -f "linuxrc"
 
 
+# ubuntu rootfs
+#----------------------------------------------------------------------------------------------------------------#
+ENV ROOTFS="${BUILD}/rootfs"
+ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
+
+
 # rockchip materials
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/rkbin.tar.gz" "${BUILD}/"
@@ -137,9 +133,10 @@ RUN set -x \
     && cp -rf overlay-firmware/etc "${ROOTFS}/" \
     && cp -rf overlay-firmware/system "${ROOTFS}/" \
     && cp -rf overlay-firmware/usr "${ROOTFS}/" \
+    # /lib is symlink to /usr/lib in LTS 20.04
     && cp -rf overlay-firmware/lib "${ROOTFS}/usr/" \
-    && cd "${ROOTFS}/usr/bin" \
     # 64bits wifi/bt
+    && cd "${ROOTFS}/usr/bin" \
     && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
     && mv -f "rk_wifi_init_64" "rk_wifi_init" \
     # bt, wifi, audio firmware
@@ -615,27 +612,22 @@ RUN set -x \
     && aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm"
 
 
-# mpp_test
+# rga_test
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/mpp_test.tar.gz" "${BUILD}/"
+ADD "packages/rga_test.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd mpp_test \
-    && sed -i "s:/dev/v4l/by-path/platform-ff680000.rga-video-index0:/dev/v4l/by-path/platform-ff910000.rkisp1-video-index0:" "rkrga/RGA.h" \
-    && mkdir build && cd build \
-    && CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/libdrm -I${PREFIX}/include/rockchip" \
-       CXXFLAGS="-I${PREFIX}/include -I${PREFIX}/include/libdrm -I${PREFIX}/include/rockchip -DSZ_4K=0x00001000" \
-       LDFLAGS="-L${PREFIX}/lib" \
-       cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                -DCMAKE_BUILD_TYPE=Release \
-                .. \
-    && make -j$(nproc)
+    && cd rga_test \
+    && sed -i "/INCLUDES=/d" Makefile \
+    && sed -i "/CXXFLAGS=/d" Makefile \
+    && sed -i "/LDFLAGS=/d" Makefile \
+    && CXXFLAGS="-I${PREFIX}/include -I${PREFIX}/include/libdrm -I${PREFIX}/include/rockchip" \
+       LDFLAGS="-L${PREFIX}/lib -ldrm -L." \
+       CXX=${CROSS_COMPILE}g++ \
+       make -j$(nproc)
 
 RUN set -x \
-    && mkdir -p ${ROOTFS}/opt/mpp_test/bin ${ROOTFS}/opt/mpp_test/res \
-    && cp mpp_test/res/Tennis1080p.h264 ${ROOTFS}/opt/mpp_test/res/ \
-    && cp mpp_test/build/mpp_linux_demo ${ROOTFS}/opt/mpp_test/bin/mpp_test \
-    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/mpp_test/bin/mpp_test"
+    && cp "rga_test/rga-v4l2" "${ROOTFS}/opt/rga_test" \
+    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/rga_test"
 
 
 ##################
@@ -658,10 +650,9 @@ RUN set -x \
     && cp -rfp ${PREFIX}/lib/*.so* "${ROOTFS}/usr/lib/"
 
 
-# copy bind
+# strip exe
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
-    # copy utils
     && cd ${PREFIX}/bin \
     && for f in `find ./ -executable -type f`; do xargs ${CROSS_COMPILE}strip --strip-unneeded $f; done \
     && cp -rfp ${PREFIX}/bin/* "${ROOTFS}/usr/bin/"

@@ -10,14 +10,3 @@ diff -uNr a/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-common.dtsi b/arch/arm64
  };
  
  &display_subsystem {
-diff -uNr a/arch/arm64/configs/nanopi4_linux_defconfig b/arch/arm64/configs/nanopi4_linux_defconfig
---- a/arch/arm64/configs/nanopi4_linux_defconfig	2020-06-02 19:25:30.847112000 +0800
-+++ b/arch/arm64/configs/nanopi4_linux_defconfig	2020-06-20 01:06:50.925222863 +0800
-@@ -1011,6 +1011,7 @@
- CONFIG_VIDEO_ROCKCHIP_ISP1=y
- CONFIG_V4L_MEM2MEM_DRIVERS=y
- CONFIG_VIDEO_ROCKCHIP_RGA=y
-+CONFIG_VIDEO_ROCKCHIP_VPU=y
- # CONFIG_MEDIA_SUBDRV_AUTOSELECT is not set
- # CONFIG_VIDEO_IR_I2C is not set
- CONFIG_VIDEO_TC35874X=y

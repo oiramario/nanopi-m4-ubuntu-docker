@@ -208,6 +208,34 @@ RUN set -x \
 # run-time #
 ############
 
+# alsa-lib
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "alsa-lib" \
+    && autoreconf -vfi \
+    && ./configure  --prefix="${PREFIX}" \
+                    --host="${HOST}" \
+                    --enable-shared \
+                    --with-configdir=/usr/share/alsa \
+    && make -j$(nproc) \
+    && make install
+
+RUN set -x \
+    # config files
+    && cp -rfp /usr/share/alsa ${ROOTFS}/usr/share/
+
+
+# alsa-config
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/alsa-config.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "alsa-config" \
+    && autoreconf -vfi \
+    && ./configure  --prefix="${ROOTFS}" \
+    && make install
+
+
 # libdrm
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libdrm.tar.gz" "${BUILD}/"
@@ -257,32 +285,23 @@ RUN set -x \
     && mv ${PREFIX}/etc/OpenCL ${ROOTFS}/etc/
 
 
-# alsa-lib
+# librga
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
+ADD "packages/librga.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd "alsa-lib" \
-    && autoreconf -vfi \
-    && ./configure  --prefix="${PREFIX}" \
-                    --host="${HOST}" \
-                    --enable-shared \
-                    --with-configdir=/usr/share/alsa \
+    && cd librga \
+    && mkdir build && cd build \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_DEMO=ON \
+                .. \
     && make -j$(nproc) \
     && make install
 
 RUN set -x \
-    # config files
-    && cp -rfp /usr/share/alsa ${ROOTFS}/usr/share/
-
-
-# alsa-config
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/alsa-config.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "alsa-config" \
-    && autoreconf -vfi \
-    && ./configure  --prefix="${ROOTFS}" \
-    && make install
+    && mkdir -p ${ROOTFS}/data \
+    && cp -rf ${PREFIX}/bin/data/* ${ROOTFS}/data/
 
 
 # mpp
@@ -529,6 +548,34 @@ RUN set -x \
     && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/pal/sdlpal"
 
 
+# glmark2
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/glmark2.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd glmark2 \
+    # avoid EGL conflict
+    && mv "${PREFIX}/include/EGL" "${PREFIX}/include/EGL_mali" \
+    && ./waf configure  CC=${CROSS_COMPILE}gcc \
+                        CXX=${CROSS_COMPILE}g++ \
+                        CFLAGS="-I${PREFIX}/include" \
+                        LDFLAGS="-L${PREFIX}/lib -lz" \
+                        --no-debug \
+                        --prefix="${PREFIX}" \
+                        --data-path="/opt/glmark2/data" \
+                        --with-flavors=drm-glesv2,drm-gl \
+    && ./waf build -j$(nproc) \
+    && ./waf install \
+    # recovery EGL
+    && mv "${PREFIX}/include/EGL_mali" "${PREFIX}/include/EGL"
+
+RUN set -x \
+    && cp -rf /opt/glmark2 ${ROOTFS}/opt/ \
+    && cd "${PREFIX}/bin/" \
+    && mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ \
+    && cd ${ROOTFS}/opt/glmark2/ \
+    && aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm"
+
+
 
 #############
 # unit-test #
@@ -584,52 +631,6 @@ RUN set -x \
     && ln -s libGL.so.1 libGL.so
 
 
-# glmark2
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/glmark2.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd glmark2 \
-    # avoid EGL conflict
-    && mv "${PREFIX}/include/EGL" "${PREFIX}/include/EGL_mali" \
-    && ./waf configure  CC=${CROSS_COMPILE}gcc \
-                        CXX=${CROSS_COMPILE}g++ \
-                        CFLAGS="-I${PREFIX}/include" \
-                        LDFLAGS="-L${PREFIX}/lib -lz" \
-                        --no-debug \
-                        --prefix="${PREFIX}" \
-                        --data-path="/opt/glmark2/data" \
-                        --with-flavors=drm-glesv2,drm-gl \
-    && ./waf build -j$(nproc) \
-    && ./waf install \
-    # recovery EGL
-    && mv "${PREFIX}/include/EGL_mali" "${PREFIX}/include/EGL"
-
-RUN set -x \
-    && cp -rf /opt/glmark2 ${ROOTFS}/opt/ \
-    && cd "${PREFIX}/bin/" \
-    && mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ \
-    && cd ${ROOTFS}/opt/glmark2/ \
-    && aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm"
-
-
-# rga_test
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rga_test.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd rga_test \
-    && sed -i "/INCLUDES=/d" Makefile \
-    && sed -i "/CXXFLAGS=/d" Makefile \
-    && sed -i "/LDFLAGS=/d" Makefile \
-    && CXXFLAGS="-I${PREFIX}/include -I${PREFIX}/include/libdrm -I${PREFIX}/include/rockchip" \
-       LDFLAGS="-L${PREFIX}/lib -ldrm -L." \
-       CXX=${CROSS_COMPILE}g++ \
-       make -j$(nproc)
-
-RUN set -x \
-    && cp "rga_test/rga-v4l2" "${ROOTFS}/opt/rga_test" \
-    && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/rga_test"
-
-
 ##################
 # pre-deployment #
 ##################
@@ -656,6 +657,7 @@ RUN set -x \
     && cd ${PREFIX}/bin \
     && for f in `find ./ -executable -type f`; do xargs ${CROSS_COMPILE}strip --strip-unneeded $f; done \
     && cp -rfp ${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
+
 
 # overlay
 #----------------------------------------------------------------------------------------------------------------#

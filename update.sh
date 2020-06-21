@@ -30,6 +30,7 @@ update_sources()
         "eudev,gentoo/eudev.git,v3.2.9"
         "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
         "libmali,rockchip-linux/libmali.git,rockchip"
+        "librga,oiramario/linux-rga.git,master"
         "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
         "alsa-config,rockchip-linux/alsa-config.git,master"
         "mpp,rockchip-linux/mpp.git,develop"
@@ -46,7 +47,7 @@ update_sources()
         "realsense_test,oiramario/gbm-drm-gles-cube.git,master"
         "gl4es,ptitSeb/gl4es.git,master"
         "glmark2,glmark2/glmark2.git,release-2020.04"
-        "librga,oiramario/linux-rga.git,master"
+        "opencl_test,silven/hellocl.git,master"
         "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
     for i in ${gits[@]}

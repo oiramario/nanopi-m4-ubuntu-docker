@@ -1,0 +1,18 @@
+diff -uNr a/pkgconfig/rockchip_mpp.pc.cmake b/pkgconfig/rockchip_mpp.pc.cmake
+--- a/pkgconfig/rockchip_mpp.pc.cmake	2020-06-24 00:25:16.918977077 +0800
++++ b/pkgconfig/rockchip_mpp.pc.cmake	2020-06-24 00:25:38.363344633 +0800
+@@ -1,4 +1,4 @@
+-prefix=/usr
++prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+diff -uNr a/pkgconfig/rockchip_vpu.pc.cmake b/pkgconfig/rockchip_vpu.pc.cmake
+--- a/pkgconfig/rockchip_vpu.pc.cmake	2020-06-23 16:18:15.392809000 +0800
++++ b/pkgconfig/rockchip_vpu.pc.cmake	2020-06-24 00:25:43.319436820 +0800
+@@ -1,4 +1,4 @@
+-prefix=/usr
++prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@

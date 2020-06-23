@@ -11,15 +11,13 @@ download_dir=$(pwd)/downloads
 packages_dir=$(pwd)/packages
 [ ! -d ${packages_dir} ] && mkdir -p ${packages_dir}
 
-github_url=(
-    "https://git.sdut.me"
-    "https://github.com.cnpmjs.org"
-    "https://github.com"
-)
-
 update_sources()
 {
-    cd ${download_dir}
+    local github_url=(
+        "https://git.sdut.me"
+        "https://github.com.cnpmjs.org"
+        "https://github.com"
+    )
 
     local gits=(
         "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
@@ -31,25 +29,28 @@ update_sources()
         "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
         "libmali,rockchip-linux/libmali.git,rockchip"
         "librga,oiramario/linux-rga.git,master"
-        "alsa-lib,alsa-project/alsa-lib.git,v1.2.2"
+        "alsa-lib,alsa-project/alsa-lib.git,v1.2.3.1"
         "alsa-config,rockchip-linux/alsa-config.git,master"
-        "mpp,rockchip-linux/mpp.git,develop"
+        "mpp,rockchip-linux/mpp.git,release"
         "libusb,libusb/libusb.git,v1.0.23"
         "zlib,madler/zlib.git,v1.2.11"
         "libjpeg,libjpeg-turbo/libjpeg-turbo.git,2.0.4"
-        "libpng,glennrp/libpng.git,libpng16"
-        "ffmpeg,FFmpeg/FFmpeg.git,release/4.2"
+        "libpng,glennrp/libpng.git,v1.6.37"
+        "ffmpeg,rockchip-linux/ffmpeg.git,rockchip/release/4.1"
         "librealsense,IntelRealSense/librealsense.git,v2.35.2"
         "sdl,spurious/SDL-mirror.git,release-2.0.12"
         "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
-        "mpv,rockchip-linux/mpv.git,master"
+        "mpv,rockchip-linux/mpv.git,debian/0.29.1-1"
         "sdlpal,sdlpal/sdlpal.git,master"
         "realsense_test,oiramario/gbm-drm-gles-cube.git,master"
-        "gl4es,ptitSeb/gl4es.git,master"
+        "gl4es,ptitSeb/gl4es.git,v1.1.4"
         "glmark2,glmark2/glmark2.git,release-2020.04"
         "opencl_test,silven/hellocl.git,master"
         "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
+
+    cd ${download_dir}
+
     for i in ${gits[@]}
     do
         local str=($i)

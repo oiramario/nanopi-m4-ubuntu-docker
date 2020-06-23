@@ -4,7 +4,7 @@
 
 FROM ubuntu:focal
 LABEL author="oiramario" \
-      version="0.5.1" \
+      version="0.5.2" \
       email="oiramario@gmail.com"
 
 USER root
@@ -82,13 +82,8 @@ RUN set -x \
 # kernel
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/kernel.tar.gz" "${BUILD}/"
-COPY "patch/kernel" "$BUILD/patch/kernel"
 RUN set -x \
     && cd kernel \
-    # enable rga
-    && PATCH="$BUILD/patch/kernel" \
-    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
-    # make
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
 
@@ -190,6 +185,7 @@ RUN set -x \
     \
     # for cross-compile
     && cp -f /lib/pkgconfig/libudev.pc ${PKG_CONFIG_PATH}/ \
+    && sed -i "s:prefix=:prefix=${PREFIX}:" ${PKG_CONFIG_PATH}/libudev.pc \
     && cp -f /include/libudev.h /include/udev.h ${PREFIX}/include/ \
     && cp -rfp /lib/libudev.so* ${PREFIX}/lib/ \
     # utils and configs
@@ -300,8 +296,13 @@ RUN set -x \
 # mpp
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/mpp.tar.gz" "${BUILD}/"
+COPY "patch/mpp" "$BUILD/patch/mpp"
 RUN set -x \
     && cd "mpp" \
+    # fix $prefix in rockhip_*.pc
+    && PATCH="$BUILD/patch/mpp" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
+    # make
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
@@ -310,16 +311,7 @@ RUN set -x \
                 -DHAVE_DRM=ON \
                 . \
     && make -j$(nproc) \
-    && make install \
-    \
-    # create mpp/vpu symlink
-    && cd "${PREFIX}/lib" \
-    && ln -s "librockchip_mpp.so" "libmpp.so" \
-    && ln -s "librockchip_vpu.so" "libvpu.so" \
-    # mpp/vpu pkgconfig
-    && cd "pkgconfig" \
-    && cp rockchip_mpp.pc mpp.pc \
-    && cp rockchip_vpu.pc vpu.pc
+    && make install
 
 
 # libusb
@@ -381,11 +373,9 @@ RUN set -x \
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                -DM_LIBRARY="/usr/aarch64-linux-gnu/lib" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DPNG_SHARED=ON \
                 -DPNG_STATIC=OFF \
-                -DPNG_EXECUTABLES=OFF \
                 -DPNG_TESTS=OFF \
                 .. \
     && make -j$(nproc) \
@@ -395,28 +385,32 @@ RUN set -x \
 # ffmpeg
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
+COPY "patch/ffmpeg" "$BUILD/patch/ffmpeg"
 RUN set -x \
     && cd "ffmpeg" \
-    && LDFLAGS="-L${PREFIX}/lib" \
-       ./configure  --prefix="${PREFIX}" \
-                    --target-os="linux" \
+    # fix configure require librga
+    # fix invalid use of av_alloc_size to avoid gcc warning
+    && PATCH="$BUILD/patch/ffmpeg" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
+    # make
+    && ./configure  --prefix="${PREFIX}" \
                     --enable-cross-compile \
-                    --arch="aarch64" \
-                    --cpu="cortex-a53" \
-                    --cc="${CROSS_COMPILE}gcc" \
-                    --ar="${CROSS_COMPILE}ar" \
-                    --strip="${CROSS_COMPILE}strip" \
+                    --cross-prefix=${CROSS_COMPILE} \
+                    --arch=aarch64 \
+                    --target-os=linux \
+                    --pkg-config=/usr/bin/pkg-config \
+                    --extra-ldflags="-L${PREFIX}/lib" \
                     --enable-rpath \
-                    # options
                     --enable-shared \
                     --disable-static \
                     --disable-debug \
                     --disable-doc \
-                    --enable-version3 \
-                    --enable-libdrm \
-                    --enable-rkmpp \
                     --enable-nonfree \
                     --enable-gpl \
+                    --enable-version3 \
+                    --enable-rkmpp \
+                    --enable-libdrm \
+                    --enable-librga \
     && make -j$(nproc) \
     && make install
 
@@ -512,8 +506,8 @@ ARG Application
 ADD "packages/mpv.tar.gz" "${BUILD}/"
 RUN set -x \
     &&  if [ "$Application" != "" ]; then \
-            cd "mpv" \
-            ./bootstrap.py \
+            cd "mpv" ;\
+            ./bootstrap.py ;\
             ./waf configure CC=${CROSS_COMPILE}gcc \
                             CFLAGS="-I${PREFIX}/include" \
                             LDFLAGS="-L${PREFIX}/lib" \
@@ -525,10 +519,10 @@ RUN set -x \
                             --disable-lua \
                             --disable-javascript \
                             --disable-libass \
-            ./waf build -j$(nproc) \
-            ./waf install \
-            mv ${PREFIX}/etc/mpv ${ROOTFS}/etc/ \
-            ; \
+                            ;\
+            ./waf build -j$(nproc) ;\
+            ./waf install ;\
+            mv ${PREFIX}/etc/mpv ${ROOTFS}/etc/ ;\
         fi
 
 
@@ -538,18 +532,17 @@ ADD "archives/pal.tar.gz" "${BUILD}/"
 ADD "packages/sdlpal.tar.gz" "${BUILD}/"
 RUN set -x \
     &&  if [ "$Application" != "" ]; then \
-            cd "sdlpal/unix" \
+            cd "sdlpal/unix" ;\
             # do not link GL
-            sed -i "s:# define PAL_HAS_GLSL 1:# define PAL_HAS_GLSLx 0:" "pal_config.h" \
-            sed -i "s:LDFLAGS += -lGL -pthread:LDFLAGS += -pthread:" "Makefile" \
+            sed -i "s:# define PAL_HAS_GLSL 1:# define PAL_HAS_GLSLx 0:" "pal_config.h" ;\
+            sed -i "s:LDFLAGS += -lGL -pthread:LDFLAGS += -pthread:" "Makefile" ;\
             # cross-compile
-            sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" "Makefile" \
-            make -j$(nproc) \
+            sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" "Makefile" ;\
+            make -j$(nproc) ;\
             # copy bin and data
-            cp "sdlpal/unix/sdlpal" "${ROOTFS}/opt/pal/" \
-            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/pal/sdlpal" \
-            cp -rpf ${BUILD}/pal ${ROOTFS}/opt/ \
-            ; \
+            cp -rpf ${BUILD}/pal ${ROOTFS}/opt/ ;\
+            cp "sdlpal" "${ROOTFS}/opt/pal/" ;\
+            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/pal/sdlpal" ;\
         fi
 
 
@@ -558,28 +551,28 @@ RUN set -x \
 ADD "packages/glmark2.tar.gz" "${BUILD}/"
 RUN set -x \
     &&  if [ "$Application" != "" ]; then \
-            cd glmark2 \
+            cd glmark2 ;\
             # avoid EGL conflict
-            mv "${PREFIX}/include/EGL" "${PREFIX}/include/EGL_mali" \
+            mv "${PREFIX}/include/EGL" "${PREFIX}/include/EGL_mali" ;\
             ./waf configure CC=${CROSS_COMPILE}gcc \
                             CXX=${CROSS_COMPILE}g++ \
                             CFLAGS="-I${PREFIX}/include" \
-                            LDFLAGS="-L${PREFIX}/lib -lz" \
+                            LDFLAGS="-L${PREFIX}/lib" \
                             --no-debug \
                             --prefix="${PREFIX}" \
                             --data-path="/opt/glmark2/data" \
                             --with-flavors=drm-glesv2,drm-gl \
-            ./waf build -j$(nproc) \
-            ./waf install \
+                            ;\
+            ./waf build -j$(nproc) ;\
+            ./waf install ;\
             # recovery EGL
-            mv "${PREFIX}/include/EGL_mali" "${PREFIX}/include/EGL" \
+            mv "${PREFIX}/include/EGL_mali" "${PREFIX}/include/EGL" ;\
             # copy bin and data
-            cd "${PREFIX}/bin/" \
-            mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ \
-            cd ${ROOTFS}/opt/glmark2/ \
-            aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm" \
-            cp -rf /opt/glmark2 ${ROOTFS}/opt/ \
-            ; \
+            mv /opt/glmark2 ${ROOTFS}/opt/ ;\
+            cd "${PREFIX}/bin/" ;\
+            mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ ;\
+            cd ${ROOTFS}/opt/glmark2/ ;\
+            aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm" ;\
         fi
 
 
@@ -619,8 +612,34 @@ ARG UnitTest
 COPY "archives/media/*" "${BUILD}/media/"
 RUN set -x \
     &&  if [ "$UnitTest" != "" ]; then \
-            cp -rfp ${BUILD}/media/* ${ROOTFS}/opt/ \
-            ; \
+            cp -rfp ${BUILD}/media/* ${ROOTFS}/opt/ ;\
+        fi
+
+
+# rga_test
+#----------------------------------------------------------------------------------------------------------------#
+RUN set -x \
+    &&  if [ "$UnitTest" != "" ]; then \
+            cd librga/demo ;\
+            mkdir build ;\
+            cd build ;\
+            cmake   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                    -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    .. \
+                    ;\
+            make -j$(nproc) ;\
+            make install ;\
+        fi
+
+
+# sdl_test
+#----------------------------------------------------------------------------------------------------------------#
+COPY "archives/sdl_video_test.cpp" "${BUILD}/sdl_test/"
+RUN set -x \
+    &&  if [ "$UnitTest" != "" ]; then \
+            ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_video_test.cpp" `sdl2-config --cflags --libs` -L"libudev" -o "${ROOTFS}/opt/sdl_video_test" ;\
+            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/sdl_video_test" ;\
         fi
 
 
@@ -629,10 +648,9 @@ RUN set -x \
 ADD "packages/opencl_test.tar.gz" "${BUILD}/"
 RUN set -x \
     &&  if [ "$UnitTest" != "" ]; then \
-            cd opencl_test \
-            ${CROSS_COMPILE}gcc "hellocl.c" $(pkg-config --cflags --libs OpenCL libdrm) -o "${ROOTFS}/opt/opencl_test" \
-            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/opencl_test" \
-            ; \
+            cd opencl_test ;\
+            ${CROSS_COMPILE}gcc "hellocl.c" $(pkg-config --cflags --libs OpenCL libdrm) -o "${ROOTFS}/opt/opencl_test" ;\
+            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/opencl_test" ;\
         fi
 
 
@@ -641,14 +659,14 @@ RUN set -x \
 ADD "packages/realsense_test.tar.gz" "${BUILD}/"
 RUN set -x \
     &&  if [ "$UnitTest" != "" ]; then \
-            cd "realsense_test" \
+            cd "realsense_test" ;\
             cmake   -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                     -DCMAKE_BUILD_TYPE=Release \
                     . \
-            make -j$(nproc) \
-            cp "gbm-drm-gles-cube" "${ROOTFS}/opt/realsense_test" \
-            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/realsense_test" \
-            ; \
+                    ;\
+            make -j$(nproc) ;\
+            cp "gbm-drm-gles-cube" "${ROOTFS}/opt/realsense_test" ;\
+            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/realsense_test" ;\
         fi
 
 

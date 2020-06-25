@@ -2,13 +2,13 @@
 #
 
 # disk space recovery
-resize2fs /dev/mmcblk1p6
+resize2fs /dev/mmcblk1p6 >/dev/null 2>&1
 
 # update locate database
-updatedb
+updatedb >/dev/null 2>&1
 
 # generate the SSH keys if non-existent
-ssh-keygen -A
+ssh-keygen -A >/dev/null 2>&1
 
 # run once
 if [ $? -eq 0 ] ; then

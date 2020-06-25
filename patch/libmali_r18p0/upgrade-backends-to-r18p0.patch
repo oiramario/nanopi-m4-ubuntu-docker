@@ -1,0 +1,368 @@
+diff -uprN a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2020-06-26 01:55:50.682182000 +0800
++++ b/CMakeLists.txt	2020-06-26 02:54:38.551917475 +0800
+@@ -1,45 +1,12 @@
+-cmake_minimum_required(VERSION 2.6)
+-find_package(PkgConfig)
+-
+-PROJECT(libmali C)
+-INCLUDE(GNUInstallDirs)
+-
+-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/egl.pc.cmake"
+-	"${CMAKE_CURRENT_BINARY_DIR}/egl.pc" @ONLY)
+-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/gbm.pc.cmake"
+-	"${CMAKE_CURRENT_BINARY_DIR}/gbm.pc" @ONLY)
+-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/glesv2.pc.cmake"
+-	"${CMAKE_CURRENT_BINARY_DIR}/glesv2.pc" @ONLY)
+-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/mali.pc.cmake"
+-	"${CMAKE_CURRENT_BINARY_DIR}/mali.pc" @ONLY)
+-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/wayland-egl.pc.cmake"
+-	"${CMAKE_CURRENT_BINARY_DIR}/wayland-egl.pc" @ONLY)
+-CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig/OpenCL.pc.cmake"
+-	"${CMAKE_CURRENT_BINARY_DIR}/OpenCL.pc" @ONLY)
+-
+-INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/mali.icd"
+-DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/OpenCL/vendors/")
+-
+-INSTALL(DIRECTORY
+-"${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE}/"
+-DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+-
+-INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/egl.pc"
+-"${CMAKE_CURRENT_BINARY_DIR}/gbm.pc"
+-"${CMAKE_CURRENT_BINARY_DIR}/glesv2.pc"
+-"${CMAKE_CURRENT_BINARY_DIR}/mali.pc"
+-"${CMAKE_CURRENT_BINARY_DIR}/wayland-egl.pc"
+-"${CMAKE_CURRENT_BINARY_DIR}/OpenCL.pc"
+-DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
+-
+-INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/gbm.h"
+-DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/")
+-
+-INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/EGL"
+-"${CMAKE_CURRENT_SOURCE_DIR}/include/GLES"
+-"${CMAKE_CURRENT_SOURCE_DIR}/include/GLES2"
+-"${CMAKE_CURRENT_SOURCE_DIR}/include/GLES3"
+-"${CMAKE_CURRENT_SOURCE_DIR}/include/KHR"
+-"${CMAKE_CURRENT_SOURCE_DIR}/include/CL"
+-DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/")
++cmake_minimum_required(VERSION 3.2)
++PROJECT(libmali NONE)
+ 
++set(TARGET_SOC "rk3399" CACHE INTERNAL "Default target SoC")
++set(DP_FEATURE "wayland" CACHE INTERNAL "Default target display system")
++set(TARGET_LIB_NAME "libMali.so" CACHE INTERNAL "Default library name")
++message(STATUS "Target SoC: ${TARGET_SOC}")
++message(STATUS "Display platform: ${DP_FEATURE}")
++message(STATUS "GPU library feature: ${GPU_FEATURE}")
++add_subdirectory(include)
++add_subdirectory(lib)
++add_subdirectory(pkgconfig)
+diff -uprN a/include/arm.icd.cmake b/include/arm.icd.cmake
+--- a/include/arm.icd.cmake	1970-01-01 08:00:00.000000000 +0800
++++ b/include/arm.icd.cmake	2020-06-23 16:17:55.603684000 +0800
+@@ -0,0 +1 @@
++@TARGET_LIB_NAME@.@GPU_LIBRARY_VER_RELEASE@.@GPU_LIBRARY_VER_PATCH@
+diff -uprN a/include/CMakeLists.txt b/include/CMakeLists.txt
+--- a/include/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
++++ b/include/CMakeLists.txt	2020-06-26 04:34:30.451218740 +0800
+@@ -0,0 +1,33 @@
++cmake_minimum_required(VERSION 3.2)
++
++PROJECT(MaliHeaders NONE)
++INCLUDE(GNUInstallDirs)
++
++INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/EGL"
++DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
++
++INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/KHR"
++DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
++INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/GLES"
++DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
++INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/GLES2"
++DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
++INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/GLES3"
++DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
++
++# Both Mali-T860 and Mali-T760 support up to OpenCL 1.2
++if(GPU_FEATURE MATCHES "opencl")
++INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/CL"
++DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
++
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/arm.icd.cmake"
++	"${CMAKE_CURRENT_BINARY_DIR}/arm.icd" @ONLY)
++
++INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/arm.icd"
++DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/OpenCL/vendors")
++endif(GPU_FEATURE MATCHES "opencl")
++
++# Except the for gbm display platform, only for wayland
++# included the gbm features actually.
++INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/gbm.h"
++DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+diff -uprN a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+--- a/lib/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
++++ b/lib/CMakeLists.txt	2020-06-26 02:34:14.497317954 +0800
+@@ -0,0 +1,99 @@
++cmake_minimum_required(VERSION 3.2)
++find_package(PkgConfig)
++
++PROJECT(MaliBinary C)
++INCLUDE(GNUInstallDirs)
++
++# GPU display platform:
++# wayland: EGL_KHR_platform_wayland, libwayland, may depend on drm
++# x11: EGL_KHR_platform_x11, xorg xserver, may depend on drm
++# gbm: EGL_KHR_platform_gbm, may depend on drm
++# fbdev: none EGL_KHR_platform
++function(parse_mali_library_info lib_name)
++STRING(REGEX REPLACE "[\.]+[a-z]+" "" lib_name ${lib_name})
++STRING(REPLACE "-" ";" lib_info_list ${lib_name})
++
++LIST(GET lib_info_list 1 GPU_ARCHITECTURE)
++LIST(GET lib_info_list 2 GPU_MODEL)
++LIST(GET lib_info_list 3 GPU_LIBRARY_VERSION)
++LIST(GET lib_info_list 4 GPU_HWREV)
++
++string(REGEX REPLACE "r([0-9]*)p([0-9]+)*" "\\1;\\2" gpu_lib_ver_list "${GPU_LIBRARY_VERSION}")
++LIST(GET gpu_lib_ver_list 0 GPU_LIBRARY_VER_RELEASE)
++LIST(GET gpu_lib_ver_list 1 GPU_LIBRARY_VER_PATCH)
++
++SET(GPU_ARCHITECTURE ${GPU_ARCHITECTURE} CACHE INTERNAL "GPU architecture")
++SET(GPU_MODEL ${GPU_MODEL} CACHE INTERNAL "GPU model")
++SET(GPU_LIBRARY_VERSION ${GPU_LIBRARY_VERSION} CACHE INTERNAL "GPU library version")
++SET(GPU_LIBRARY_VER_RELEASE ${GPU_LIBRARY_VER_RELEASE} CACHE INTERNAL "GPU library release version")
++SET(GPU_LIBRARY_VER_PATCH ${GPU_LIBRARY_VER_PATCH} CACHE INTERNAL "GPU library patch version")
++SET(GPU_HWREV ${GPU_HWREV} CACHE INTERNAL "GPU hardware revision")
++endfunction(parse_mali_library_info)
++
++if (TARGET_SOC MATCHES "rk3399")
++SET(GPU_FEATURE "${GPU_FEATURE} opencl" PARENT_SCOPE)
++SET(ABI "aarch64-linux-gnu" CACHE STRING "default ABI")
++
++if (DP_FEATURE MATCHES "wayland")
++SET(TARGET_GPU_LIBRARY_NAME "libmali-midgard-t86x-r18p0-wayland.so")
++
++elseif (DP_FEATURE MATCHES "x11")
++SET(TARGET_GPU_LIBRARY_NAME "libmali-midgard-t86x-r18p0-x11-fbdev.so")
++
++elseif (DP_FEATURE MATCHES "gbm")
++SET(TARGET_GPU_LIBRARY_NAME "libmali-midgard-t86x-r18p0-gbm.so")
++
++elseif (DP_FEATURE MATCHES "fbdev")
++SET(TARGET_GPU_LIBRARY_NAME "libmali-midgard-t86x-r18p0-fbdev.so")
++endif(DP_FEATURE MATCHES "wayland")
++
++endif(TARGET_SOC MATCHES "rk3399")
++
++parse_mali_library_info(${TARGET_GPU_LIBRARY_NAME})
++INSTALL(FILES
++"${CMAKE_CURRENT_SOURCE_DIR}/${ABI}/${TARGET_GPU_LIBRARY_NAME}"
++DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++RENAME "${TARGET_LIB_NAME}.${GPU_LIBRARY_VER_RELEASE}.${GPU_LIBRARY_VER_PATCH}")
++
++macro(link_install_library target_lib link_lib)
++INSTALL(CODE "execute_process( \
++	COMMAND ${CMAKE_COMMAND} -E create_symlink \
++	${target_lib} \
++	\$ENV{DESTDIR}/\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${link_lib} \
++	)"
++)
++endmacro()
++
++if(CMAKE_HOST_UNIX)
++SET(target "${TARGET_LIB_NAME}.${GPU_LIBRARY_VER_RELEASE}.${GPU_LIBRARY_VER_PATCH}")
++
++INSTALL(CODE "execute_process( \
++	COMMAND patchelf --set-soname ${target} \
++	\$ENV{DESTDIR}/\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${target} \
++	)"
++)
++
++SET(link "${TARGET_LIB_NAME}.${GPU_LIBRARY_VER_RELEASE}")
++link_install_library(${target} ${link})
++
++SET(link "${TARGET_LIB_NAME}")
++link_install_library(${target} ${link})
++
++# Development usage only, for those scripts don't use pkg-config
++SET(link "libEGL.so")
++link_install_library(${target} ${link})
++
++SET(link "libGLESv1_CM.so")
++link_install_library(${target} ${link})
++
++SET(link "libGLESv2.so")
++link_install_library(${target} ${link})
++
++endif(CMAKE_HOST_UNIX)
++
++string(REGEX REPLACE "lib(.*)\.so(\.[0-9]+)*" "\\1" TARGET_LIB_LINK_NAME "${TARGET_LIB_NAME}")
++SET(TARGET_LIB_LINK_NAME ${TARGET_LIB_LINK_NAME} CACHE INTERNAL "GPU library name for the linker")
++
++message(STATUS "GPU model: ${GPU_MODEL}, hardware revision: ${GPU_HWREV}")
++message(STATUS "GPU user-space library version: ${GPU_LIBRARY_VERSION}")
++message(STATUS "install the GPU library as: ${TARGET_LIB_NAME}")
+diff -uprN a/pkgconfig/CMakeLists.txt b/pkgconfig/CMakeLists.txt
+--- a/pkgconfig/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
++++ b/pkgconfig/CMakeLists.txt	2020-06-23 16:18:01.391684000 +0800
+@@ -0,0 +1,31 @@
++cmake_minimum_required(VERSION 3.2)
++find_package(PkgConfig)
++
++PROJECT(MaliPkgInfo NONE)
++INCLUDE(GNUInstallDirs)
++
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/egl.pc.cmake"
++	"${CMAKE_CURRENT_BINARY_DIR}/egl.pc" @ONLY)
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/gbm.pc.cmake"
++	"${CMAKE_CURRENT_BINARY_DIR}/gbm.pc" @ONLY)
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/gles_cm.pc.cmake"
++	"${CMAKE_CURRENT_BINARY_DIR}/gles_cm.pc" @ONLY)
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/glesv2.pc.cmake"
++	"${CMAKE_CURRENT_BINARY_DIR}/glesv2.pc" @ONLY)
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/mali.pc.cmake"
++	"${CMAKE_CURRENT_BINARY_DIR}/mali.pc" @ONLY)
++
++INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/egl.pc"
++"${CMAKE_CURRENT_BINARY_DIR}/gbm.pc"
++"${CMAKE_CURRENT_BINARY_DIR}/gles_cm.pc"
++"${CMAKE_CURRENT_BINARY_DIR}/glesv2.pc"
++"${CMAKE_CURRENT_BINARY_DIR}/mali.pc"
++DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
++
++if(GPU_FEATURE MATCHES "opencl")
++CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/OpenCL.pc.cmake"
++	"${CMAKE_CURRENT_BINARY_DIR}/OpenCL.pc" @ONLY)
++
++INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OpenCL.pc"
++DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
++endif(GPU_FEATURE MATCHES "opencl")
+diff -uprN a/pkgconfig/egl.pc.cmake b/pkgconfig/egl.pc.cmake
+--- a/pkgconfig/egl.pc.cmake	2020-06-26 02:32:17.886530000 +0800
++++ b/pkgconfig/egl.pc.cmake	2020-06-23 16:18:01.391684000 +0800
+@@ -1,12 +1,11 @@
+-prefix=/usr
++prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+ 
+ Name: egl
+ Description: Mali EGL library
+-Requires.private: 
+-Version: 7.10
+-Libs: -L${libdir} -lEGL
+-Libs.private: -lm -lpthread
++Version: @GPU_LIBRARY_VER_RELEASE@.@GPU_LIBRARY_VER_PATCH@
++Libs: -L${libdir} -l@TARGET_LIB_LINK_NAME@
++Libs.private: -lm -lpthread -ldl
+ Cflags: -I${includedir} 
+diff -uprN a/pkgconfig/gbm.pc.cmake b/pkgconfig/gbm.pc.cmake
+--- a/pkgconfig/gbm.pc.cmake	2020-06-26 02:32:17.886530000 +0800
++++ b/pkgconfig/gbm.pc.cmake	2020-06-23 16:18:01.391684000 +0800
+@@ -1,12 +1,11 @@
+-prefix=/usr
++prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+ 
+ Name: gbm
+ Description: Mali GBM library
+-Requires.private: 
+-Version: 10.4.0
+-Libs: -L${libdir} -lgbm
+-Libs.private: 
++Version: @GPU_LIBRARY_VER_RELEASE@.@GPU_LIBRARY_VER_PATCH@
++Libs: -L${libdir} -l@TARGET_LIB_LINK_NAME@
++Libs.private: -lm -lpthread -ldl -ldrm
+ Cflags: -I${includedir} 
+diff -uprN a/pkgconfig/gles_cm.pc.cmake b/pkgconfig/gles_cm.pc.cmake
+--- a/pkgconfig/gles_cm.pc.cmake	1970-01-01 08:00:00.000000000 +0800
++++ b/pkgconfig/gles_cm.pc.cmake	2020-06-23 16:18:01.391684000 +0800
+@@ -0,0 +1,11 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++exec_prefix=${prefix}
++libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
++includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
++
++Name: gles_cm
++Description: Mali OpenGL ES 1.1 CM library
++Version: @GPU_LIBRARY_VER_RELEASE@.@GPU_LIBRARY_VER_PATCH@
++Libs: -L${libdir} -l@TARGET_LIB_LINK_NAME@
++Libs.private: -lm -lpthread -ldl
++Cflags: -I${includedir}
+diff -uprN a/pkgconfig/glesv2.pc.cmake b/pkgconfig/glesv2.pc.cmake
+--- a/pkgconfig/glesv2.pc.cmake	2020-06-26 02:32:17.886530000 +0800
++++ b/pkgconfig/glesv2.pc.cmake	2020-06-23 16:18:01.391684000 +0800
+@@ -1,12 +1,11 @@
+-prefix=/usr
++prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+ 
+ Name: glesv2
+ Description: Mali GLESV2 library
+-Requires.private:
+-Version:
+-Libs: -L${libdir} -lGLESv2
+-Libs.private: -lm -lpthread
++Version: @GPU_LIBRARY_VER_RELEASE@.@GPU_LIBRARY_VER_PATCH@
++Libs: -L${libdir} -l@TARGET_LIB_LINK_NAME@
++Libs.private: -lm -lpthread -ldl
+ Cflags: -I${includedir} 
+diff -uprN a/pkgconfig/mali.pc.cmake b/pkgconfig/mali.pc.cmake
+--- a/pkgconfig/mali.pc.cmake	2020-06-26 02:32:17.886530000 +0800
++++ b/pkgconfig/mali.pc.cmake	2020-06-23 16:18:01.391684000 +0800
+@@ -1,10 +1,11 @@
+-prefix=/usr
++prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+ 
+ Name: mali
+ Description: Mali EGL library
+-Requires.private: 
+-Libs: -L${libdir} -lMali
++Version: @GPU_LIBRARY_VER_RELEASE@.@GPU_LIBRARY_VER_PATCH@
++Libs: -L${libdir} -l@TARGET_LIB_LINK_NAME@
+ Cflags: -I${includedir} 
++Libs.private: -lm -lpthread -ldl
+diff -uprN a/pkgconfig/OpenCL.pc.cmake b/pkgconfig/OpenCL.pc.cmake
+--- a/pkgconfig/OpenCL.pc.cmake	2020-06-26 02:32:17.886530000 +0800
++++ b/pkgconfig/OpenCL.pc.cmake	2020-06-23 16:18:01.391684000 +0800
+@@ -1,11 +1,11 @@
+-prefix=/usr
++prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+ libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+ 
+ Name: OpenCL
+ Description: Mali OpenCL library
+-Requires.private:
+-Version: 1.2
+-Libs: -L${libdir} -lMaliOpenCL
++Version: @GPU_LIBRARY_VER_RELEASE@.@GPU_LIBRARY_VER_PATCH@
++Libs: -L${libdir} -l@TARGET_LIB_LINK_NAME@
++Libs.private: -lm -lpthread -ldl
+ Cflags: -I${includedir} 
+diff -uprN a/pkgconfig/wayland-egl.pc.cmake b/pkgconfig/wayland-egl.pc.cmake
+--- a/pkgconfig/wayland-egl.pc.cmake	2020-06-26 02:32:17.886530000 +0800
++++ b/pkgconfig/wayland-egl.pc.cmake	1970-01-01 08:00:00.000000000 +0800
+@@ -1,12 +0,0 @@
+-prefix=/usr
+-exec_prefix=${prefix}
+-libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+-includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+-
+-Name: wayland-egl
+-Description: Mali EGL library
+-Requires.private: 
+-Version: 7.10
+-Libs: -L${libdir} -lMali
+-Libs.private: -lm -lpthread
+-Cflags: -I${includedir} 

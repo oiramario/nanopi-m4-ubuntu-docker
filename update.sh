@@ -123,9 +123,33 @@ update_sources()
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11-gbm.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
+                # exclude+=" \
+                #     --exclude=debian \
+                #     --exclude=overlay \
+                #     --exclude=lib/arm-linux-gnueabihf \
+                #     --exclude=lib/aarch64-linux-gnu/libmali-bifrost-* \
+                #     --exclude=lib/aarch64-linux-gnu/libmali-utgard-* \
+                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0* \
+                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0.so \
+                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0-x11-fbdev.so \
+                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0-fbdev.so \
+                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0-wayland.so \
+                #     "
             elif [ $dir = "librealsense" ];then
                 exclude+=" \
-                    --exclude=wrappers"
+                    --exclude=wrappers/android \
+                    --exclude=wrappers/csharp \
+                    --exclude=wrappers/dlib \
+                    --exclude=wrappers/matlab \
+                    --exclude=wrappers/nodejs \
+                    --exclude=wrappers/opencv \
+                    --exclude=wrappers/openni2 \
+                    --exclude=wrappers/openvino \
+                    --exclude=wrappers/pcl \
+                    --exclude=wrappers/python \
+                    --exclude=wrappers/unity \
+                    --exclude=wrappers/unrealengine4 \
+                    "
             elif [ $dir = "gdb" ];then
                 exclude+=" \
                     --exclude=gas \

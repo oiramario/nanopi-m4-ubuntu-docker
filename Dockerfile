@@ -264,19 +264,26 @@ RUN set -x \
 # libmali
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libmali.tar.gz" "${BUILD}/"
+#COPY "patch/libmali" "$BUILD/patch/libmali"
 RUN set -x \
     && cd "libmali" \
+    # # upgrade backends to r18p0
+    # && PATCH="$BUILD/patch/libmali" \
+    # && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
+    # make
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DTARGET_SOC=rk3399 \
                 -DDP_FEATURE=gbm \
+                -DGPU_FEATURE=opencl \
                 . \
     && make install \
     \
-    # create gbm symlink
+    # create gbm symlink for sdl
     && cd "${PREFIX}/lib" \
     && ln -s "libMali.so" "libgbm.so" \
     # OpenCL
-    && mv ${PREFIX}/etc/OpenCL ${ROOTFS}/etc/
+    && mv ${PREFIX}/etc/OpenCL ${ROOTFS}/etc/ \
+    && rm -rf ${PREFIX}/etc
 
 
 # librga
@@ -418,12 +425,8 @@ RUN set -x \
 # librealsense
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/librealsense.tar.gz" "${BUILD}/"
-COPY "patch/librealsense" "$BUILD/patch/librealsense"
 RUN set -x \
     && cd "librealsense" \
-    # gcc9-no-Werror
-    && PATCH="$BUILD/patch/librealsense" \
-    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
@@ -438,8 +441,6 @@ RUN set -x \
                 -DBUILD_EXAMPLES=OFF \
                 # dynamic link CRT
                 -DBUILD_WITH_STATIC_CRT=OFF \
-                # no wrappers
-                -DBUILD_WRAPPERS=OFF \
                 # avoid kernel patch
                 -DFORCE_RSUSB_BACKEND=ON \
                 . \
@@ -484,7 +485,6 @@ RUN set -x \
     && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
                     --target="${HOST}" \
-                    --disable-debug \
     && make -j$(nproc) \
     && make install \
     \
@@ -509,7 +509,7 @@ RUN set -x \
             cd "mpv" ;\
             ./bootstrap.py ;\
             ./waf configure CC=${CROSS_COMPILE}gcc \
-                            CFLAGS="-I${PREFIX}/include" \
+                            CFLAGS="-I${PREFIX}/include -DEGL_NO_X11" \
                             LDFLAGS="-L${PREFIX}/lib" \
                             --prefix="${PREFIX}" \
                             --disable-debug \
@@ -546,48 +546,15 @@ RUN set -x \
         fi
 
 
-# glmark2
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/glmark2.tar.gz" "${BUILD}/"
-RUN set -x \
-    &&  if [ "$Application" != "" ]; then \
-            cd glmark2 ;\
-            # avoid EGL conflict
-            mv "${PREFIX}/include/EGL" "${PREFIX}/include/EGL_mali" ;\
-            ./waf configure CC=${CROSS_COMPILE}gcc \
-                            CXX=${CROSS_COMPILE}g++ \
-                            CFLAGS="-I${PREFIX}/include" \
-                            LDFLAGS="-L${PREFIX}/lib" \
-                            --no-debug \
-                            --prefix="${PREFIX}" \
-                            --data-path="/opt/glmark2/data" \
-                            --with-flavors=drm-glesv2,drm-gl \
-                            ;\
-            ./waf build -j$(nproc) ;\
-            ./waf install ;\
-            # recovery EGL
-            mv "${PREFIX}/include/EGL_mali" "${PREFIX}/include/EGL" ;\
-            # copy bin and data
-            mv /opt/glmark2 ${ROOTFS}/opt/ ;\
-            cd "${PREFIX}/bin/" ;\
-            mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ ;\
-            cd ${ROOTFS}/opt/glmark2/ ;\
-            aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm" ;\
-        fi
-
-
-
-#############
-# unit-test #
-#############
-
 # gl4es
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/gl4es.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gl4es \
     && mkdir build && cd build \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+    &&  CFLAGS="-DEGL_NO_X11" \
+        LDFLAGS="-L${PREFIX}/lib" \
+        cmake   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DSTATICLIB=OFF \
@@ -604,6 +571,37 @@ RUN set -x \
     && cd ${PREFIX}/lib \
     && ln -s libGL.so.1 libGL.so
 
+
+# glmark2
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/glmark2.tar.gz" "${BUILD}/"
+RUN set -x \
+    &&  if [ "$Application" != "" ]; then \
+            cd glmark2 ;\
+            ./waf configure CC=${CROSS_COMPILE}gcc \
+                            CXX=${CROSS_COMPILE}g++ \
+                            CFLAGS="-idirafter ${PREFIX}/include -DEGL_NO_X11" \
+                            LDFLAGS="-L${PREFIX}/lib" \
+                            --prefix="${PREFIX}" \
+                            --no-debug \
+                            --data-path="/opt/glmark2/data" \
+                            --with-flavors=drm-glesv2,drm-gl \
+                            ;\
+            ./waf build -j$(nproc) ;\
+            ./waf install ;\
+            # copy bin and data
+            mv /opt/glmark2 ${ROOTFS}/opt/ ;\
+            cd "${PREFIX}/bin/" ;\
+            mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ ;\
+            cd ${ROOTFS}/opt/glmark2/ ;\
+            aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm" ;\
+        fi
+
+
+
+#############
+# unit-test #
+#############
 
 ARG UnitTest
 

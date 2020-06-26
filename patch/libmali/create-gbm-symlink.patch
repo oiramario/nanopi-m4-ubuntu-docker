@@ -1,0 +1,13 @@
+diff -uNr a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+--- a/lib/CMakeLists.txt	2020-06-27 02:43:18.517119000 +0800
++++ b/lib/CMakeLists.txt	2020-06-27 02:47:27.471492183 +0800
+@@ -176,6 +176,9 @@
+ SET(link "libGLESv2.so")
+ link_install_library(${target} ${link})
+ 
++SET(link "libgbm.so")
++link_install_library(${target} ${link})
++
+ endif(CMAKE_HOST_UNIX)
+ 
+ string(REGEX REPLACE "lib(.*)\.so(\.[0-9]+)*" "\\1" TARGET_LIB_LINK_NAME "${TARGET_LIB_NAME}")

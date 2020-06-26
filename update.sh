@@ -111,7 +111,8 @@ update_sources()
                     --exclude=packages \
                     --exclude=overlay-debug \
                     --exclude=packages-patches \
-                    --exclude=ubuntu-build-service"
+                    --exclude=ubuntu-build-service \
+                    "
             elif [ $dir = "libmali" ];then
                 exclude+=" \
                     --exclude=lib/arm-linux-gnueabihf \
@@ -122,19 +123,8 @@ update_sources()
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
                     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11-gbm.so \
-                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so"
-                # exclude+=" \
-                #     --exclude=debian \
-                #     --exclude=overlay \
-                #     --exclude=lib/arm-linux-gnueabihf \
-                #     --exclude=lib/aarch64-linux-gnu/libmali-bifrost-* \
-                #     --exclude=lib/aarch64-linux-gnu/libmali-utgard-* \
-                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0* \
-                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0.so \
-                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0-x11-fbdev.so \
-                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0-fbdev.so \
-                #     --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r18p0-wayland.so \
-                #     "
+                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so \
+                    "
             elif [ $dir = "librealsense" ];then
                 exclude+=" \
                     --exclude=wrappers/android \

@@ -71,7 +71,7 @@ ADD "packages/u-boot.tar.gz" "${BUILD}/"
 COPY "patch/u-boot" "$BUILD/patch/u-boot"
 RUN set -x \
     && cd "u-boot" \
-    # gcc9-no-Werror
+    # patch
     && PATCH="$BUILD/patch/u-boot" \
     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
@@ -84,6 +84,13 @@ RUN set -x \
 ADD "packages/kernel.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd kernel \
+    # make
+    && export KCFLAGS=" -Wno-psabi \
+                        -Wno-address-of-packed-member \
+                        -Wno-missing-attributes \
+                        -Wno-array-bounds \
+                        -Wno-incompatible-pointer-types \
+                        -Wno-stringop-overflow" \
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
 
@@ -92,19 +99,22 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/busybox.tar.gz" "${BUILD}/"
 COPY "patch/busybox" "$BUILD/patch/busybox"
+COPY "archives/init" "${BUILD}/initramfs/"
 RUN set -x \
     && cd "busybox" \
-    # replace stime, static link
+    # patch
     && PATCH="$BUILD/patch/busybox" \
     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
+    && export CFLAGS="  -Wno-unused-result \
+                        -Wno-format-security \
+                        -Wno-address-of-packed-member \
+                        -Wno-format-truncation \
+                        -Wno-format-overflow" \
     && make defconfig \
     && make -j$(nproc) \
     && make CONFIG_PREFIX="${BUILD}/initramfs" install \
     && rm -f "${BUILD}/initramfs/linuxrc"
-
-# init
-COPY "archives/init" "${BUILD}/initramfs/"
 
 
 # ubuntu rootfs
@@ -173,6 +183,7 @@ ADD "packages/eudev.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd eudev \
     && autoreconf -vfi \
+    && export CFLAGS="-Wno-format-truncation -Wno-unused-result -Wp,-w" \
     && ./configure  --prefix="" \
                     --host="${HOST}" \
                     --enable-hwdb=yes \
@@ -208,6 +219,8 @@ ADD "packages/alsa-lib.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "alsa-lib" \
     && autoreconf -vfi \
+    && export CFLAGS="  -Wno-address-of-packed-member \
+                        -Wno-unused-result" \
     && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
                     --with-debug=no \
@@ -235,9 +248,10 @@ RUN set -x \
 ADD "packages/libdrm.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "libdrm" \
+    && export CFLAGS="  -Wno-cpp \
+                        -Wno-format-truncation" \
     && ./autogen.sh --prefix="${PREFIX}" \
                     --host="${HOST}" \
-                    --disable-debug \
                     --disable-dependency-tracking \
                     --disable-static \
                     --enable-shared \
@@ -264,12 +278,12 @@ RUN set -x \
 # libmali
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libmali.tar.gz" "${BUILD}/"
-#COPY "patch/libmali" "$BUILD/patch/libmali"
+COPY "patch/libmali" "$BUILD/patch/libmali"
 RUN set -x \
     && cd "libmali" \
-    # # upgrade backends to r18p0
-    # && PATCH="$BUILD/patch/libmali" \
-    # && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
+    # patch
+    && PATCH="$BUILD/patch/libmali" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DTARGET_SOC=rk3399 \
@@ -278,9 +292,6 @@ RUN set -x \
                 . \
     && make install \
     \
-    # create gbm symlink for sdl
-    && cd "${PREFIX}/lib" \
-    && ln -s "libMali.so" "libgbm.so" \
     # OpenCL
     && mv ${PREFIX}/etc/OpenCL ${ROOTFS}/etc/ \
     && rm -rf ${PREFIX}/etc
@@ -306,7 +317,7 @@ ADD "packages/mpp.tar.gz" "${BUILD}/"
 COPY "patch/mpp" "$BUILD/patch/mpp"
 RUN set -x \
     && cd "mpp" \
-    # fix $prefix in rockhip_*.pc
+    # patch
     && PATCH="$BUILD/patch/mpp" \
     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
@@ -327,9 +338,9 @@ ADD "packages/libusb.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd "libusb" \
     && autoreconf -vfi \
-    && ./configure  CFLAGS="-I${PREFIX}/include" \
-                    LDFLAGS="-L${PREFIX}/lib" \
-                    --prefix="${PREFIX}" \
+    && export   CFLAGS="-I${PREFIX}/include" \
+                LDFLAGS="-L${PREFIX}/lib" \
+    && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
                     --enable-shared \
                     --disable-static \
@@ -395,8 +406,7 @@ ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
 COPY "patch/ffmpeg" "$BUILD/patch/ffmpeg"
 RUN set -x \
     && cd "ffmpeg" \
-    # fix configure require librga
-    # fix invalid use of av_alloc_size to avoid gcc warning
+    # patch
     && PATCH="$BUILD/patch/ffmpeg" \
     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
@@ -460,9 +470,9 @@ ADD "packages/sdl.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "sdl" \
     && mkdir "build" && cd "build" \
-    &&  CFLAGS="-I${PREFIX}/include" \
-        LDFLAGS="-L${PREFIX}/lib" \
-        cmake   -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+    && export   CFLAGS="-I${PREFIX}/include -DEGL_NO_X11" \
+                LDFLAGS="-L${PREFIX}/lib" \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DSDL_STATIC=OFF \
@@ -508,10 +518,11 @@ RUN set -x \
     &&  if [ "$Application" != "" ]; then \
             cd "mpv" ;\
             ./bootstrap.py ;\
-            ./waf configure CC=${CROSS_COMPILE}gcc \
-                            CFLAGS="-I${PREFIX}/include -DEGL_NO_X11" \
-                            LDFLAGS="-L${PREFIX}/lib" \
-                            --prefix="${PREFIX}" \
+            export  CC=${CROSS_COMPILE}gcc \
+                    CFLAGS="-I${PREFIX}/include -DEGL_NO_X11" \
+                    LDFLAGS="-L${PREFIX}/lib" \
+            ;\
+            ./waf configure --prefix="${PREFIX}" \
                             --disable-debug \
                             --enable-libmpv-shared \
                             --enable-egl-drm \
@@ -552,9 +563,9 @@ ADD "packages/gl4es.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gl4es \
     && mkdir build && cd build \
-    &&  CFLAGS="-DEGL_NO_X11" \
-        LDFLAGS="-L${PREFIX}/lib" \
-        cmake   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+    && export   CFLAGS="-DEGL_NO_X11" \
+                LDFLAGS="-L${PREFIX}/lib" \
+    && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DSTATICLIB=OFF \
@@ -578,11 +589,12 @@ ADD "packages/glmark2.tar.gz" "${BUILD}/"
 RUN set -x \
     &&  if [ "$Application" != "" ]; then \
             cd glmark2 ;\
-            ./waf configure CC=${CROSS_COMPILE}gcc \
-                            CXX=${CROSS_COMPILE}g++ \
-                            CFLAGS="-idirafter ${PREFIX}/include -DEGL_NO_X11" \
-                            LDFLAGS="-L${PREFIX}/lib" \
-                            --prefix="${PREFIX}" \
+            export  CC=${CROSS_COMPILE}gcc \
+                    CXX=${CROSS_COMPILE}g++ \
+                    CFLAGS="-idirafter ${PREFIX}/include -DEGL_NO_X11" \
+                    LDFLAGS="-L${PREFIX}/lib" \
+            ;\
+            ./waf configure --prefix="${PREFIX}" \
                             --no-debug \
                             --data-path="/opt/glmark2/data" \
                             --with-flavors=drm-glesv2,drm-gl \

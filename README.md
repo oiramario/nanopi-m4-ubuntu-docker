@@ -30,13 +30,13 @@ To build and use the docker stuff, do the following:
 
 * make.sh
 
-    Usage:
-        make.sh [target]"
-            make.sh loader    --- pack loader images"
-            make.sh boot      --- pack boot.img"
-            make.sh rootfs    --- pack rootfs.img"
-            make.sh devkit    --- pack development kit"
-            make.sh all       --- pack all above"
+        Usage:
+                make.sh [target]"
+                make.sh loader    --- pack loader images"
+                make.sh boot      --- pack boot.img"
+                make.sh rootfs    --- pack rootfs.img"
+                make.sh devkit    --- pack development kit"
+                make.sh all       --- pack all above"
 
 * clean.sh
 
@@ -69,71 +69,71 @@ To build and use the docker stuff, do the following:
 
 * kernel
 
-    description = "U-Boot fitImage for rk3399_aarch64 kernel";
-    #address-cells = <1>;
-  
-    images {
-	kernel {
-            description = "kernel 4.4.y";
-            data = /incbin/("./kernel.gz");
-            type = "kernel";
-            arch = "arm64";
-            os = "linux";
-			compression = "gzip";
-			load = <0x02080000>;
-			entry = <0x02080000>;
-			hash_crc {
-				algo = "crc32";
-			};
-		};
+        description = "U-Boot fitImage for rk3399_aarch64 kernel";
+        #address-cells = <1>;
 
-        fdt_m4 {
-            description = "nanopi-m4";
-            data = /incbin/("./rk3399-nanopi4-rev01.dtb");
-            type = "flat_dt";
-            arch = "arm64";
-			compression = "none";
-			load = <0x01f00000>;
-			hash_crc {
-				algo = "crc32";
-			};
+        images {
+                kernel {
+                        description = "kernel 4.4.y";
+                        data = /incbin/("./kernel.gz");
+                        type = "kernel";
+                        arch = "arm64";
+                        os = "linux";
+                        compression = "gzip";
+                        load = <0x02080000>;
+                        entry = <0x02080000>;
+                        hash_crc {
+                                algo = "crc32";
+                        };
+                };
+
+                fdt_m4 {
+                        description = "nanopi-m4";
+                        data = /incbin/("./rk3399-nanopi4-rev01.dtb");
+                        type = "flat_dt";
+                        arch = "arm64";
+                        compression = "none";
+                        load = <0x01f00000>;
+                        hash_crc {
+                                algo = "crc32";
+                        };
+                };
+
+                initramfs {
+                        description = "busybox";
+                        data = /incbin/("./ramdisk.cpio.gz");
+                        type = "ramdisk";
+                        arch = "arm64";
+                        os = "linux";
+                        compression = "gzip";
+                        load = <0x06000000>;
+                        entry = <0x06000000>;
+                        hash_crc {
+                                algo = "crc32";
+                        };
+                };
         };
 
-        initramfs {
-            description = "busybox";
-            data = /incbin/("./ramdisk.cpio.gz");
-            type = "ramdisk";
-            arch = "arm64";
-            os = "linux";
-			compression = "gzip";
-			load = <0x06000000>;
-			entry = <0x06000000>;
-			hash_crc {
-				algo = "crc32";
-			};
-        };
-    };
+        configurations {
+                default = "conf_m4";
 
-    configurations {
-        default = "conf_m4";
-
-        conf_m4 {
-            description = "nanopi-m4";
-            kernel = "kernel";
-            ramdisk = "initramfs";
-            fdt = "fdt_m4";
+                conf_m4 {
+                        description = "nanopi-m4";
+                        kernel = "kernel";
+                        ramdisk = "initramfs";
+                        fdt = "fdt_m4";
+                };
         };
-    };
 
 * busybox
 
     find . | cpio -oH newc | gzip > ramdisk.cpio.gz
 
-* eudev
-
 # Rootfs
 
 ### runtime
+
+* eudev
 
 * libdrm
 

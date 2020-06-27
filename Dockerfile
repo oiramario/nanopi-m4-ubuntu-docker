@@ -183,7 +183,9 @@ ADD "packages/eudev.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd eudev \
     && autoreconf -vfi \
-    && export CFLAGS="-Wno-format-truncation -Wno-unused-result -Wp,-w" \
+    && export CFLAGS="  -Wno-format-truncation \
+                        -Wno-unused-result \
+                        -Wp,-w" \
     && ./configure  --prefix="" \
                     --host="${HOST}" \
                     --enable-hwdb=yes \
@@ -321,6 +323,9 @@ RUN set -x \
     && PATCH="$BUILD/patch/mpp" \
     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
+    && export CFLAGS="  -Wno-stringop-truncation \
+                        -Wno-absolute-value" \
+              CXXFLAGS="-Wno-stringop-truncation" \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
@@ -338,7 +343,8 @@ ADD "packages/libusb.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd "libusb" \
     && autoreconf -vfi \
-    && export   CFLAGS="-I${PREFIX}/include" \
+    && export   CFLAGS="-I${PREFIX}/include \
+                        -Wno-format-zero-length" \
                 LDFLAGS="-L${PREFIX}/lib" \
     && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
@@ -410,6 +416,16 @@ RUN set -x \
     && PATCH="$BUILD/patch/ffmpeg" \
     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
+    && export ECFLAGS=" -Wno-deprecated-declarations \
+                        -Wno-stringop-overflow \
+                        -Wno-strict-prototypes \
+                        -Wno-format-truncation \
+                        -Wno-stringop-truncation \
+                        -Wno-cpp \
+                        -Wno-alloc-size-larger-than \
+                        -Wno-format-overflow \
+                        -Wno-discarded-qualifiers \
+                        -Wno-declaration-after-statement " \
     && ./configure  --prefix="${PREFIX}" \
                     --enable-cross-compile \
                     --cross-prefix=${CROSS_COMPILE} \
@@ -435,8 +451,15 @@ RUN set -x \
 # librealsense
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/librealsense.tar.gz" "${BUILD}/"
+COPY "patch/librealsense" "$BUILD/patch/librealsense"
 RUN set -x \
     && cd "librealsense" \
+    # patch
+    && PATCH="$BUILD/patch/librealsense" \
+    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
+    # make
+    && export CXXFLAGS="-Wno-deprecated \
+                        -Wno-placement-new" \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
@@ -492,6 +515,7 @@ RUN set -x \
 ADD "packages/gdb.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "gdb/gdb/gdbserver" \
+    && export CFLAGS="-Wno-stringop-truncation" \
     && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
                     --target="${HOST}" \
@@ -519,7 +543,7 @@ RUN set -x \
             cd "mpv" ;\
             ./bootstrap.py ;\
             export  CC=${CROSS_COMPILE}gcc \
-                    CFLAGS="-I${PREFIX}/include -DEGL_NO_X11" \
+                    CFLAGS="-I${PREFIX}/include -DEGL_NO_X11 -Wno-stringop-truncation -Wno-format-truncation" \
                     LDFLAGS="-L${PREFIX}/lib" \
             ;\
             ./waf configure --prefix="${PREFIX}" \
@@ -541,14 +565,26 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "archives/pal.tar.gz" "${BUILD}/"
 ADD "packages/sdlpal.tar.gz" "${BUILD}/"
+COPY "patch/sdlpal" "$BUILD/patch/sdlpal"
 RUN set -x \
     &&  if [ "$Application" != "" ]; then \
-            cd "sdlpal/unix" ;\
-            # do not link GL
-            sed -i "s:# define PAL_HAS_GLSL 1:# define PAL_HAS_GLSLx 0:" "pal_config.h" ;\
-            sed -i "s:LDFLAGS += -lGL -pthread:LDFLAGS += -pthread:" "Makefile" ;\
-            # cross-compile
-            sed -i "s:HOST =:HOST = ${CROSS_COMPILE}:" "Makefile" ;\
+            # patch
+            cd "sdlpal" ;\
+            PATCH="$BUILD/patch/sdlpal" ;\
+            for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done ;\
+            # make
+            cd "unix" ;\
+            export CCFLAGS="-Wno-dangling-else \
+                            -Wno-unused-variable \
+                            -Wno-stringop-truncation \
+                            -Wno-missing-braces \
+                            -Wno-restrict \
+                            -Wno-unused-result \
+                            -Wno-unused-function \
+                            -Wno-maybe-uninitialized \
+                            -Wno-sign-compare \
+                            -Wno-switch \
+                            " ;\
             make -j$(nproc) ;\
             # copy bin and data
             cp -rpf ${BUILD}/pal ${ROOTFS}/opt/ ;\

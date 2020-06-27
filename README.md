@@ -18,20 +18,20 @@ To build and use the docker stuff, do the following:
 
 * update.sh
 
-    download or update dependencies, and make packages for docker.
+        download or update dependencies, and make packages for docker.
 
 * build.sh
 
-    using aarch65 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
+        using aarch65 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
 
 * run.sh
 
-    running the prepared environment for making images.
+        running the prepared environment for making images.
 
 * make.sh
 
         Usage:
-                make.sh [target]"
+            make.sh [target]"
                 make.sh loader    --- pack loader images"
                 make.sh boot      --- pack boot.img"
                 make.sh rootfs    --- pack rootfs.img"
@@ -40,30 +40,30 @@ To build and use the docker stuff, do the following:
 
 * clean.sh
 
-    clean all intermediate files.
+        clean all intermediate files.
 
 # Loader
 
 * MiniLoaderAll.bin
 
-    boot_merger RK3399MINIALL.ini
+        boot_merger RK3399MINIALL.ini
 
 * idbloader.img
 
-    mkimage -T rksd -n rk3399 -d rk3399_ddr_800MHz.bin idbloader.img
-    cat rk3399_miniloader.bin >> idbloader.img
+        mkimage -T rksd -n rk3399 -d rk3399_ddr_800MHz.bin idbloader.img
+        cat rk3399_miniloader.bin >> idbloader.img
 
 * resource.img
 
-    resource_tool --pack --verbose --image=resource.img logo.bmp logo_kernel.bmp rk3399-nanopi4.dtb
+        resource_tool --pack --verbose --image=resource.img logo.bmp logo_kernel.bmp rk3399-nanopi4.dtb
 
 * uboot.img
 
-    loaderimage --pack --uboot u-boot.bin uboot.img 0x00200000
+        loaderimage --pack --uboot u-boot.bin uboot.img 0x00200000
 
 * trust.img
 
-    trust_merger RKTRUST/RK3399TRUST.ini
+        trust_merger RKTRUST/RK3399TRUST.ini
 
 # OS
 
@@ -127,7 +127,7 @@ To build and use the docker stuff, do the following:
 
 * busybox
 
-    find . | cpio -oH newc | gzip > ramdisk.cpio.gz
+        find . | cpio -oH newc | gzip > ramdisk.cpio.gz
 
 # Rootfs
 

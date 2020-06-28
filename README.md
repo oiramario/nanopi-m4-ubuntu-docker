@@ -69,7 +69,7 @@ To build and use the docker stuff, do the following:
 # Loader
 
 * MiniLoaderAll.bin
-
+r
         boot_merger RK3399MINIALL.ini
 
 * idbloader.img
@@ -93,7 +93,7 @@ To build and use the docker stuff, do the following:
 
 * kernel
 
-using m4 by default, select t4/neo4 by modify the **default = "conf_m4";@configurations@fitImage.its@scripts/boot**.
+using m4 by default, select t4/neo4 by modify the **default = "conf_m4"@scripts/boot/fitImage.its**.
 
         description = "U-Boot fitImage for rk3399_aarch64 kernel";
         #address-cells = <1>;

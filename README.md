@@ -1,7 +1,9 @@
-NanoPi4-docker
-================
+NanoPi4-ubuntu-docker
+=====================
 
-Build minimal image for NanoPi-M4 / T4 / NEO4
+<p align="center"><img src="shot.jpg" width="70%" /><br><br></p>
+
+Build minimal image(<600M) for NanoPi-M4 / T4 / NEO4
 OS Image for development with the following tidbits:
 
 * MiniLoaderAll.bin
@@ -18,29 +20,55 @@ To build and use the docker stuff, do the following:
 
 * update.sh
 
-        download or update dependencies, and make packages for docker.
+download or update dependencies, and make packages for docker.
 
 * build.sh
 
-        using aarch65 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
+using aarch65 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
+
+        Option:
+            Application=1       --- build app
+            UnitTest=1          --- build test
 
 * run.sh
 
-        running the prepared environment for making images.
+running the prepared environment for making images.
 
 * make.sh
 
+make images.
+
         Usage:
             make.sh [target]"
-                make.sh loader    --- pack loader images"
-                make.sh boot      --- pack boot.img"
-                make.sh rootfs    --- pack rootfs.img"
-                make.sh devkit    --- pack development kit"
-                make.sh all       --- pack all above"
+                make.sh loader    --- pack loader images
+                make.sh boot      --- pack boot.img
+                make.sh rootfs    --- pack rootfs.img
+                make.sh all       --- pack all above
+                make.sh devkit    --- use /opt/devkit for cross-compile or debugging
 
 * clean.sh
 
-        clean all intermediate files.
+clean files by make.sh.
+
+        Usage:
+            clean.sh [target]
+	        clean.sh distro
+	        clean.sh devkit
+	        clean.sh docker
+	        clean.sh packages
+	        clean.sh all
+
+* fusing.sh
+
+fusing images to emmc.
+
+        Usage:
+            fusing.sh [target]
+	        fusing.sh loader
+	        fusing.sh resource
+	        fusing.sh boot
+	        fusing.sh rootfs
+	        fusing.sh all
 
 # Loader
 
@@ -69,112 +97,70 @@ To build and use the docker stuff, do the following:
 
 * kernel
 
+using m4 by default, select t4/neo4 by modify the default@configurations@fitImage.its@scripts/boot.
+
         description = "U-Boot fitImage for rk3399_aarch64 kernel";
         #address-cells = <1>;
 
         images {
-                kernel {
-                        description = "kernel 4.4.y";
-                        data = /incbin/("./kernel.gz");
-                        type = "kernel";
-                        arch = "arm64";
-                        os = "linux";
-                        compression = "gzip";
-                        load = <0x02080000>;
-                        entry = <0x02080000>;
-                        hash_crc {
-                                algo = "crc32";
-                        };
-                };
+                kernel { ... };
 
-                fdt_m4 {
-                        description = "nanopi-m4";
-                        data = /incbin/("./rk3399-nanopi4-rev01.dtb");
-                        type = "flat_dt";
-                        arch = "arm64";
-                        compression = "none";
-                        load = <0x01f00000>;
-                        hash_crc {
-                                algo = "crc32";
-                        };
-                };
+                fdt_t4 { ... };
 
-                initramfs {
-                        description = "busybox";
-                        data = /incbin/("./ramdisk.cpio.gz");
-                        type = "ramdisk";
-                        arch = "arm64";
-                        os = "linux";
-                        compression = "gzip";
-                        load = <0x06000000>;
-                        entry = <0x06000000>;
-                        hash_crc {
-                                algo = "crc32";
-                        };
-                };
+                fdt_m4 { ... };
+
+                fdt_neo4 { ... };
+
+                initramfs { ... };
         };
 
         configurations {
-                default = "conf_m4";
+                **default = "conf_m4";**
 
-                conf_m4 {
-                        description = "nanopi-m4";
-                        kernel = "kernel";
-                        ramdisk = "initramfs";
-                        fdt = "fdt_m4";
-                };
+                conf_t4 { ... };
+
+                conf_m4 { ... };
+
+                conf_neo4 { ... };
         };
 
 * busybox
 
         find . | cpio -oH newc | gzip > ramdisk.cpio.gz
 
+* ubuntu
+
+        ubuntu-base-20.04-base-arm64
+
 # Rootfs
 
 ### runtime
 
-* eudev
-
-* libdrm
-
-* libmali
-
-* librga
-
-* alsa
-
-* mpp
-
-* libusb
-
-* zlib
-
-* libjpeg
-
-* libpng
-
-* ffmpeg
-
-* librealsense
-
-* sdl2
-
-* gdbserver
+- eudev
+- libdrm
+- libmali
+- librga
+- alsa
+- mpp
+- libusb
+- zlib
+- libjpeg
+- libpng
+- ffmpeg
+- librealsense
+- sdl2
+- gdbserver
+- gl4es
 
 ### application
 
-* mpv
-
-* sdlpal
-
-* glmark2
+- mpv
+- sdlpal
+- glmark2
 
 ### unit-test
 
-* rga_test
-
-* sdl_test
-
-* opencl_test
-
-* realsense_test
+- rga_test
+- sdl_test
+- opencl_test
+- realsense_test

@@ -19,12 +19,36 @@
 			};
 		};
 
+        fdt_t4 {
+            description = "nanopc-t4";
+            data = /incbin/("./rk3399-nanopi4-rev00.dtb");
+            type = "flat_dt";
+            arch = "arm64";
+			compression = "none";
+			load = <0x01f00000>;
+			hash_crc {
+				algo = "crc32";
+			};
+        };
+
         fdt_m4 {
             description = "nanopi-m4";
             data = /incbin/("./rk3399-nanopi4-rev01.dtb");
             type = "flat_dt";
             arch = "arm64";
 			compression = "none";
+			load = <0x01f00000>;
+			hash_crc {
+				algo = "crc32";
+			};
+        };
+
+        fdt_neo4 {
+            description = "nanopi-neo4";
+            data = /incbin/("./rk3399-nanopi4-rev04.dtb");
+            type = "flat_dt";
+            arch = "arm64";
+            compression = "none";
 			load = <0x01f00000>;
 			hash_crc {
 				algo = "crc32";
@@ -49,11 +73,25 @@
     configurations {
         default = "conf_m4";
 
+        conf_t4 {
+            description = "nanopc-t4";
+            kernel = "kernel";
+            ramdisk = "initramfs";
+            fdt = "fdt_t4";
+        };
+
         conf_m4 {
             description = "nanopi-m4";
             kernel = "kernel";
             ramdisk = "initramfs";
             fdt = "fdt_m4";
+        };
+
+        conf_neo4 {
+            description = "nanopi-neo4";
+            kernel = "kernel";
+            ramdisk = "initramfs";
+            fdt = "fdt_neo4";
         };
     };
 };

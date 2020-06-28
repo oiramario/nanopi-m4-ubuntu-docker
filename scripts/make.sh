@@ -18,8 +18,8 @@ help()
 	info_msg "	make.sh loader    --- pack loader images"
 	info_msg "	make.sh boot      --- pack boot.img"
 	info_msg "	make.sh rootfs    --- pack rootfs.img"
-	info_msg "	make.sh devkit    --- pack development kit"
 	info_msg "	make.sh all       --- pack all above"
+	info_msg "	make.sh devkit    --- use /opt/devkit for cross-compile or debugging"
 	echo
 }
 

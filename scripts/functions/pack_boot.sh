@@ -27,10 +27,13 @@ pack_boot_image()
     ## dtb
     echo
    	info_msg "dtb(s)"
-    ## nanopi4-rev01 dtb
-    cp -v dts/rockchip/rk3399-nanopi4-rev01.dtb ${boot}/
-    ## enable rga
-    fdtput -vt s ${boot}/rk3399-nanopi4-rev01.dtb /rga@ff680000 status "okay"
+    ## nanopi4-rev* dtb
+    cp -v dts/rockchip/rk3399-nanopi4-rev00.dtb dts/rockchip/rk3399-nanopi4-rev01.dtb dts/rockchip/rk3399-nanopi4-rev04.dtb ${boot}/
+    ## friendlyarm disable rga by default, let's re-enable that.
+    for dtb in `ls ${boot}/rk3399-nanopi4-rev0*.dtb`; do
+        # use fdtput to avoid patch rk3399-nanopi4-common.dtsi in kernel
+        fdtput -t s ${dtb} /rga status "okay"
+	done
 
     # resource
     echo

@@ -1,7 +1,7 @@
 NanoPi4-ubuntu-docker
 =====================
 
-<p align="center"><img src="shot.jpg" width="70%" /><br><br></p>
+<p align="center"><img src="shot.jpg" width="70%" /></p>
 
 Build minimal image(<600M) for NanoPi-M4 / T4 / NEO4
 OS Image for development with the following tidbits:
@@ -20,25 +20,23 @@ To build and use the docker stuff, do the following:
 
 * update.sh
 
-download or update dependencies, and make packages for docker.
+        download or update dependencies, and make packages for docker.
 
 * build.sh
 
-using aarch65 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
-
-        Option:
+        using aarch65 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
+        option:
             Application=1       --- build app
             UnitTest=1          --- build test
 
 * run.sh
 
-running the prepared environment for making images.
+        running the prepared environment for making images.
 
 * make.sh
 
-make images.
-
-        Usage:
+        make images.
+        usage:
             make.sh [target]"
                 make.sh loader    --- pack loader images
                 make.sh boot      --- pack boot.img
@@ -48,9 +46,8 @@ make images.
 
 * clean.sh
 
-clean files by make.sh.
-
-        Usage:
+        clean files by make.sh.
+        usage:
             clean.sh [target]
 	        clean.sh distro
 	        clean.sh devkit
@@ -60,9 +57,8 @@ clean files by make.sh.
 
 * fusing.sh
 
-fusing images to emmc.
-
-        Usage:
+        fusing images to emmc.
+        usage:
             fusing.sh [target]
 	        fusing.sh loader
 	        fusing.sh resource
@@ -97,7 +93,7 @@ fusing images to emmc.
 
 * kernel
 
-using m4 by default, select t4/neo4 by modify the default@configurations@fitImage.its@scripts/boot.
+using m4 by default, select t4/neo4 by modify the **default = "conf_m4";@configurations@fitImage.its@scripts/boot**.
 
         description = "U-Boot fitImage for rk3399_aarch64 kernel";
         #address-cells = <1>;
@@ -115,7 +111,7 @@ using m4 by default, select t4/neo4 by modify the default@configurations@fitImag
         };
 
         configurations {
-                **default = "conf_m4";**
+                default = "conf_m4";
 
                 conf_t4 { ... };
 

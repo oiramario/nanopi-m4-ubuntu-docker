@@ -1,7 +1,7 @@
 NanoPi4-ubuntu-docker
 =====================
 
-<p align="center"><img src="shot.jpg" width="70%" /></p>
+<p align="center"><img src="shot.jpg"/></p>
 
 Build minimal image(<600M) for NanoPi-M4 / T4 / NEO4
 OS Image for development with the following tidbits:
@@ -69,7 +69,7 @@ To build and use the docker stuff, do the following:
 # Loader
 
 * MiniLoaderAll.bin
-r
+
         boot_merger RK3399MINIALL.ini
 
 * idbloader.img

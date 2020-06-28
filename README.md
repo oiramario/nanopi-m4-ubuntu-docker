@@ -37,34 +37,31 @@ To build and use the docker stuff, do the following:
 
         make images.
         usage:
-            make.sh [target]"
-                make.sh loader    --- pack loader images
-                make.sh boot      --- pack boot.img
-                make.sh rootfs    --- pack rootfs.img
-                make.sh all       --- pack all above
-                make.sh devkit    --- use /opt/devkit for cross-compile or debugging
+            make.sh loader    --- pack loader images
+            make.sh boot      --- pack boot.img
+            make.sh rootfs    --- pack rootfs.img
+            make.sh all       --- pack all above
+            make.sh devkit    --- use /opt/devkit for cross-compile or debugging
 
 * clean.sh
 
         clean files by make.sh.
         usage:
-            clean.sh [target]
-	        clean.sh distro
-	        clean.sh devkit
-	        clean.sh docker
-	        clean.sh packages
-	        clean.sh all
+            clean.sh distro
+            clean.sh devkit
+            clean.sh docker
+            clean.sh packages
+            clean.sh all
 
 * fusing.sh
 
         fusing images to emmc.
         usage:
-            fusing.sh [target]
-	        fusing.sh loader
-	        fusing.sh resource
-	        fusing.sh boot
-	        fusing.sh rootfs
-	        fusing.sh all
+            fusing.sh loader
+            fusing.sh resource
+            fusing.sh boot
+            fusing.sh rootfs
+            fusing.sh all
 
 # Loader
 

@@ -59,7 +59,7 @@ apt-get upgrade -y
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                init dbus rsyslog kmod systemd
+                init dbus rsyslog kmod systemd sysfsutils
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
@@ -68,6 +68,8 @@ apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Option
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
                 pm-utils triggerhappy sudo ssh htop file mlocate bash-completion usbmount vim
+
+echo 'devices/platform/ff9a0000.gpu/devfreq/ff9a0000.gpu/governor = performance' >> /etc/sysfs.conf
 
 echo "AllowUsers flagon" >> /etc/ssh/sshd_config
 

@@ -128,17 +128,15 @@ ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 ADD "packages/rkbin.tar.gz" "${BUILD}/"
 ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 RUN set -x \
-    && cd "rk-rootfs-build" \
+    # firmware
+    && cd "rk-rootfs-build/overlay-firmware" \
     # copy dptx.bin to initramfs
     && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
-    && cp "overlay-firmware/lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
+    && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
     \
-    # rockchip firmware
-    && cp -rf overlay-firmware/etc "${ROOTFS}/" \
-    && cp -rf overlay-firmware/system "${ROOTFS}/" \
-    && cp -rf overlay-firmware/usr "${ROOTFS}/" \
+    && cp -rf etc system usr "${ROOTFS}/" \
     # /lib is symlink to /usr/lib in LTS 20.04
-    && cp -rf overlay-firmware/lib "${ROOTFS}/usr/" \
+    && cp -rf lib/* "${ROOTFS}/lib/" \
     # 64bits wifi/bt
     && cd "${ROOTFS}/usr/bin" \
     && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
@@ -147,18 +145,21 @@ RUN set -x \
     && mkdir -p "${ROOTFS}/system/lib/modules" \
     && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan" -name "*.ko" | \
             xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
-    \
+    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/system/lib/modules/*.ko
+
+RUN set -x \
     # power manager
-    && cd "${BUILD}/rk-rootfs-build/overlay/etc/Powermanager" \
+    && cd "rk-rootfs-build/overlay/etc/Powermanager" \
     && cp "triggerhappy.service" "${ROOTFS}/lib/systemd/system/" \
     && cp "power-key.sh" "${ROOTFS}/usr/bin/" \
     && mkdir -p "${ROOTFS}/etc/triggerhappy/triggers.d" \
     && cp "power-key.conf" "${ROOTFS}/etc/triggerhappy/triggers.d/" \
-    && cp "triggerhappy" "${ROOTFS}/etc/init.d/" \
-    \
+    && cp "triggerhappy" "${ROOTFS}/etc/init.d/"
+
+RUN set -x \
     # udev rules
+    && cd "rk-rootfs-build/overlay/etc/udev/rules.d" \
     && mkdir -p "${ROOTFS}/etc/udev/rules.d" \
-    && cd "${BUILD}/rk-rootfs-build/overlay/etc/udev/rules.d" \
     && cp "50-hevc-rk3399.rules" \
           "50-mail.rules" \
           "50-vpu-rk3399.rules" \
@@ -171,6 +172,7 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ENV PREFIX="/opt/devkit"
 RUN mkdir -p ${PREFIX}/include ${PREFIX}/lib
+
 ENV PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 RUN mkdir -p ${PKG_CONFIG_PATH}
 
@@ -186,28 +188,26 @@ RUN set -x \
     && export CFLAGS="  -Wno-format-truncation \
                         -Wno-unused-result \
                         -Wp,-w" \
-    && ./configure  --prefix="" \
-                    --host="${HOST}" \
-                    --enable-hwdb=yes \
-                    --enable-rule-generator=yes \
-                    --enable-mtd_probe=yes \
+    && ./configure  --host=${HOST} \
+                    --sysconfdir=/etc \
                     --disable-static \
-                    --disable-blkid \
     && make -j$(nproc) \
     && make install \
     \
-    # for cross-compile
-    && cp -f /lib/pkgconfig/libudev.pc ${PKG_CONFIG_PATH}/ \
-    && sed -i "s:prefix=:prefix=${PREFIX}:" ${PKG_CONFIG_PATH}/libudev.pc \
-    && cp -f /include/libudev.h /include/udev.h ${PREFIX}/include/ \
-    && cp -rfp /lib/libudev.so* ${PREFIX}/lib/ \
+    # udev write paths to code that manual install to ${PREFIX}
+    && cp -f /usr/lib/pkgconfig/libudev.pc ${PKG_CONFIG_PATH}/ \
+    && sed -i "s:prefix=/usr:prefix=${PREFIX}:" ${PKG_CONFIG_PATH}/libudev.pc \
+    && cp -f /usr/include/libudev.h /usr/include/udev.h ${PREFIX}/include/ \
+    && cp -rfp /usr/lib/libudev.so* ${PREFIX}/lib/ \
     # utils and configs
     && cp -f /bin/udevadm ${ROOTFS}/bin/ \
     && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/bin/udevadm" \
     && cp -rfp /sbin/udevd /sbin/udevadm ${ROOTFS}/sbin/ \
     && aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/sbin/udevd" \
     && cp -rf /etc/udev ${ROOTFS}/etc/ \
-    && cp -rf /lib/udev ${ROOTFS}/lib/ 
+    && cp -rf /usr/lib/udev ${ROOTFS}/usr/lib/ \
+    && mv ${ROOTFS}/etc/udev/hwdb.d ${ROOTFS}/usr/lib/udev/ \
+    && mkdir -p ${ROOTFS}/etc/udev/hwdb.d
 
 
 

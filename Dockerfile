@@ -135,7 +135,7 @@ RUN set -x \
     && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
     \
     && cp -rf etc system usr "${ROOTFS}/" \
-    # /lib is symlink to /usr/lib in LTS 20.04
+    # /lib is symlink to /usr/lib since LTS 20.04
     && cp -rf lib/* "${ROOTFS}/lib/" \
     # 64bits wifi/bt
     && cd "${ROOTFS}/usr/bin" \
@@ -280,12 +280,8 @@ RUN set -x \
 # libmali
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libmali.tar.gz" "${BUILD}/"
-COPY "patch/libmali" "$BUILD/patch/libmali"
 RUN set -x \
     && cd "libmali" \
-    # patch
-    && PATCH="$BUILD/patch/libmali" \
-    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DTARGET_SOC=rk3399 \
@@ -294,7 +290,7 @@ RUN set -x \
                 . \
     && make install \
     \
-    # OpenCL
+    # OpenCL ICD
     && mv ${PREFIX}/etc/OpenCL ${ROOTFS}/etc/ \
     && rm -rf ${PREFIX}/etc
 
@@ -532,14 +528,14 @@ RUN set -x \
 # application #
 ###############
 
-ARG Application
+ARG NoApp
 
 
 # mpv
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/mpv.tar.gz" "${BUILD}/"
 RUN set -x \
-    &&  if [ "$Application" != "" ]; then \
+    &&  if [ -z ${NoApp} ]; then \
             cd "mpv" ;\
             ./bootstrap.py ;\
             export  CC=${CROSS_COMPILE}gcc \
@@ -567,7 +563,7 @@ ADD "archives/pal.tar.gz" "${BUILD}/"
 ADD "packages/sdlpal.tar.gz" "${BUILD}/"
 COPY "patch/sdlpal" "$BUILD/patch/sdlpal"
 RUN set -x \
-    &&  if [ "$Application" != "" ]; then \
+    &&  if [ -z ${NoApp} ]; then \
             # patch
             cd "sdlpal" ;\
             PATCH="$BUILD/patch/sdlpal" ;\
@@ -623,7 +619,7 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/glmark2.tar.gz" "${BUILD}/"
 RUN set -x \
-    &&  if [ "$Application" != "" ]; then \
+    &&  if [ -z ${NoApp} ]; then \
             cd glmark2 ;\
             export  CC=${CROSS_COMPILE}gcc \
                     CXX=${CROSS_COMPILE}g++ \
@@ -651,13 +647,13 @@ RUN set -x \
 # unit-test #
 #############
 
-ARG UnitTest
+ARG NoTest
 
 # media
 #----------------------------------------------------------------------------------------------------------------#
 COPY "archives/media/*" "${BUILD}/media/"
 RUN set -x \
-    &&  if [ "$UnitTest" != "" ]; then \
+    &&  if [ -z ${NoTest} ]; then \
             cp -rfp ${BUILD}/media/* ${ROOTFS}/opt/ ;\
         fi
 
@@ -665,7 +661,7 @@ RUN set -x \
 # rga_test
 #----------------------------------------------------------------------------------------------------------------#
 RUN set -x \
-    &&  if [ "$UnitTest" != "" ]; then \
+    &&  if [ -z ${NoTest} ]; then \
             cd librga/demo ;\
             mkdir build ;\
             cd build ;\
@@ -683,7 +679,7 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 COPY "archives/sdl_video_test.cpp" "${BUILD}/sdl_test/"
 RUN set -x \
-    &&  if [ "$UnitTest" != "" ]; then \
+    &&  if [ -z ${NoTest} ]; then \
             ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_video_test.cpp" `sdl2-config --cflags --libs` -L"libudev" -o "${ROOTFS}/opt/sdl_video_test" ;\
             aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/sdl_video_test" ;\
         fi
@@ -693,9 +689,10 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/opencl_test.tar.gz" "${BUILD}/"
 RUN set -x \
-    &&  if [ "$UnitTest" != "" ]; then \
+    &&  if [ -z ${NoTest} ]; then \
             cd opencl_test ;\
-            ${CROSS_COMPILE}gcc "hellocl.c" $(pkg-config --cflags --libs OpenCL libdrm) -o "${ROOTFS}/opt/opencl_test" ;\
+            sed -i '1i #include <stdlib.h>' hellocl.c ;\
+            ${CROSS_COMPILE}gcc "hellocl.c" $(pkg-config --cflags --libs OpenCL libdrm) -Wno-implicit-function-declaration -o "${ROOTFS}/opt/opencl_test" ;\
             aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/opencl_test" ;\
         fi
 
@@ -704,11 +701,13 @@ RUN set -x \
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/realsense_test.tar.gz" "${BUILD}/"
 RUN set -x \
-    &&  if [ "$UnitTest" != "" ]; then \
-            cd "realsense_test" ;\
+    &&  if [ -z ${NoTest} ]; then \
+            cd realsense_test ;\
+            mkdir build ;\
+            cd build ;\
             cmake   -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                     -DCMAKE_BUILD_TYPE=Release \
-                    . \
+                    .. \
                     ;\
             make -j$(nproc) ;\
             cp "gbm-drm-gles-cube" "${ROOTFS}/opt/realsense_test" ;\
@@ -720,15 +719,6 @@ RUN set -x \
 ##################
 # pre-deployment #
 ##################
-
-# k380 keyboard
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/k380-function-keys-conf.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "k380-function-keys-conf" \
-    && make -j$(nproc) \
-    && DESTDIR="${ROOTFS}" make install
-
 
 # strip so
 #----------------------------------------------------------------------------------------------------------------#

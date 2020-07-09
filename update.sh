@@ -27,7 +27,7 @@ update_sources()
         "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
         "eudev,gentoo/eudev.git,v3.2.9"
         "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
-        "libmali,rockchip-linux/libmali.git,rockchip"
+        "libmali,oiramario/libmali.git,rk3399-r14p0"
         "librga,oiramario/linux-rga.git,master"
         "alsa-lib,alsa-project/alsa-lib.git,v1.2.3.1"
         "alsa-config,rockchip-linux/alsa-config.git,master"
@@ -46,7 +46,6 @@ update_sources()
         "gl4es,ptitSeb/gl4es.git,v1.1.4"
         "glmark2,glmark2/glmark2.git,release-2020.04"
         "opencl_test,silven/hellocl.git,master"
-        "k380-function-keys-conf,jergusg/k380-function-keys-conf.git,master"
     )
 
     cd ${download_dir}
@@ -112,18 +111,6 @@ update_sources()
                     --exclude=overlay-debug \
                     --exclude=packages-patches \
                     --exclude=ubuntu-build-service \
-                    "
-            elif [ $dir = "libmali" ];then
-                exclude+=" \
-                    --exclude=lib/arm-linux-gnueabihf \
-                    --exclude=lib/aarch64-linux-gnu/libmali-bifrost-* \
-                    --exclude=lib/aarch64-linux-gnu/libmali-utgard-* \
-                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r9p0-* \
-                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r13p0-* \
-                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-fbdev.so \
-                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-wayland-gbm.so \
-                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11-gbm.so \
-                    --exclude=lib/aarch64-linux-gnu/libmali-midgard-t86x-r14p0-r0p0-x11.so \
                     "
             elif [ $dir = "librealsense" ];then
                 exclude+=" \

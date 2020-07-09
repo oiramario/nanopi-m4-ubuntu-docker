@@ -102,7 +102,7 @@ EOF
     local rootfs_img=${DISTRO}/rootfs.img
     [ -f ${rootfs_img} ] && rm -f ${rootfs_img}
 
-    dd if=/dev/zero of=${rootfs_img} bs=1M count=1024
+    dd if=/dev/zero of=${rootfs_img} bs=1M count=768
     mkfs.ext4 ${rootfs_img}
     sync
     mkdir -p ${rootfs_mnt}

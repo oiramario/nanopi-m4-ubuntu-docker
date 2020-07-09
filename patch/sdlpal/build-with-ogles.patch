@@ -1,6 +1,6 @@
-diff -urN a/unix/Makefile b/unix/Makefile
+diff -Nur a/unix/Makefile b/unix/Makefile
 --- a/unix/Makefile	2020-06-23 16:19:36.588766964 +0800
-+++ b/unix/Makefile	2020-06-27 17:56:29.665411455 +0800
++++ b/unix/Makefile	2020-07-10 04:21:19.350767509 +0800
 @@ -5,7 +5,7 @@
  
  INTER=.unix
@@ -10,6 +10,15 @@ diff -urN a/unix/Makefile b/unix/Makefile
  TEST_CCFLAGS =
  
  GENERATED = -DPAL_HAS_GIT_REVISION $(shell ../scripts/gengitrev)
+@@ -50,7 +50,7 @@
+ CC = $(HOST)gcc
+ CXX = $(HOST)g++
+ override CCFLAGS += `$(SDL_CONFIG) --cflags` -D_GNU_SOURCE -g -Wall -O2 -fno-strict-aliasing $(EXTRA_CCFLAGS) $(TEST_CCFLAGS) $(GENERATED)
+-CXXFLAGS = $(CCFLAGS) -std=c++11 $(FLTK_CXXFLAGS)
++CXXFLAGS = $(CCFLAGS) -std=c++11 $(FLTK_CXXFLAGS) -Wno-class-memaccess
+ CFLAGS = $(CCFLAGS) -std=gnu99 $(FLTK_CFLAGS)
+ LDFLAGS = `$(SDL_CONFIG) --libs` $(FLTK_LDFLAGS) $(MIDI_LDFLAGS) -lstdc++ -lm
+ TEST_CXXFLAGS += -isystem $(GTEST_DIR)/include -I $(GTEST_DIR) -g -Wall -Wextra -pthread
 @@ -60,7 +60,7 @@
  	LDFLAGS += -framework OpenGL
  	OBJFILES = $(filter-out ../mini_glloader.unix.o, $(TOBJFILES))
@@ -19,7 +28,7 @@ diff -urN a/unix/Makefile b/unix/Makefile
  	OBJFILES = $(TOBJFILES)
  endif
  
-diff -urN a/unix/pal_config.h b/unix/pal_config.h
+diff -Nur a/unix/pal_config.h b/unix/pal_config.h
 --- a/unix/pal_config.h	2020-06-23 16:19:36.588766964 +0800
 +++ b/unix/pal_config.h	2020-06-27 15:52:20.010582489 +0800
 @@ -65,7 +65,7 @@

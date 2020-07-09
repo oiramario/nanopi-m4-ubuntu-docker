@@ -1,4 +1,4 @@
-diff -urN a/CMake/unix_config.cmake b/CMake/unix_config.cmake
+diff -Nur a/CMake/unix_config.cmake b/CMake/unix_config.cmake
 --- a/CMake/unix_config.cmake	2020-06-23 16:18:45.887268000 +0800
 +++ b/CMake/unix_config.cmake	2020-06-27 17:25:22.580776964 +0800
 @@ -2,8 +2,8 @@
@@ -12,15 +12,3 @@ diff -urN a/CMake/unix_config.cmake b/CMake/unix_config.cmake
      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-multichar -Wsequence-point -Wformat -Wformat-security")
  
      execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE)
-diff -urN a/src/proc/occlusion-filter.h b/src/proc/occlusion-filter.h
---- a/src/proc/occlusion-filter.h	2020-06-23 16:18:46.035268146 +0800
-+++ b/src/proc/occlusion-filter.h	2020-06-27 16:41:01.565554478 +0800
-@@ -57,7 +57,7 @@
- 
-         friend class pointcloud;
- 
--        void monotonic_heuristic_invalidation(float3* points, float2* uv_map, const std::vector<float2> & pix_coord, const rs2::depth_frame& depth) const;;
-+        void monotonic_heuristic_invalidation(float3* points, float2* uv_map, const std::vector<float2> & pix_coord, const rs2::depth_frame& depth) const;
-         void comprehensive_invalidation(float3* points, float2* uv_map, const std::vector<float2> & pix_coord) const;
- 
-         optional_value<rs2_intrinsics>              _depth_intrinsics;

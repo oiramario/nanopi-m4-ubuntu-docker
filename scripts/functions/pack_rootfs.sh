@@ -36,11 +36,7 @@ pack_rootfs_image()
    	info_msg "building rootfs"
     cp -v /usr/bin/qemu-aarch64-static ${rootfs}/usr/bin/
     cat << EOF | LC_ALL=C LANG=C chroot ${rootfs}/ /bin/bash
-set -x
-
-uname -a
-cat /proc/version
-cat /etc/issue
+#set -x
 
 passwd root
 root

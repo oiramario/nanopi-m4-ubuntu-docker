@@ -12,29 +12,29 @@ pack_loader_image()
     rm -f ${DISTRO}/trust.img
     rm -f ${DISTRO}/uboot.img
 
+    local rkbin_tools=${BUILD}/rkbin/tools
     cd ${BUILD}/rkbin
-    local path_fixup="--replace tools/rk_tools/ ./"
 
     # MiniLoaderAll.bin
     echo
    	info_msg "MiniLoaderAll.bin"
-    tools/boot_merger ${path_fixup} RKBOOT/RK3399MINIALL.ini
+    ${rkbin_tools}/boot_merger pack RKBOOT/RK3399MINIALL.ini
 
     # idbloader.img
     echo
    	info_msg "idbloader.img"
-    ${BUILD}/u-boot/tools/mkimage -T rksd -n rk3399 -d $(find bin/rk33/ -name "rk3399_ddr_800MHz_v*.bin") idbloader.img
+    ${rkbin_tools}/mkimage -T rksd -n rk3399 -d $(find bin/rk33/ -name "rk3399_ddr_800MHz_v*.bin") idbloader.img
     cat $(find bin/rk33/ -name "rk3399_miniloader_v*.bin") >> idbloader.img
 
     # uboot.img
     echo
    	info_msg "uboot.img"
-    tools/loaderimage --pack --uboot ../u-boot/u-boot.bin uboot.img 0x00200000
+    ${rkbin_tools}/loaderimage --pack --uboot ../u-boot/u-boot.bin uboot.img 0x00200000
 
     # trust.img
     echo
    	info_msg "trust.img"
-    tools/trust_merger ${path_fixup} RKTRUST/RK3399TRUST.ini
+    ${rkbin_tools}/trust_merger --pack RKTRUST/RK3399TRUST.ini
 
     # distro
     echo

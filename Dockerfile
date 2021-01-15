@@ -68,15 +68,18 @@ WORKDIR ${BUILD}
 # u-boot
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
-COPY "patch/u-boot" "$BUILD/patch/u-boot"
 RUN set -x \
     && cd "u-boot" \
-    # patch
-    && PATCH="$BUILD/patch/u-boot" \
-    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
+    # rollback python3 to python
+    && sed -i "s:#!/usr/bin/env python3:#!/usr/bin/env python:" ./arch/arm/mach-rockchip/make_fit_atf.py \
     # make
-    && make rk3399_defconfig \
+    && make nanopi-m4-rk3399_defconfig \
     && make -j$(nproc)
+
+
+# rockchip binaries
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/rkbin.tar.gz" "${BUILD}/"
 
 
 # kernel
@@ -89,8 +92,7 @@ RUN set -x \
                         -Wno-address-of-packed-member \
                         -Wno-missing-attributes \
                         -Wno-array-bounds \
-                        -Wno-incompatible-pointer-types \
-                        -Wno-stringop-overflow" \
+                        -Wno-incompatible-pointer-types" \
     && make nanopi4_linux_defconfig \
     && make -j$(nproc)
 
@@ -125,7 +127,6 @@ ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 # rockchip materials
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rkbin.tar.gz" "${BUILD}/"
 ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
 RUN set -x \
     # firmware
@@ -134,38 +135,13 @@ RUN set -x \
     && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
     && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
     \
-    && cp -rf etc system usr "${ROOTFS}/" \
+    && cp -rf system usr "${ROOTFS}/" \
     # /lib is symlink to /usr/lib since LTS 20.04
     && cp -rf lib/* "${ROOTFS}/lib/" \
     # 64bits wifi/bt
     && cd "${ROOTFS}/usr/bin" \
     && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
-    && mv -f "rk_wifi_init_64" "rk_wifi_init" \
-    # bt, wifi, audio firmware
-    && mkdir -p "${ROOTFS}/system/lib/modules" \
-    && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan" -name "*.ko" | \
-            xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
-    && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/system/lib/modules/*.ko
-
-RUN set -x \
-    # power manager
-    && cd "rk-rootfs-build/overlay/etc/Powermanager" \
-    && cp "triggerhappy.service" "${ROOTFS}/lib/systemd/system/" \
-    && cp "power-key.sh" "${ROOTFS}/usr/bin/" \
-    && mkdir -p "${ROOTFS}/etc/triggerhappy/triggers.d" \
-    && cp "power-key.conf" "${ROOTFS}/etc/triggerhappy/triggers.d/" \
-    && cp "triggerhappy" "${ROOTFS}/etc/init.d/"
-
-RUN set -x \
-    # udev rules
-    && cd "rk-rootfs-build/overlay/etc/udev/rules.d" \
-    && mkdir -p "${ROOTFS}/etc/udev/rules.d" \
-    && cp "50-hevc-rk3399.rules" \
-          "50-mail.rules" \
-          "50-vpu-rk3399.rules" \
-          "60-media.rules" \
-          "60-rga.rules" \
-          "${ROOTFS}/etc/udev/rules.d/"
+    && mv -f "rk_wifi_init_64" "rk_wifi_init"
 
 
 # compile settings
@@ -235,21 +211,12 @@ RUN set -x \
     && cp -rfp /usr/share/alsa ${ROOTFS}/usr/share/
 
 
-# alsa-config
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/alsa-config.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "alsa-config" \
-    && autoreconf -vfi \
-    && ./configure  --prefix="${ROOTFS}" \
-    && make install
-
-
 # libdrm
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/libdrm.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "libdrm" \
+    # make
     && export CFLAGS="  -Wno-cpp \
                         -Wno-format-truncation" \
     && ./autogen.sh --prefix="${PREFIX}" \
@@ -300,6 +267,7 @@ RUN set -x \
 ADD "packages/librga.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd librga \
+    # make
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -312,12 +280,8 @@ RUN set -x \
 # mpp
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/mpp.tar.gz" "${BUILD}/"
-COPY "patch/mpp" "$BUILD/patch/mpp"
 RUN set -x \
     && cd "mpp" \
-    # patch
-    && PATCH="$BUILD/patch/mpp" \
-    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
     && export CFLAGS="  -Wno-stringop-truncation \
                         -Wno-absolute-value" \
@@ -338,6 +302,7 @@ RUN set -x \
 ADD "packages/libusb.tar.gz" "${BUILD}/"
 RUN set -x \ 
     && cd "libusb" \
+    # make
     && autoreconf -vfi \
     && export   CFLAGS="-I${PREFIX}/include \
                         -Wno-format-zero-length" \
@@ -355,6 +320,7 @@ RUN set -x \
 ADD "packages/zlib.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd zlib \
+    # make
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -373,6 +339,7 @@ RUN set -x \
 ADD "packages/libjpeg.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd libjpeg \
+    # make
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -390,6 +357,7 @@ RUN set -x \
 ADD "packages/libpng.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd libpng \
+    # make
     && mkdir build && cd build \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -405,13 +373,14 @@ RUN set -x \
 # ffmpeg
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/ffmpeg.tar.gz" "${BUILD}/"
-COPY "patch/ffmpeg" "$BUILD/patch/ffmpeg"
+#COPY "patch/ffmpeg" "$BUILD/patch/ffmpeg"
 RUN set -x \
     && cd "ffmpeg" \
-    # patch
-    && PATCH="$BUILD/patch/ffmpeg" \
-    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
+    # # patch
+    # && PATCH="$BUILD/patch/ffmpeg" \
+    # && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
     # make
+    && sed -i "s:-lrga:-lrga -ldrm:" ./configure \
     && export ECFLAGS=" -Wno-deprecated-declarations \
                         -Wno-stringop-overflow \
                         -Wno-strict-prototypes \
@@ -421,13 +390,15 @@ RUN set -x \
                         -Wno-alloc-size-larger-than \
                         -Wno-format-overflow \
                         -Wno-discarded-qualifiers \
+                        -Wno-unused-but-set-variable \
+                        -Wno-unused-function \
                         -Wno-declaration-after-statement " \
     && ./configure  --prefix="${PREFIX}" \
                     --enable-cross-compile \
                     --cross-prefix=${CROSS_COMPILE} \
                     --arch=aarch64 \
                     --target-os=linux \
-                    --pkg-config=/usr/bin/pkg-config \
+                    --pkg-config=$(which pkg-config) \
                     --extra-ldflags="-L${PREFIX}/lib" \
                     --enable-rpath \
                     --enable-shared \
@@ -488,8 +459,9 @@ RUN set -x \
 ADD "packages/sdl.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "sdl" \
+    # make
     && mkdir "build" && cd "build" \
-    && export   CFLAGS="-I${PREFIX}/include -DEGL_NO_X11" \
+    && export   CFLAGS="-I${PREFIX}/include -DEGL_NO_X11 -Wno-shadow" \
                 LDFLAGS="-L${PREFIX}/lib" \
     && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
@@ -511,6 +483,7 @@ RUN set -x \
 ADD "packages/gdb.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "gdb/gdb/gdbserver" \
+    # make
     && export CFLAGS="-Wno-stringop-truncation" \
     && ./configure  --prefix="${PREFIX}" \
                     --host="${HOST}" \
@@ -537,9 +510,14 @@ ADD "packages/mpv.tar.gz" "${BUILD}/"
 RUN set -x \
     &&  if [ -z ${NoApp} ]; then \
             cd "mpv" ;\
+            sed -i "s:#!/usr/bin/env python3:#!/usr/bin/env python:" ./bootstrap.py ;\
             ./bootstrap.py ;\
             export  CC=${CROSS_COMPILE}gcc \
-                    CFLAGS="-I${PREFIX}/include -DEGL_NO_X11 -Wno-stringop-truncation -Wno-format-truncation" \
+                    CFLAGS="-I${PREFIX}/include \
+                            -DEGL_NO_X11 \
+                            -Wno-stringop-truncation \
+                            -Wno-format-truncation \
+                            -Wno-unused-label" \
                     LDFLAGS="-L${PREFIX}/lib" \
             ;\
             ./waf configure --prefix="${PREFIX}" \
@@ -579,6 +557,7 @@ RUN set -x \
                             -Wno-unused-function \
                             -Wno-maybe-uninitialized \
                             -Wno-sign-compare \
+                            -Wno-sizeof-pointer-memaccess \
                             -Wno-switch \
                             " ;\
             make -j$(nproc) ;\
@@ -594,6 +573,7 @@ RUN set -x \
 ADD "packages/gl4es.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd gl4es \
+    # make
     && mkdir build && cd build \
     && export   CFLAGS="-DEGL_NO_X11" \
                 LDFLAGS="-L${PREFIX}/lib" \

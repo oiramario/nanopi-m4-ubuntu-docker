@@ -61,7 +61,7 @@
             type = "ramdisk";
             arch = "arm64";
             os = "linux";
-			compression = "gzip";
+			compression = "none";
 			load = <0x06000000>;
 			entry = <0x06000000>;
 			hash_crc {

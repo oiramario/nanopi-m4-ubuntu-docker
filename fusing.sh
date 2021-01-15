@@ -10,8 +10,8 @@ if [ ! -d distro ]; then
     exit
 fi
 
-DISTRO_DIR=${PWD}/distro
-TOOLS_DIR=${PWD}/tools
+DISTRO_DIR=$(pwd)/distro
+TOOLS_DIR=$(pwd)/tools
 
 if [ ! -f "/etc/udev/rules.d/99-rk-rockusb.rules" ]; then
     warning_msg "add rockusb rules to udev"

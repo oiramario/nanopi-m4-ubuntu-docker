@@ -24,7 +24,7 @@ To build and use the docker stuff, do the following:
 
 * build.sh
 
-        using aarch65 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
+        using aarch64 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
         option:
             Application=1       --- build app
             UnitTest=1          --- build test

@@ -14,38 +14,36 @@ packages_dir=$(pwd)/packages
 update_sources()
 {
     local github_url=(
-        "https://git.sdut.me"
         "https://github.com.cnpmjs.org"
         "https://github.com"
     )
 
     local gits=(
-        "u-boot,rockchip-linux/u-boot.git,stable-4.4-rk3399-linux"
+        "u-boot,friendlyarm/uboot-rockchip,nanopi4-v2020.10"
         "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
-        "busybox,mirror/busybox.git,1_32_stable"
-        "rkbin,rockchip-linux/rkbin.git,stable-4.4-rk3399-linux"
+        "busybox,mirror/busybox.git,1_33_stable"
+        "rkbin,oiramario/rkbin.git,stable-4.4-rk3399-linux"
         "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
         "eudev,gentoo/eudev.git,v3.2.9"
-        "libdrm,rockchip-linux/libdrm-rockchip.git,rockchip-2.4.97"
+        "libdrm,oiramario/libdrm-rockchip.git,rockchip-2.4.97"
         "libmali,oiramario/libmali.git,rk3399-r14p0"
         "librga,oiramario/linux-rga.git,master"
-        "alsa-lib,alsa-project/alsa-lib.git,v1.2.3.2"
-        "alsa-config,rockchip-linux/alsa-config.git,master"
+        "alsa-lib,alsa-project/alsa-lib.git,v1.2.4"
         "mpp,rockchip-linux/mpp.git,release"
-        "libusb,libusb/libusb.git,v1.0.23"
+        "libusb,libusb/libusb.git,v1.0.24"
         "zlib,madler/zlib.git,v1.2.11"
-        "libjpeg,libjpeg-turbo/libjpeg-turbo.git,2.0.5"
+        "libjpeg,libjpeg-turbo/libjpeg-turbo.git,2.0.90"
         "libpng,glennrp/libpng.git,v1.6.37"
-        "ffmpeg,rockchip-linux/ffmpeg.git,rockchip/release/4.1"
-        "librealsense,IntelRealSense/librealsense.git,v2.36.0"
-        "sdl,spurious/SDL-mirror.git,release-2.0.12"
+        "ffmpeg,oiramario/ffmpeg.git,v4.2.4-ubuntu20.04"
+        "librealsense,IntelRealSense/librealsense.git,v2.41.0"
+        "sdl,spurious/SDL-mirror.git,release-2.0.14"
         "gdb,bminor/binutils-gdb.git,gdb-8.3-branch"
-        "mpv,rockchip-linux/mpv.git,debian/0.29.1-1"
+        "mpv,oiramario/mpv.git,0.32.0-ubuntu20.04"
         "sdlpal,sdlpal/sdlpal.git,master"
         "realsense_test,oiramario/gbm-drm-gles-cube.git,master"
         "gl4es,ptitSeb/gl4es.git,v1.1.4"
         "glmark2,glmark2/glmark2.git,release-2020.04"
-        "opencl_test,silven/hellocl.git,master"
+        "opencl_test,oiramario/hellocl.git,master"
     )
 
     cd ${download_dir}

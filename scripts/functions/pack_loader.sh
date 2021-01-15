@@ -9,8 +9,8 @@ pack_loader_image()
     # clean
     rm -f ${DISTRO}/MiniLoaderAll.bin
     rm -f ${DISTRO}/idbloader.img
-    rm -f ${DISTRO}/trust.img
     rm -f ${DISTRO}/uboot.img
+    rm -f ${DISTRO}/trust.img
 
     local rkbin_tools=${BUILD}/rkbin/tools
     cd ${BUILD}/rkbin

@@ -3,7 +3,7 @@ NanoPi4-ubuntu-docker
 
 <p align="center"><img src="shot.jpg"/></p>
 
-Build minimal image(<600M) for NanoPi-M4 / T4 / NEO4
+Build minimal image(<600M) for NanoPi-M4
 OS Image for development with the following tidbits:
 
 * rk3399_loader.bin
@@ -26,8 +26,8 @@ To build and use the docker stuff, do the following:
 
         using aarch64 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
         option:
-            Application=1       --- build app
-            UnitTest=1          --- build test
+            NoApp=1       --- without app
+            NoTest=1      --- without test
 
 * run.sh
 
@@ -37,6 +37,7 @@ To build and use the docker stuff, do the following:
 
         make images.
         usage:
+            make.sh res       --- pack resource.img
             make.sh loader    --- pack loader images
             make.sh boot      --- pack boot.img
             make.sh rootfs    --- pack rootfs.img
@@ -58,7 +59,7 @@ To build and use the docker stuff, do the following:
         fusing images to emmc.
         usage:
             fusing.sh loader
-            fusing.sh resource
+            fusing.sh res
             fusing.sh boot
             fusing.sh rootfs
             fusing.sh all
@@ -67,7 +68,7 @@ To build and use the docker stuff, do the following:
 
 * rk3399_loader.bin
 
-        boot_merger RK3399MINIALL.ini
+        boot_merger pack RK3399MINIALL.ini
 
 * idbloader.img
 
@@ -76,33 +77,26 @@ To build and use the docker stuff, do the following:
 
 * resource.img
 
-        resource_tool --pack --verbose --image=resource.img logo.bmp logo_kernel.bmp rk3399-nanopi4.dtb
+        resource_tool --pack --verbose --image=resource.img logo.bmp logo_kernel.bmp rk3399-nanopi-m4.dtb
 
 * uboot.img
 
-        loaderimage --pack --uboot u-boot.bin uboot.img 0x00200000
+        loaderimage --pack --uboot u-boot-dtb uboot.img 0x00200000
 
 * trust.img
 
-        trust_merger RKTRUST/RK3399TRUST.ini
+        trust_merger --pack RKTRUST/RK3399TRUST.ini
 
 # OS
 
 * kernel
 
-using m4 by default, select t4/neo4 by modify the **default = "conf_m4"@scripts/boot/fitImage.its**.
-
-        description = "U-Boot fitImage for rk3399_aarch64 kernel";
-        #address-cells = <1>;
+        description = "nanopi-m4 boot uImage";
 
         images {
                 kernel { ... };
 
-                fdt_t4 { ... };
-
                 fdt_m4 { ... };
-
-                fdt_neo4 { ... };
 
                 initramfs { ... };
         };
@@ -110,11 +104,7 @@ using m4 by default, select t4/neo4 by modify the **default = "conf_m4"@scripts/
         configurations {
                 default = "conf_m4";
 
-                conf_t4 { ... };
-
                 conf_m4 { ... };
-
-                conf_neo4 { ... };
         };
 
 * busybox

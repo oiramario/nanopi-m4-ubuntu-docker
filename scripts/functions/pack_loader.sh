@@ -7,7 +7,7 @@ source functions/common.sh
 pack_loader_image()
 {
     # clean
-    rm -f ${DISTRO}/MiniLoaderAll.bin
+    rm -f ${DISTRO}/rk3399_loader.bin
     rm -f ${DISTRO}/idbloader.img
     rm -f ${DISTRO}/uboot.img
     rm -f ${DISTRO}/trust.img
@@ -15,9 +15,9 @@ pack_loader_image()
     local rkbin_tools=${BUILD}/rkbin/tools
     cd ${BUILD}/rkbin
 
-    # MiniLoaderAll.bin
+    # rk3399_loader.bin
     echo
-   	info_msg "MiniLoaderAll.bin"
+   	info_msg "rk3399_loader.bin"
     ${rkbin_tools}/boot_merger pack RKBOOT/RK3399MINIALL.ini
 
     # idbloader.img
@@ -29,7 +29,7 @@ pack_loader_image()
     # uboot.img
     echo
    	info_msg "uboot.img"
-    ${rkbin_tools}/loaderimage --pack --uboot ../u-boot/u-boot.bin uboot.img 0x00200000
+    ${rkbin_tools}/loaderimage --pack --uboot ../u-boot/u-boot-dtb.bin uboot.img 0x00200000
 
     # trust.img
     echo
@@ -38,6 +38,6 @@ pack_loader_image()
 
     # distro
     echo
-    cp -v rk3399_loader_*.bin ${DISTRO}/MiniLoaderAll.bin
+    cp -v rk3399_loader_*.bin ${DISTRO}/rk3399_loader.bin
     cp -v idbloader.img uboot.img trust.img ${DISTRO}/
 }

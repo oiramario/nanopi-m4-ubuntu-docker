@@ -65,6 +65,21 @@ WORKDIR ${BUILD}
 # operating system #
 ####################
 
+# kernel
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/kernel.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd kernel \
+    # make
+    && export KCFLAGS=" -Wno-psabi \
+                        -Wno-address-of-packed-member \
+                        -Wno-missing-attributes \
+                        -Wno-array-bounds \
+                        -Wno-incompatible-pointer-types" \
+    && make nanopi4_linux_defconfig \
+    && make -j$(nproc)
+
+
 # u-boot
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
@@ -79,10 +94,15 @@ RUN set -x \
     && echo "CONFIG_BOOTDELAY=0" >> ./configs/nanopi-m4-rk3399_defconfig \
     && echo "CONFIG_SYS_CONSOLE_INFO_QUIET=y" >> ./configs/nanopi-m4-rk3399_defconfig \
     && echo "\
-CONFIG_MMC=y\n\
-MMC_VERBOSE=y\n\
+CONFIG_MMC_HS200_SUPPORT=y\n\
+CONFIG_MMC_HS400_SUPPORT=y\n\
 " >> ./configs/nanopi-m4-rk3399_defconfig \
+    && echo "\
+&sdhci {\n\
+    cap-mmc-highspeed;\n\
+};" >> ./arch/arm/dts/rk3399-nanopi-m4.dts \
     # make
+    # && export KCFLAGS="-DDEBUG" \
     && make nanopi-m4-rk3399_defconfig \
     && make -j$(nproc)
 
@@ -92,66 +112,46 @@ MMC_VERBOSE=y\n\
 ADD "packages/rkbin.tar.gz" "${BUILD}/"
 
 
-# # kernel
-# #----------------------------------------------------------------------------------------------------------------#
-# ADD "packages/kernel.tar.gz" "${BUILD}/"
-# RUN set -x \
-#     && cd kernel \
-#     # make
-#     && export KCFLAGS=" -Wno-psabi \
-#                         -Wno-address-of-packed-member \
-#                         -Wno-missing-attributes \
-#                         -Wno-array-bounds \
-#                         -Wno-incompatible-pointer-types" \
-#     && make nanopi4_linux_defconfig \
-#     && make -j$(nproc)
+# busybox
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/busybox.tar.gz" "${BUILD}/"
+RUN set -x \
+    && cd "busybox" \
+    # make
+    && export CFLAGS="  -Wno-unused-result \
+                        -Wno-format-security \
+                        -Wno-address-of-packed-member \
+                        -Wno-format-truncation \
+                        -Wno-format-overflow" \
+              LDFLAGS="--static" \
+    && make defconfig \
+    && make -j$(nproc) \
+    && make CONFIG_PREFIX="${BUILD}/initramfs" install
 
 
-# # busybox
-# #----------------------------------------------------------------------------------------------------------------#
-# ADD "packages/busybox.tar.gz" "${BUILD}/"
-# COPY "patch/busybox" "$BUILD/patch/busybox"
-# COPY "archives/init" "${BUILD}/initramfs/"
-# RUN set -x \
-#     && cd "busybox" \
-#     # patch
-#     && PATCH="$BUILD/patch/busybox" \
-#     && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
-#     # make
-#     && export CFLAGS="  -Wno-unused-result \
-#                         -Wno-format-security \
-#                         -Wno-address-of-packed-member \
-#                         -Wno-format-truncation \
-#                         -Wno-format-overflow" \
-#     && make defconfig \
-#     && make -j$(nproc) \
-#     && make CONFIG_PREFIX="${BUILD}/initramfs" install \
-#     && rm -f "${BUILD}/initramfs/linuxrc"
+# ubuntu rootfs
+#----------------------------------------------------------------------------------------------------------------#
+ENV ROOTFS="${BUILD}/rootfs"
+ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 
-# # ubuntu rootfs
-# #----------------------------------------------------------------------------------------------------------------#
-# ENV ROOTFS="${BUILD}/rootfs"
-# ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
-
-
-# # rockchip materials
-# #----------------------------------------------------------------------------------------------------------------#
-# ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
-# RUN set -x \
-#     # firmware
-#     && cd "rk-rootfs-build/overlay-firmware" \
-#     # copy dptx.bin to initramfs
-#     && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
-#     && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
-#     \
-#     && cp -rf system usr "${ROOTFS}/" \
-#     # /lib is symlink to /usr/lib since LTS 20.04
-#     && cp -rf lib/* "${ROOTFS}/lib/" \
-#     # 64bits wifi/bt
-#     && cd "${ROOTFS}/usr/bin" \
-#     && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
-#     && mv -f "rk_wifi_init_64" "rk_wifi_init"
+# rockchip materials
+#----------------------------------------------------------------------------------------------------------------#
+ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
+RUN set -x \
+    # firmware
+    && cd "rk-rootfs-build/overlay-firmware" \
+    # copy dptx.bin to initramfs
+    && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
+    && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
+    \
+    && cp -rf system usr "${ROOTFS}/" \
+    # /lib is symlink to /usr/lib since LTS 20.04
+    && cp -rf lib/* "${ROOTFS}/lib/" \
+    # 64bits wifi/bt
+    && cd "${ROOTFS}/usr/bin" \
+    && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
+    && mv -f "rk_wifi_init_64" "rk_wifi_init"
 
 
 # # compile settings
@@ -727,9 +727,23 @@ ADD "packages/rkbin.tar.gz" "${BUILD}/"
 #     && cp -rfp ${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
 
 
-# # overlay
-# #----------------------------------------------------------------------------------------------------------------#
-# COPY "archives/rootfs/" "${ROOTFS}/"
+# overlay
+#----------------------------------------------------------------------------------------------------------------#
+COPY "archives/rootfs/" "${ROOTFS}/"
+
+
+# rk3399-nanopi-m4.dtb
+#----------------------------------------------------------------------------------------------------------------#
+RUN set -x \
+    && cd ${BUILD}/kernel/arch/arm64/boot/dts/rockchip/ \
+    ## m4 = rk3399-nanopi4-rev01.dtb
+    && cp rk3399-nanopi4-rev01.dtb rk3399-nanopi-m4.dtb \
+    ## friendlyarm disable rga by default, re-enable it.
+    && fdtput -t s rk3399-nanopi-m4.dtb /rga status "okay"
+    # fdtput -d ${fdt_file} /sdhci mmc-hs200-1_8v
+    # fdtput ${fdt_file} /sdhci mmc-hs400-1_8v
+    # fdtput ${fdt_file} /sdhci mmc-hs400-enhanced-strobe
+    # fdtget ${fdt_file} -p /sdhci
 
 
 # ready to make

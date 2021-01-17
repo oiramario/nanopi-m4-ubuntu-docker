@@ -17,14 +17,11 @@ pack_boot_image()
     echo
    	info_msg "kernel"
     cp -v Image.gz ${boot}/kernel.gz
+
     # dtb
     echo
    	info_msg "dtb(s)"
-    ## rk3399-nanopi4-rev01.dtb
-    cp -v dts/rockchip/rk3399-nanopi4-rev01.dtb ${boot}/
-    ## friendlyarm disable rga by default, re-enable it.
-    fdtput -t s dts/rockchip/rk3399-nanopi4-rev01.dtb /rga status "okay"
-	done
+    cp -v dts/rockchip/rk3399-nanopi-m4.dtb ${boot}/
 
     # initramfs
     echo
@@ -38,16 +35,16 @@ pack_boot_image()
     echo
    	info_msg "flattened device tree"
     cd ${HOME}/scripts/boot
-    cp -v boot.fit boot.scr fitImage.its ${boot}/
+    cp -v boot.its boot.script nanopi-m4.its ${boot}/
     ## binary path
     local fit_path=${boot}/uImage
     [ -d ${fit_path} ] && rm -rf ${fit_path}
     mkdir -p ${fit_path}
     ## mkimage
     echo
-    ${rkbin_tools}/mkimage -f ${boot}/boot.fit ${fit_path}/boot.scr.uimg
+    ${rkbin_tools}/mkimage -f ${boot}/boot.its ${fit_path}/boot.scr.uimg
     echo
-    ${rkbin_tools}/mkimage -f ${boot}/fitImage.its ${fit_path}/fitImage.itb
+    ${rkbin_tools}/mkimage -f ${boot}/nanopi-m4.its ${fit_path}/nanopi-m4.itb
     ## ext2fs
     local boot_img=${DISTRO}/boot.img
     [ -f ${boot_img} ] && rm -f ${boot_img}
@@ -56,12 +53,4 @@ pack_boot_image()
     genext2fs -b 16384 -d ${fit_path} ${boot_img}
     e2fsck -p -f ${boot_img}
     resize2fs -M ${boot_img}
-
-    # resource
-    echo
-   	info_msg "resource"
-    cd ${boot}/
-    cp ${HOME}/scripts/boot/logo.bmp ./
-    cp ${HOME}/scripts/boot/logo_kernel.bmp ./
-    ${rkbin_tools}/resource_tool --pack --verbose --image=${DISTRO}/resource.img logo.bmp logo_kernel.bmp rk3399-nanopi4-rev01.dtb
 }

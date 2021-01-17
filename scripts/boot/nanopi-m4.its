@@ -1,7 +1,7 @@
 /dts-v1/;
   
 / {
-    description = "U-Boot fitImage for rk3399_aarch64 kernel";
+    description = "nanopi-m4 boot uImage";
     #address-cells = <1>;
   
     images {
@@ -14,21 +14,15 @@
 			compression = "gzip";
 			load = <0x02080000>;
 			entry = <0x02080000>;
-			hash_crc {
-				algo = "crc32";
-			};
 		};
 
         fdt_m4 {
             description = "nanopi-m4";
-            data = /incbin/("./rk3399-nanopi4-rev01.dtb");
+            data = /incbin/("./rk3399-nanopi-m4.dtb");
             type = "flat_dt";
             arch = "arm64";
 			compression = "none";
 			load = <0x01f00000>;
-			hash_crc {
-				algo = "crc32";
-			};
         };
 
         initramfs {
@@ -40,15 +34,11 @@
 			compression = "none";
 			load = <0x06000000>;
 			entry = <0x06000000>;
-			hash_crc {
-				algo = "crc32";
-			};
         };
     };
 
     configurations {
         default = "conf_m4";
-
         conf_m4 {
             description = "nanopi-m4";
             kernel = "kernel";

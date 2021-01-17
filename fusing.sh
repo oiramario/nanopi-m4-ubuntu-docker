@@ -82,7 +82,11 @@ do
             rootfs_addr=${addr}
             rootfs_size=${size}
             ;;
+        vendor)
+            ;;
         reserved)
+            ;;
+        ubootenv)
             ;;
         *)
             error_msg "Unknown format."
@@ -94,12 +98,10 @@ done
 
 fusing_begin()
 {
-    ${TOOLS_DIR}/rkdeveloptool  db  ${DISTRO_DIR}/MiniLoaderAll.bin
-    sleep 2
-    ${TOOLS_DIR}/rkdeveloptool  ul  ${DISTRO_DIR}/MiniLoaderAll.bin
-    sleep 2
+    ${TOOLS_DIR}/rkdeveloptool  db  ${DISTRO_DIR}/rk3399_loader.bin
+    sleep 1
     ${TOOLS_DIR}/rkdeveloptool  gpt ${TOOLS_DIR}/parameter.gpt
-    sleep 2
+    sleep 1
 }
 
 
@@ -116,7 +118,7 @@ fusing_idbloader()
     local size=${idbloader_size}
     info_msg "${name}: address=${addr} size=${size}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
-    sleep 2
+    sleep 1
 }
 
 
@@ -127,7 +129,7 @@ fusing_resource()
     local size=${resource_size}
     info_msg "${name}: address=${addr} size=${size}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
-    sleep 2
+    sleep 1
 }
 
 
@@ -138,7 +140,7 @@ fusing_uboot()
     local size=${uboot_size}
     info_msg "${name}: address=${addr} size=${size}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
-    sleep 2
+    sleep 1
 }
 
 
@@ -149,7 +151,7 @@ fusing_trust()
     local size=${trust_size}
     info_msg "${name}: address=${addr} size=${size}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
-    sleep 2
+    sleep 1
 }
 
 
@@ -160,7 +162,7 @@ fusing_boot()
     local size=${boot_size}
     info_msg "${name}: address=${addr} size=${size}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
-    sleep 2
+    sleep 1
 }
 
 
@@ -171,7 +173,7 @@ fusing_rootfs()
     local size=${rootfs_size}
     info_msg "${name}: address=${addr} size=${size}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
-    sleep 2
+    sleep 1
 }
 
 
@@ -183,7 +185,7 @@ help()
 	echo
 	info_msg "Example:"
 	info_msg "	fusing.sh loader"
-	info_msg "	fusing.sh resource"
+	info_msg "	fusing.sh res"
 	info_msg "	fusing.sh boot"
 	info_msg "	fusing.sh rootfs"
 	info_msg "	fusing.sh all"
@@ -201,7 +203,7 @@ case "$TARGET" in
             fusing_trust
         fusing_end
 		;;
-	resource)
+	res)
         fusing_begin
             fusing_resource
         fusing_end

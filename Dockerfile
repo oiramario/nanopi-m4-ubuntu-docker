@@ -29,7 +29,7 @@ RUN apt-get update -y \
         # u-boot
         bison  flex \
         # kernel
-        bc  libssl-dev  kmod \
+        bc  libssl-dev  kmod  liblz4-tool \
         # initramfs
         device-tree-compiler  cpio  genext2fs \
         # eudev
@@ -59,6 +59,8 @@ ENV LANG="en_US.UTF-8" \
 
 WORKDIR ${BUILD}
 
+# manipulate options in a .config file
+COPY "archives/config" "/bin/"
 
 
 ####################
@@ -85,25 +87,18 @@ RUN set -x \
 ADD "packages/u-boot.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "u-boot" \
-    # rollback python3 to python
+    # rollback to python
     && sed -i "s:#!/usr/bin/env python3:#!/usr/bin/env python:" ./arch/arm/mach-rockchip/make_fit_atf.py \
-    && sed -i "/CONFIG_ENV_IS_IN_MMC=y/d" ./configs/nanopi-m4-rk3399_defconfig \
-    && sed -i "/CONFIG_ENV_OFFSET=0x3F8000/d" ./configs/nanopi-m4-rk3399_defconfig \
-    && sed -i "/CONFIG_DISPLAY_BOARDINFO_LATE=y/d" ./configs/nanopi-m4-rk3399_defconfig \
-    && sed -i "/CONFIG_ETH_DESIGNWARE=y/d" ./configs/nanopi-m4-rk3399_defconfig \
-    && echo "CONFIG_BOOTDELAY=0" >> ./configs/nanopi-m4-rk3399_defconfig \
-    && echo "CONFIG_SYS_CONSOLE_INFO_QUIET=y" >> ./configs/nanopi-m4-rk3399_defconfig \
-    && echo "\
-CONFIG_MMC_HS200_SUPPORT=y\n\
-CONFIG_MMC_HS400_SUPPORT=y\n\
-" >> ./configs/nanopi-m4-rk3399_defconfig \
-    && echo "\
-&sdhci {\n\
-    cap-mmc-highspeed;\n\
-};" >> ./arch/arm/dts/rk3399-nanopi-m4.dts \
     # make
-    # && export KCFLAGS="-DDEBUG" \
     && make nanopi-m4-rk3399_defconfig \
+    && config   --disable DISPLAY_BOARDINFO_LATE \
+                --disable ETH_DESIGNWARE \
+                --enable SYS_CONSOLE_INFO_QUIET \
+                --enable MMC_HS200_SUPPORT \
+                --enable MMC_HS400_SUPPORT \
+                --set-val BOOTDELAY 0 \
+                --enable SPLASH_SCREEN \
+                --enable CMD_BMP \
     && make -j$(nproc)
 
 
@@ -129,29 +124,34 @@ RUN set -x \
     && make CONFIG_PREFIX="${BUILD}/initramfs" install
 
 
-# ubuntu rootfs
-#----------------------------------------------------------------------------------------------------------------#
-ENV ROOTFS="${BUILD}/rootfs"
-ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
+# # ubuntu rootfs
+# #----------------------------------------------------------------------------------------------------------------#
+# ENV ROOTFS="${BUILD}/rootfs"
+# ADD "packages/ubuntu-rootfs.tar.gz" "${ROOTFS}/"
 
 
-# rockchip materials
-#----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
-RUN set -x \
-    # firmware
-    && cd "rk-rootfs-build/overlay-firmware" \
-    # copy dptx.bin to initramfs
-    && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
-    && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
-    \
-    && cp -rf system usr "${ROOTFS}/" \
-    # /lib is symlink to /usr/lib since LTS 20.04
-    && cp -rf lib/* "${ROOTFS}/lib/" \
-    # 64bits wifi/bt
-    && cd "${ROOTFS}/usr/bin" \
-    && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
-    && mv -f "rk_wifi_init_64" "rk_wifi_init"
+# # rockchip materials
+# #----------------------------------------------------------------------------------------------------------------#
+# ADD "packages/rk-rootfs-build.tar.gz" "${BUILD}/"
+# RUN set -x \
+#     # firmware
+#     && cd "rk-rootfs-build/overlay-firmware" \
+#     # copy dptx.bin to initramfs
+#     && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
+#     && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
+#     \
+#     && cp -rf system usr "${ROOTFS}/" \
+#     # /lib is symlink to /usr/lib since LTS 20.04
+#     && cp -rf lib/* "${ROOTFS}/lib/" \
+#     # 64bits wifi/bt
+#     && cd "${ROOTFS}/usr/bin" \
+#     && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
+#     && mv -f "rk_wifi_init_64" "rk_wifi_init" \
+#     # bt, wifi, audio firmware
+#     && mkdir -p "${ROOTFS}/system/lib/modules" \
+#     && find "${BUILD}/kernel/drivers/net/wireless/rockchip_wlan" -name "*.ko" | \
+#             xargs -n1 -i cp {} "${ROOTFS}/system/lib/modules" \
+#     && aarch64-linux-gnu-strip --strip-unneeded ${ROOTFS}/system/lib/modules/*.ko
 
 
 # # compile settings
@@ -730,20 +730,6 @@ RUN set -x \
 # overlay
 #----------------------------------------------------------------------------------------------------------------#
 COPY "archives/rootfs/" "${ROOTFS}/"
-
-
-# rk3399-nanopi-m4.dtb
-#----------------------------------------------------------------------------------------------------------------#
-RUN set -x \
-    && cd ${BUILD}/kernel/arch/arm64/boot/dts/rockchip/ \
-    ## m4 = rk3399-nanopi4-rev01.dtb
-    && cp rk3399-nanopi4-rev01.dtb rk3399-nanopi-m4.dtb \
-    ## friendlyarm disable rga by default, re-enable it.
-    && fdtput -t s rk3399-nanopi-m4.dtb /rga status "okay"
-    # fdtput -d ${fdt_file} /sdhci mmc-hs200-1_8v
-    # fdtput ${fdt_file} /sdhci mmc-hs400-1_8v
-    # fdtput ${fdt_file} /sdhci mmc-hs400-enhanced-strobe
-    # fdtget ${fdt_file} -p /sdhci
 
 
 # ready to make

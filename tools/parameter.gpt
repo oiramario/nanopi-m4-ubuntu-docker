@@ -8,4 +8,4 @@ MACHINE: 3399
 CHECK_MASK: 0x80
 PWR_HLD: 0,0,A,0,1
 #in section; per section 512(0x200) bytes
-CMDLINE: mtdparts=rk29xxnand:0x00001BC0@0x00000040(idbloader),0x00000200@0x00001C00(vendor),0x000001C0@0x00001E00(reserved),0x00000040@0x00001FC0(ubootenv),0x00002000@0x00002000(resource),0x00002000@0x00004000(uboot),0x00002000@0x00006000(trust),0x00008000@0x00008000(boot:bootable),-@0x00010000(rootfs:grow)
+CMDLINE: mtdparts=rk29xxnand:0x00001f40@0x00000040(idbloader),0x00000080@0x00001f80(reserved1),0x00002000@0x00002000(reserved2),0x00002000@0x00004000(uboot),0x00002000@0x00006000(trust),0x00008000@0x00008000(boot:bootable),-@0x0010000(rootfs:grow)

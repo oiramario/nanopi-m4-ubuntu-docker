@@ -82,11 +82,9 @@ do
             rootfs_addr=${addr}
             rootfs_size=${size}
             ;;
-        vendor)
+        reserved1)
             ;;
-        reserved)
-            ;;
-        ubootenv)
+        reserved2)
             ;;
         *)
             error_msg "Unknown format."
@@ -99,9 +97,11 @@ done
 fusing_begin()
 {
     ${TOOLS_DIR}/rkdeveloptool  db  ${DISTRO_DIR}/rk3399_loader.bin
-    sleep 1
+    sleep 2
+    ${TOOLS_DIR}/rkdeveloptool  ul  ${DISTRO_DIR}/rk3399_loader.bin
+    sleep 2
     ${TOOLS_DIR}/rkdeveloptool  gpt ${TOOLS_DIR}/parameter.gpt
-    sleep 1
+    sleep 2
 }
 
 

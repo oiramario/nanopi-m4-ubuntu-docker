@@ -2,7 +2,7 @@
 #
 
 # disk space recovery
-resize2fs /dev/mmcblk1p9 >/dev/null 2>&1
+resize2fs /dev/mmcblk1p7 >/dev/null 2>&1
 
 # update locate database
 updatedb >/dev/null 2>&1

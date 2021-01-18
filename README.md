@@ -3,7 +3,7 @@ NanoPi4-ubuntu-docker
 
 <p align="center"><img src="shot.jpg"/></p>
 
-Build minimal image(<600M) for NanoPi-M4
+Build minimal image(<600M) for NanoPi4
 OS Image for development with the following tidbits:
 
 * rk3399_loader.bin
@@ -63,57 +63,6 @@ To build and use the docker stuff, do the following:
             fusing.sh boot
             fusing.sh rootfs
             fusing.sh all
-
-# Loader
-
-* rk3399_loader.bin
-
-        boot_merger pack RK3399MINIALL.ini
-
-* idbloader.img
-
-        mkimage -T rksd -n rk3399 -d rk3399_ddr_800MHz.bin idbloader.img
-        cat rk3399_miniloader.bin >> idbloader.img
-
-* resource.img
-
-        resource_tool --pack --verbose --image=resource.img logo.bmp logo_kernel.bmp rk3399-nanopi-m4.dtb
-
-* uboot.img
-
-        loaderimage --pack --uboot u-boot-dtb uboot.img 0x00200000
-
-* trust.img
-
-        trust_merger --pack RKTRUST/RK3399TRUST.ini
-
-# OS
-
-* kernel
-
-        description = "nanopi-m4 boot uImage";
-
-        images {
-                kernel { ... };
-
-                fdt_m4 { ... };
-
-                initramfs { ... };
-        };
-
-        configurations {
-                default = "conf_m4";
-
-                conf_m4 { ... };
-        };
-
-* busybox
-
-        find . | cpio -oH newc | gzip > ramdisk.cpio.gz
-
-* ubuntu
-
-        ubuntu-base-20.04-base-arm64
 
 # Rootfs
 

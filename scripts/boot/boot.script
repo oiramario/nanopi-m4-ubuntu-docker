@@ -1,4 +1,10 @@
-setenv bootargs console=ttyFIQ0 rw root=/dev/mmcblk1p9 rootfstype=ext4 rootwait
-setenv uimage_addr_r 0x4000000
-ext2load mmc ${devnum}:${distro_bootpart} $uimage_addr_r /nanopi-m4.itb
+setenv logo_lz4_addr_r 0x4000000
+ext2load mmc ${devnum}:${distro_bootpart} $logo_lz4_addr_r /logo.lz4
+setenv logo_addr_r 0x4400000
+unlz4 $logo_lz4_addr_r $logo_addr_r 0x400000
+bmp display $logo_addr_r m m
+
+setenv bootargs console=ttyFIQ0 rw root=/dev/mmcblk1p7 rootfstype=ext4 rootwait
+setenv uimage_addr_r 0x5000000
+ext2load mmc ${devnum}:${distro_bootpart} $uimage_addr_r /nanopi4.itb
 bootm $uimage_addr_r

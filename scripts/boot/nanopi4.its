@@ -1,0 +1,82 @@
+/dts-v1/;
+  
+/ {
+    description = "nanopi4 boot uImage";
+    #address-cells = <1>;
+  
+    images {
+		kernel {
+            description = "kernel 4.4.y";
+            data = /incbin/("./kernel.lz4");
+            type = "kernel";
+            arch = "arm64";
+            os = "linux";
+			compression = "lz4";
+			load = <0x02080000>;
+			entry = <0x02080000>;
+		};
+
+        fdt_t4 {
+            description = "nanopc-t4";
+            data = /incbin/("./rk3399-nanopi4-rev00.dtb");
+            type = "flat_dt";
+            arch = "arm64";
+			compression = "none";
+			load = <0x01f00000>;
+        };
+
+        fdt_m4 {
+            description = "nanopi-m4";
+            data = /incbin/("./rk3399-nanopi4-rev01.dtb");
+            type = "flat_dt";
+            arch = "arm64";
+			compression = "none";
+			load = <0x01f00000>;
+        };
+
+        fdt_neo4 {
+            description = "nanopi-neo4";
+            data = /incbin/("./rk3399-nanopi4-rev04.dtb");
+            type = "flat_dt";
+            arch = "arm64";
+            compression = "none";
+			load = <0x01f00000>;
+        };
+
+        initramfs {
+            description = "busybox";
+            data = /incbin/("./ramdisk.cpio.gz");
+            type = "ramdisk";
+            arch = "arm64";
+            os = "linux";
+			compression = "none";
+			load = <0x06000000>;
+			entry = <0x06000000>;
+        };
+    };
+
+    configurations {
+        default = "conf_m4";
+        
+        conf_t4 {
+            description = "nanopc-t4";
+            kernel = "kernel";
+            ramdisk = "initramfs";
+            fdt = "fdt_t4";
+        };
+
+        conf_m4 {
+            description = "nanopi-m4";
+            kernel = "kernel";
+            ramdisk = "initramfs";
+            fdt = "fdt_m4";
+        };
+
+        conf_neo4 {
+            description = "nanopi-neo4";
+            kernel = "kernel";
+            ramdisk = "initramfs";
+            fdt = "fdt_neo4";
+        };
+    };
+};

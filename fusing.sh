@@ -116,7 +116,7 @@ fusing_idbloader()
     local name="idbloader"
     local addr=${idbloader_addr}
     local size=${idbloader_size}
-    info_msg "${name}: address=${addr} size=${size}"
+    info_msg "${name}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
     sleep 1
 }
@@ -127,7 +127,7 @@ fusing_resource()
     local name="resource"
     local addr=${resource_addr}
     local size=${resource_size}
-    info_msg "${name}: address=${addr} size=${size}"
+    info_msg "${name}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
     sleep 1
 }
@@ -138,7 +138,7 @@ fusing_uboot()
     local name="uboot"
     local addr=${uboot_addr}
     local size=${uboot_size}
-    info_msg "${name}: address=${addr} size=${size}"
+    info_msg "${name}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
     sleep 1
 }
@@ -149,7 +149,7 @@ fusing_trust()
     local name="trust"
     local addr=${trust_addr}
     local size=${trust_size}
-    info_msg "${name}: address=${addr} size=${size}"
+    info_msg "${name}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
     sleep 1
 }
@@ -160,7 +160,7 @@ fusing_boot()
     local name="boot"
     local addr=${boot_addr}
     local size=${boot_size}
-    info_msg "${name}: address=${addr} size=${size}"
+    info_msg "${name}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
     sleep 1
 }
@@ -171,7 +171,7 @@ fusing_rootfs()
     local name="rootfs"
     local addr=${rootfs_addr}
     local size=${rootfs_size}
-    info_msg "${name}: address=${addr} size=${size}"
+    info_msg "${name}"
     ${TOOLS_DIR}/rkdeveloptool wl ${addr} ${DISTRO_DIR}/${name}.img
     sleep 1
 }
@@ -185,7 +185,7 @@ help()
 	echo
 	info_msg "Example:"
 	info_msg "	fusing.sh loader"
-	info_msg "	fusing.sh res"
+	info_msg "	fusing.sh resource"
 	info_msg "	fusing.sh boot"
 	info_msg "	fusing.sh rootfs"
 	info_msg "	fusing.sh all"
@@ -203,7 +203,7 @@ case "$TARGET" in
             fusing_trust
         fusing_end
 		;;
-	res)
+	resource)
         fusing_begin
             fusing_resource
         fusing_end

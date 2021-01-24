@@ -29,7 +29,7 @@ pack_loader_image()
     # uboot.img
     echo
    	info_msg "uboot.img"
-    ${rkbin_tools}/loaderimage --pack --uboot ../u-boot/u-boot-dtb.bin uboot.img 0x00200000
+    ${rkbin_tools}/loaderimage --pack --uboot ../u-boot/u-boot.bin uboot.img 0x00200000
 
     # trust.img
     echo

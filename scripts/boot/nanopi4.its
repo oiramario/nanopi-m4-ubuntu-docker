@@ -7,13 +7,13 @@
     images {
 		kernel {
             description = "kernel 4.4.y";
-            data = /incbin/("./kernel.lz4");
+            data = /incbin/("./kernel.gz");
             type = "kernel";
             arch = "arm64";
             os = "linux";
-			compression = "lz4";
-			load = <0x02080000>;
-			entry = <0x02080000>;
+			compression = "gzip";
+			load = <0x00280000>;
+			entry = <0x00280000>;
 		};
 
         fdt_t4 {
@@ -22,7 +22,7 @@
             type = "flat_dt";
             arch = "arm64";
 			compression = "none";
-			load = <0x01f00000>;
+			load = <0x08300000>;
         };
 
         fdt_m4 {
@@ -31,7 +31,7 @@
             type = "flat_dt";
             arch = "arm64";
 			compression = "none";
-			load = <0x01f00000>;
+			load = <0x08300000>;
         };
 
         fdt_neo4 {
@@ -40,7 +40,7 @@
             type = "flat_dt";
             arch = "arm64";
             compression = "none";
-			load = <0x01f00000>;
+			load = <0x08300000>;
         };
 
         initramfs {
@@ -49,9 +49,9 @@
             type = "ramdisk";
             arch = "arm64";
             os = "linux";
-			compression = "none";
-			load = <0x06000000>;
-			entry = <0x06000000>;
+			compression = "gzip";
+			load = <0x0a200000>;
+			entry = <0x0a200000>;
         };
     };
 

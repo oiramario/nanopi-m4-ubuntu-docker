@@ -3,7 +3,6 @@
 
 ## Functions
 source functions/common.sh
-source functions/pack_resource.sh
 source functions/pack_loader.sh
 source functions/pack_boot.sh
 source functions/pack_rootfs.sh
@@ -16,7 +15,6 @@ help()
 	info_msg "	make.sh [target]"
 	echo
 	info_msg "Example:"
-	info_msg "	make.sh res       --- pack resource.img"
 	info_msg "	make.sh loader    --- pack loader images"
 	info_msg "	make.sh boot      --- pack boot.img"
 	info_msg "	make.sh rootfs    --- pack rootfs.img"
@@ -29,9 +27,6 @@ help()
 ######################################################################################
 TARGET="$1"
 case "$TARGET" in
-	res)
-		pack_resource_image
-		;;
 	loader)
 		pack_loader_image
 		;;

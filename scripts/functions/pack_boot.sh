@@ -15,13 +15,16 @@ pack_boot_image()
     # kernel
     echo
    	info_msg "kernel"
-    lz4c -9 ${BUILD}/kernel/arch/arm64/boot/Image ${boot}/kernel.lz4
+    ##lz4c -9  1322.84 ms
+    ##lz4c -1  1257.90 ms
+    ##gzip     1138.87 ms
+    cp ${BUILD}/kernel/arch/arm64/boot/Image.gz ${boot}/kernel.gz
 
     # dtb
     echo
    	info_msg "dtb(s)"
-    local dtbs=${BUILD}/kernel/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev*.dtb
-    cp -v ${dtbs} ${boot}/
+    cp -v ${BUILD}/kernel/arch/arm64/boot/dts/rockchip/rk3399-nanopi4-rev*.dtb ${boot}/
+    local dtbs=${boot}/rk3399-nanopi4-rev*.dtb
     ## friendlyarm disable rga by default, let's re-enable that.
     for dtb in `ls ${boot}/rk3399-nanopi4-rev*.dtb`; do
         fdtput -t s ${dtb} /rga status "okay"
@@ -33,25 +36,31 @@ pack_boot_image()
     cd ${BUILD}/initramfs
     find . | cpio -oH newc | gzip > ${boot}/ramdisk.cpio.gz
 
+    # resource.img
+    echo
+   	info_msg "resource.img"
+    ${BUILD}/kernel/scripts/resource_tool \
+        --pack \
+        --image=${DISTRO}/resource.img \
+        --dtbname ${dtbs} ${HOME}/scripts/boot/logo.bmp ${HOME}/scripts/boot/logo_kernel.bmp
+
     local rkbin_tools=${BUILD}/rkbin/tools
     # FIT
     echo
    	info_msg "flattened device tree"
     cd ${HOME}/scripts/boot
-    cp -v boot.its boot.script nanopi4.its ${boot}/
+    #address from @u-boo/include/configs/rk3399_common.h
+    cp -v boot.script nanopi4.its ${boot}/
     ## binary path
     local bootimg=${boot}/image
     [ -d ${bootimg} ] && rm -rf ${bootimg}
     mkdir -p ${bootimg}
     ## mkimage
     echo
-    ${rkbin_tools}/mkimage -f ${boot}/boot.its ${bootimg}/boot.scr.uimg
+    ${rkbin_tools}/mkimage -C none -A arm64 -T script -d ${boot}/boot.script ${bootimg}/boot.scr
     echo
     ${rkbin_tools}/mkimage -f ${boot}/nanopi4.its ${bootimg}/nanopi4.itb
-    ## logo
     echo
-    info_msg "logo"
-    lz4c -9 ${HOME}/scripts/boot/logo.bmp ${bootimg}/logo.lz4
     ## ext2fs
     local boot_img=${DISTRO}/boot.img
     [ -f ${boot_img} ] && rm -f ${boot_img}

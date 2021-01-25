@@ -18,7 +18,7 @@ pack_boot_image()
     ##lz4c -9  1322.84 ms
     ##lz4c -1  1257.90 ms
     ##gzip     1138.87 ms
-    cp ${BUILD}/kernel/arch/arm64/boot/Image.gz ${boot}/kernel.gz
+    cp -v ${BUILD}/kernel/arch/arm64/boot/Image.gz ${boot}/kernel.gz
 
     # dtb
     echo

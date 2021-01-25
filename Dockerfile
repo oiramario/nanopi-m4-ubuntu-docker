@@ -36,8 +36,8 @@ RUN apt-get update -y \
         gperf \
         # libdrm
         autoconf  xutils-dev  libtool  libpciaccess-dev \
-        # mpv
-        python \
+        # libmali  mpv
+        python3 python3-pip ninja-build \
         # gdb
         texinfo \
         # rootfs
@@ -79,6 +79,8 @@ RUN set -x \
                         -Wno-array-bounds \
                         -Wno-incompatible-pointer-types" \
     && make nanopi4_linux_defconfig \
+    && config   --enable MALI_MIDGARD_FOR_ANDROID \
+                --disable MALI_MIDGARD_FOR_LINUX \
     && make -j$(nproc)
 
 
@@ -169,6 +171,9 @@ ENV PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 RUN mkdir -p ${PKG_CONFIG_PATH}
 
 COPY "archives/toolchain.cmake" "${BUILD}/"
+COPY "archives/cross_file_aarch64.txt" "${BUILD}/"
+
+RUN pip3 install meson
 
 
 # eudev
@@ -266,16 +271,19 @@ ADD "packages/libmali.tar.gz" "${BUILD}/"
 RUN set -x \
     && cd "libmali" \
     # make
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
-                -DTARGET_SOC=rk3399 \
-                -DDP_FEATURE=gbm \
-                -DGPU_FEATURE=opencl \
-                . \
-    && make install \
-    \
-    # OpenCL ICD
-    && mv ${PREFIX}/etc/OpenCL ${ROOTFS}/etc/ \
-    && rm -rf ${PREFIX}/etc
+    && mkdir build && cd build \
+    && meson .. . \
+                --prefix="${PREFIX}" \
+                --cross-file ${BUILD}/cross_file_aarch64.txt \
+                -Darch=aarch64 \
+                -Dgpu=midgard-t86x \
+                -Dversion=r18p0 \
+                -Dsubversion=none \
+                -Dplatform=gbm \
+                -Dopencl-icd=false \
+                -Dwith-overlay=false \
+    && meson compile \
+    && meson install
 
 
 # librga
@@ -431,19 +439,21 @@ RUN set -x \
     && make install
 
 
-# librealsense
+# librealsense [option: --build-arg RS=ON]
 #----------------------------------------------------------------------------------------------------------------#
+ARG RS
 ADD "packages/librealsense.tar.gz" "${BUILD}/"
 COPY "patch/librealsense" "$BUILD/patch/librealsense"
-RUN set -x \
-    && cd "librealsense" \
-    # patch
-    && PATCH="$BUILD/patch/librealsense" \
-    && for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done \
-    # make
-    && export CXXFLAGS="-Wno-deprecated \
-                        -Wno-placement-new" \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+RUN if [ "${RS}" = "ON" ]; then \
+        set -x ;\
+        cd "librealsense" ;\
+        # patch
+        PATCH="$BUILD/patch/librealsense" ;\
+        for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done ;\
+        # make
+        export CXXFLAGS="-Wno-deprecated \
+                         -Wno-placement-new" ;\
+        cmake   -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 # only shared
@@ -459,129 +469,134 @@ RUN set -x \
                 -DBUILD_WITH_STATIC_CRT=OFF \
                 # avoid kernel patch
                 -DFORCE_RSUSB_BACKEND=ON \
-                . \
-    && make -j$(nproc) \
-    && make install \
-    \
-    # remove static library
-    && rm -f ${PREFIX}/lib/librealsense-file.a \
-    # setting-up permissions for realsense devices
-    && mkdir -p "${ROOTFS}/etc/udev/rules.d/" \
-    && cp "config/99-realsense-libusb.rules" "${ROOTFS}/etc/udev/rules.d/"
+                . ;\
+        make -j$(nproc) ;\
+        make install ;\
+        \
+        # remove static library
+        rm -f ${PREFIX}/lib/librealsense-file.a ;\
+        # setting-up permissions for realsense devices
+        mkdir -p "${ROOTFS}/etc/udev/rules.d/" ;\
+        cp "config/99-realsense-libusb.rules" "${ROOTFS}/etc/udev/rules.d/" ;\
+    fi
 
 
-# sdl
+# sdl [option: --build-arg SDL=ON]
 #----------------------------------------------------------------------------------------------------------------#
+ARG SDL
 ADD "packages/sdl.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "sdl" \
-    # make
-    && mkdir "build" && cd "build" \
-    && export   CFLAGS="-I${PREFIX}/include -DEGL_NO_X11 -Wno-shadow" \
-                LDFLAGS="-L${PREFIX}/lib" \
-    && cmake    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
+RUN if [ "${SDL}" = "ON" ]; then \
+        set -x ;\
+        cd "sdl" ;\
+        # make
+        mkdir "build" && cd "build" ;\
+        export  CFLAGS="-I${PREFIX}/include -DEGL_NO_X11 -Wno-shadow" \
+                LDFLAGS="-L${PREFIX}/lib" ;\
+        cmake   -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
                 -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DSDL_STATIC=OFF \
                 -DSDL_SHARED=ON \
-                .. \
-    && make -j$(nproc) \
-    && make install \
-    \
-    # remove static library
-    && rm -f ${PREFIX}/lib/libSDL2main.a \
-    # for cross-compile
-    && mv ${PREFIX}/bin/sdl2-config /usr/local/bin/
+                .. ;\
+        make -j$(nproc) ;\
+        make install ;\
+        \
+        # remove static library
+        rm -f ${PREFIX}/lib/libSDL2main.a ;\
+        # for cross-compile
+        mv ${PREFIX}/bin/sdl2-config /usr/local/bin/ ;\
+    fi
 
 
-# gdbserver
+# gdbserver [option: --build-arg GDB=ON]
 #----------------------------------------------------------------------------------------------------------------#
+ARG GDB
 ADD "packages/gdb.tar.gz" "${BUILD}/"
-RUN set -x \
-    && cd "gdb/gdb/gdbserver" \
-    # make
-    && export CFLAGS="-Wno-stringop-truncation" \
-    && ./configure  --prefix="${PREFIX}" \
+RUN if [ "${GDB}" = "ON" ]; then \
+        set -x ;\
+        cd "gdb/gdb/gdbserver" ;\
+        # make
+        export CFLAGS="-Wno-stringop-truncation" ;\
+        ./configure --prefix="${PREFIX}" \
                     --host="${HOST}" \
-                    --target="${HOST}" \
-    && make -j$(nproc) \
-    && make install \
-    \
-    # rename
-    && cd ${PREFIX}/bin \
-    && mv ${CROSS_COMPILE}gdbserver gdbserver
-
+                    --target="${HOST}" ;\
+        make -j$(nproc) ;\
+        make install ;\
+        \
+        # rename
+        cd ${PREFIX}/bin ;\
+        mv ${CROSS_COMPILE}gdbserver gdbserver ;\
+    fi
 
 
 ###############
 # application #
 ###############
 
-ARG NoApp
-
-
-# mpv
+# mpv [option: --build-arg MPV=ON]
 #----------------------------------------------------------------------------------------------------------------#
+ARG MPV
 ADD "packages/mpv.tar.gz" "${BUILD}/"
-RUN set -x \
-    &&  if [ -z ${NoApp} ]; then \
-            cd "mpv" ;\
-            sed -i "s:#!/usr/bin/env python3:#!/usr/bin/env python:" ./bootstrap.py ;\
-            ./bootstrap.py ;\
-            export  CC=${CROSS_COMPILE}gcc \
-                    CFLAGS="-I${PREFIX}/include \
-                            -DEGL_NO_X11 \
-                            -Wno-stringop-truncation \
-                            -Wno-format-truncation \
-                            -Wno-unused-label" \
-                    LDFLAGS="-L${PREFIX}/lib" \
-            ;\
-            ./waf configure --prefix="${PREFIX}" \
-                            --disable-debug \
-                            --enable-libmpv-shared \
-                            --enable-egl-drm \
-                            --enable-sdl2 \
-                            --disable-lua \
-                            --disable-javascript \
-                            --disable-libass \
-                            ;\
-            ./waf build -j$(nproc) ;\
-            ./waf install ;\
-            mv ${PREFIX}/etc/mpv ${ROOTFS}/etc/ ;\
-        fi
+RUN if [ "${MPV}" = "ON" ]; then \
+        set -x ;\
+        cd "mpv" ;\
+        ./bootstrap.py ;\
+        export  CC=${CROSS_COMPILE}gcc \
+                CFLAGS="-I${PREFIX}/include \
+                        -DEGL_NO_X11 \
+                        -Wno-stringop-truncation \
+                        -Wno-format-truncation \
+                        -Wno-unused-label" \
+                LDFLAGS="-L${PREFIX}/lib" ;\
+        \
+        ./waf configure --prefix="${PREFIX}" \
+                        --disable-debug \
+                        --enable-libmpv-shared \
+                        --enable-egl-drm \
+                        --enable-sdl2 \
+                        --disable-lua \
+                        --disable-javascript \
+                        --disable-libass ;\
+        \
+        ./waf build -j$(nproc) ;\
+        ./waf install ;\
+        mv ${PREFIX}/etc/mpv ${ROOTFS}/etc/ ;\
+    fi
 
 
-# sdlpal
+# sdlpal [option: --build-arg PAL=ON]
 #----------------------------------------------------------------------------------------------------------------#
+ARG PAL
 ADD "archives/pal.tar.gz" "${BUILD}/"
 ADD "packages/sdlpal.tar.gz" "${BUILD}/"
 COPY "patch/sdlpal" "$BUILD/patch/sdlpal"
-RUN set -x \
-    &&  if [ -z ${NoApp} ]; then \
-            # patch
-            cd "sdlpal" ;\
-            PATCH="$BUILD/patch/sdlpal" ;\
-            for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done ;\
-            # make
-            cd "unix" ;\
-            export CCFLAGS="-Wno-dangling-else \
-                            -Wno-unused-variable \
-                            -Wno-stringop-truncation \
-                            -Wno-missing-braces \
-                            -Wno-restrict \
-                            -Wno-unused-result \
-                            -Wno-unused-function \
-                            -Wno-maybe-uninitialized \
-                            -Wno-sign-compare \
-                            -Wno-sizeof-pointer-memaccess \
-                            -Wno-switch \
-                            " ;\
-            make -j$(nproc) ;\
-            # copy bin and data
-            cp -rpf ${BUILD}/pal ${ROOTFS}/opt/ ;\
-            cp "sdlpal" "${ROOTFS}/opt/pal/" ;\
-            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/pal/sdlpal" ;\
-        fi
+RUN if [ "${PAL}" = "ON" ]; then \
+        set -x ;\
+        # patch
+        cd "sdlpal" ;\
+        PATCH="$BUILD/patch/sdlpal" ;\
+        for i in `ls $PATCH`; do echo "--patch: ${i}"; patch --verbose -p1 < $PATCH/$i; done ;\
+        # make
+        cd "unix" ;\
+        export CCFLAGS="-Wno-dangling-else \
+                        -Wno-unused-variable \
+                        -Wno-stringop-truncation \
+                        -Wno-missing-braces \
+                        -Wno-restrict \
+                        -Wno-unused-result \
+                        -Wno-unused-function \
+                        -Wno-maybe-uninitialized \
+                        -Wno-sign-compare \
+                        -Wno-sizeof-pointer-memaccess \
+                        -Wno-switch \
+                        " ;\
+        \
+        make -j$(nproc) ;\
+        # copy bin and data
+        cp -rpf ${BUILD}/pal ${ROOTFS}/opt/ ;\
+        cp "sdlpal" "${ROOTFS}/opt/pal/" ;\
+        aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/pal/sdlpal" ;\
+    fi
 
 
 # gl4es
@@ -611,31 +626,32 @@ RUN set -x \
     && ln -s libGL.so.1 libGL.so
 
 
-# glmark2
+# glmark2 [option: --build-arg GLMARK2=ON]
 #----------------------------------------------------------------------------------------------------------------#
+ARG GLMARK2
 ADD "packages/glmark2.tar.gz" "${BUILD}/"
-RUN set -x \
-    &&  if [ -z ${NoApp} ]; then \
-            cd glmark2 ;\
-            export  CC=${CROSS_COMPILE}gcc \
-                    CXX=${CROSS_COMPILE}g++ \
-                    CFLAGS="-idirafter ${PREFIX}/include -DEGL_NO_X11" \
-                    LDFLAGS="-L${PREFIX}/lib" \
-            ;\
-            ./waf configure --prefix="${PREFIX}" \
-                            --no-debug \
-                            --data-path="/opt/glmark2/data" \
-                            --with-flavors=drm-glesv2,drm-gl \
-                            ;\
-            ./waf build -j$(nproc) ;\
-            ./waf install ;\
-            # copy bin and data
-            mv /opt/glmark2 ${ROOTFS}/opt/ ;\
-            cd "${PREFIX}/bin/" ;\
-            mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ ;\
-            cd ${ROOTFS}/opt/glmark2/ ;\
-            aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm" ;\
-        fi
+RUN if [ "${GLMARK2}" = "ON" ]; then \
+        set -x ;\
+        cd glmark2 ;\
+        export  CC=${CROSS_COMPILE}gcc \
+                CXX=${CROSS_COMPILE}g++ \
+                CFLAGS="-idirafter ${PREFIX}/include -DEGL_NO_X11" \
+                LDFLAGS="-L${PREFIX}/lib" ;\
+        \
+        ./waf configure --prefix="${PREFIX}" \
+                        --no-debug \
+                        --data-path="/opt/glmark2/data" \
+                        --with-flavors=drm-glesv2,drm-gl \
+                        ;\
+        ./waf build -j$(nproc) ;\
+        ./waf install ;\
+        # copy bin and data
+        mv /opt/glmark2 ${ROOTFS}/opt/ ;\
+        cd "${PREFIX}/bin/" ;\
+        mv "glmark2-drm" "glmark2-es2-drm" ${ROOTFS}/opt/glmark2/ ;\
+        cd ${ROOTFS}/opt/glmark2/ ;\
+        aarch64-linux-gnu-strip --strip-unneeded "glmark2-drm" "glmark2-es2-drm" ;\
+    fi
 
 
 
@@ -643,72 +659,72 @@ RUN set -x \
 # unit-test #
 #############
 
-ARG NoTest
+ARG UnitTest
 
 # media
 #----------------------------------------------------------------------------------------------------------------#
 COPY "archives/media/*" "${BUILD}/media/"
-RUN set -x \
-    &&  if [ -z ${NoTest} ]; then \
-            cp -rfp ${BUILD}/media/* ${ROOTFS}/opt/ ;\
-        fi
+RUN if [ "${UnitTest}" = "ON" ]; then \
+        set -x ;\
+        cp -rfp ${BUILD}/media/* ${ROOTFS}/opt/ ;\
+    fi
 
 
 # rga_test
 #----------------------------------------------------------------------------------------------------------------#
-RUN set -x \
-    &&  if [ -z ${NoTest} ]; then \
-            cd librga/demo ;\
-            mkdir build ;\
-            cd build ;\
-            cmake   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
-                    -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                    -DCMAKE_BUILD_TYPE=Release \
-                    .. \
-                    ;\
-            make -j$(nproc) ;\
-            make install ;\
-        fi
+RUN if [ "${UnitTest}" = "ON" ]; then \
+        set -x ;\
+        cd librga/demo ;\
+        mkdir build ;\
+        cd build ;\
+        cmake   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
+                -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                .. \
+                ;\
+        make -j$(nproc) ;\
+        make install ;\
+    fi
 
 
 # sdl_test
 #----------------------------------------------------------------------------------------------------------------#
 COPY "archives/sdl_video_test.cpp" "${BUILD}/sdl_test/"
-RUN set -x \
-    &&  if [ -z ${NoTest} ]; then \
-            ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_video_test.cpp" `sdl2-config --cflags --libs` -L"libudev" -o "${ROOTFS}/opt/sdl_video_test" ;\
-            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/sdl_video_test" ;\
-        fi
+RUN if [ "${SDL}" = "ON" ] && [ "${UnitTest}" = "ON" ]; then \
+        set -x ;\
+        ${CROSS_COMPILE}g++ "${BUILD}/sdl_test/sdl_video_test.cpp" `sdl2-config --cflags --libs` -L"libudev" -o "${ROOTFS}/opt/sdl_video_test" ;\
+        aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/sdl_video_test" ;\
+    fi
 
 
 # opencl_test
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/opencl_test.tar.gz" "${BUILD}/"
-RUN set -x \
-    &&  if [ -z ${NoTest} ]; then \
-            cd opencl_test ;\
-            sed -i '1i #include <stdlib.h>' hellocl.c ;\
-            ${CROSS_COMPILE}gcc "hellocl.c" $(pkg-config --cflags --libs OpenCL libdrm) -Wno-implicit-function-declaration -o "${ROOTFS}/opt/opencl_test" ;\
-            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/opencl_test" ;\
-        fi
+RUN if [ "${UnitTest}" = "ON" ]; then \
+        set -x ;\
+        cd opencl_test ;\
+        sed -i '1i #include <stdlib.h>' hellocl.c ;\
+        ${CROSS_COMPILE}gcc "hellocl.c" $(pkg-config --cflags --libs OpenCL libdrm) -Wno-implicit-function-declaration -o "${ROOTFS}/opt/opencl_test" ;\
+        aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/opencl_test" ;\
+    fi
 
 
 # realsense_test
 #----------------------------------------------------------------------------------------------------------------#
 ADD "packages/realsense_test.tar.gz" "${BUILD}/"
-RUN set -x \
-    &&  if [ -z ${NoTest} ]; then \
-            cd realsense_test ;\
-            mkdir build ;\
-            cd build ;\
-            cmake   -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
-                    -DCMAKE_BUILD_TYPE=Release \
-                    .. \
-                    ;\
-            make -j$(nproc) ;\
-            cp "gbm-drm-gles-cube" "${ROOTFS}/opt/realsense_test" ;\
-            aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/realsense_test" ;\
-        fi
+RUN if [ "${RS}" = "ON" ] && [ ${UnitTest} = "ON" ]; then \
+        set -x ;\
+        cd realsense_test ;\
+        mkdir build ;\
+        cd build ;\
+        cmake   -DCMAKE_TOOLCHAIN_FILE="${BUILD}/toolchain.cmake" \
+                -DCMAKE_BUILD_TYPE=Release \
+                .. \
+                ;\
+        make -j$(nproc) ;\
+        cp "gbm-drm-gles-cube" "${ROOTFS}/opt/realsense_test" ;\
+        aarch64-linux-gnu-strip --strip-unneeded "${ROOTFS}/opt/realsense_test" ;\
+    fi
 
 
 
@@ -728,7 +744,7 @@ RUN set -x \
 RUN set -x \
     && cd ${PREFIX}/bin \
     && for f in `find ./ -executable -type f`; do \
-           xargs ${CROSS_COMPILE}strip --strip-unneeded $f; \
+            xargs ${CROSS_COMPILE}strip --strip-unneeded $f ;\
        done \
     && cp -rfp ${PREFIX}/bin/* "${ROOTFS}/usr/bin/"
 

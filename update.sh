@@ -20,15 +20,15 @@ update_sources()
 
     #friendlyarm/uboot-rockchip does not support MMC_MODE_HS400(150MHz), only 50MHz.
     local gits=(
-        "u-boot,oiramario/u-boot,stable-4.4-rk3399-linux"
         "rkbin,oiramario/rkbin.git,stable-4.4-rk3399-linux"
+        "u-boot,oiramario/u-boot,stable-4.4-rk3399-linux"
         "kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
         "busybox,mirror/busybox.git,1_33_stable"
         "rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
         "eudev,gentoo/eudev.git,v3.2.9"
         "alsa-lib,alsa-project/alsa-lib.git,v1.2.4"
         "libdrm,oiramario/libdrm-rockchip.git,rockchip-2.4.97"
-        "libmali,oiramario/libmali.git,rk3399-r14p0"
+        "libmali,rockchip-linux/libmali.git,master"
         "librga,oiramario/linux-rga.git,master"
         "mpp,oiramario/mpp.git,release"
         "libusb,libusb/libusb.git,v1.0.24"

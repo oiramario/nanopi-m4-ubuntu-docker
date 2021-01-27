@@ -7,15 +7,15 @@ source scripts/functions/common.sh
 
 clear_distro()
 {
-	DISTRO=$(pwd)/distro
-	[ -d $DISTRO ] && rm -vrf $DISTRO
+	NANOPI4_DISTRO=$(pwd)/distro
+	[ -d $NANOPI4_DISTRO ] && rm -vrf $NANOPI4_DISTRO
 }
 
 
 clear_devkit()
 {
-	DEVKIT=/opt/devkit
-	[ -d $DEVKIT ] && sudo rm -vrf $DEVKIT
+	NANOPI4_DEVKIT=/opt/devkit
+	[ -d $NANOPI4_DEVKIT ] && sudo rm -vrf $NANOPI4_DEVKIT
 }
 
 
@@ -41,7 +41,7 @@ clear_docker()
     # remove images
     info_msg "remove none images"
     var=$(docker images | grep "none" | awk '{print $3}')
-    [ -n "$var" ] && docker rmi $var
+    [ -n "$var" ] && docker rmi --force $var
 }
 
 

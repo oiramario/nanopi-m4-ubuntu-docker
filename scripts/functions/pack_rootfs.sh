@@ -63,7 +63,7 @@ apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Option
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                pm-utils triggerhappy sudo ssh htop file mlocate bash-completion usbmount vim
+                sudo ssh htop file mlocate bash-completion usbmount vim
 
 echo 'devices/platform/ff9a0000.gpu/devfreq/ff9a0000.gpu/governor = performance' >> /etc/sysfs.conf
 
@@ -73,12 +73,16 @@ systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service
 rm /lib/systemd/system/wpa_supplicant@.service
 
-apt-get autoclean -y
-apt-get autoremove -y
-rm -rf /var/lib/apt/lists/*
-rm -rf /var/cache/apt/archives/*.deb
-rm -rf /var/log/*
-rm -rf /tmp/*
+apt-get autoclean
+apt-get clean
+apt-get autoremove
+rm -rfv /var/cache/apt/srcpkgcache.bin
+rm -rfv /var/cache/apt/pkgcache.bin
+rm -rfv /usr/share/doc/*
+rm -rfv /usr/share/man/*
+rm -rfv /var/lib/apt/lists/*
+rm -rfv /var/log/*
+rm -rfv /tmp/*
 EOF
     rm ${rootfs}/usr/bin/qemu-aarch64-static
     sync
@@ -95,10 +99,10 @@ EOF
    	info_msg "make rootfs.img"
     local rootfs_mnt=/tmp/rootfs-mnt
     [ -d ${rootfs_mnt} ] && rm -rf ${rootfs_mnt}
-    local rootfs_img=${DISTRO}/rootfs.img
+    local rootfs_img=${NANOPI4_DISTRO}/rootfs.img
     [ -f ${rootfs_img} ] && rm -f ${rootfs_img}
 
-    dd if=/dev/zero of=${rootfs_img} bs=1M count=768
+    dd if=/dev/zero of=${rootfs_img} bs=1M count=512
     mkfs.ext4 ${rootfs_img}
     sync
     mkdir -p ${rootfs_mnt}

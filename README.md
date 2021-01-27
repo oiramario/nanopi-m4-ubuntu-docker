@@ -3,7 +3,7 @@ NanoPi4-ubuntu-docker
 
 <p align="center"><img src="shot.jpg"/></p>
 
-Build minimal image(<600M) for NanoPi4
+Build minimal image(<400M) for NanoPi4
 OS Image for development with the following tidbits:
 
 * rk3399_loader.bin
@@ -24,10 +24,7 @@ To build and use the docker stuff, do the following:
 
 * build.sh
 
-        using aarch64 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries.
-        option:
-            NoApp=1       --- without app
-            NoTest=1      --- without test
+        using aarch64 gcc-9.3 to cross-compile u-boot, kernel, rockchip stuff, libraries and runtimes.
 
 * run.sh
 
@@ -37,7 +34,6 @@ To build and use the docker stuff, do the following:
 
         make images.
         usage:
-            make.sh res       --- pack resource.img
             make.sh loader    --- pack loader images
             make.sh boot      --- pack boot.img
             make.sh rootfs    --- pack rootfs.img
@@ -59,7 +55,7 @@ To build and use the docker stuff, do the following:
         fusing images to emmc.
         usage:
             fusing.sh loader
-            fusing.sh res
+            fusing.sh resource
             fusing.sh boot
             fusing.sh rootfs
             fusing.sh all
@@ -68,27 +64,22 @@ To build and use the docker stuff, do the following:
 
 ### runtime
 
-- eudev
+- alsa
 - libdrm
 - libmali
 - librga
-- alsa
 - mpp
-- libusb
-- zlib
-- libjpeg
-- libpng
 - ffmpeg
-- librealsense
 - sdl2
-- gdbserver
-- gl4es
-
-### application
-
 - mpv
+
+### 3rdparty
+
+- librealsense
+- gdbserver
 - sdlpal
 - glmark2
+- mame
 
 ### unit-test
 

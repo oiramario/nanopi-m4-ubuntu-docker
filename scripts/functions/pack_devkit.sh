@@ -6,5 +6,5 @@ source functions/common.sh
 
 pack_dev_kit()
 {
-    cp -vrfp ${PREFIX}/* ${DEVKIT}/
+    cp -vrfp ${PREFIX}/* ${NANOPI4_DEVKIT}/
 }

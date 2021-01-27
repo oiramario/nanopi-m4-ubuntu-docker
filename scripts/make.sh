@@ -54,4 +54,4 @@ esac
 
 echo
 info_msg "Done."
-ls ${DISTRO} -lh
+ls ${NANOPI4_DISTRO} -lh

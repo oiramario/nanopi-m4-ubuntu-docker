@@ -8,6 +8,7 @@ scripts
 distro
 downloads
 tools
+packages/3rdparty
 
 *.sh
 *.md

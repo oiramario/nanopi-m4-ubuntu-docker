@@ -17,24 +17,23 @@ packages_3rdparty_dir=${packages_dir}
 update_sources()
 {
     local github_url=(
-        "https://github.com.cnpmjs.org"
         "https://github.com"
     )
 
     #friendlyarm/uboot-rockchip does not support MMC_MODE_HS400(150MHz), only 50MHz.
     local gits=(
-        "core,rkbin,oiramario/rkbin.git,stable-4.4-rk3399-linux"
-        "core,u-boot,oiramario/u-boot,stable-4.4-rk3399-linux"
+        "core,rkbin,FreshLuoBoGan/rkbin.git,stable-4.4-rk3399-linux"
+        "core,u-boot,friendlyarm/uboot-rockchip,nanopi4-v2021.07"
         "core,kernel,friendlyarm/kernel-rockchip.git,nanopi4-linux-v4.4.y"
-        "core,busybox,mirror/busybox.git,1_33_stable"
-        "core,rk-rootfs-build,rockchip-linux/rk-rootfs-build.git,master"
-        "core,alsa-lib,alsa-project/alsa-lib.git,v1.2.4"
-        "core,libdrm,oiramario/libdrm-rockchip.git,rockchip-2.4.97"
+        "core,busybox,mirror/busybox.git,1_36_stable"
+        "core,rk-rootfs-build,friendlyarm/rk-rootfs-build.git,master"
+        "core,alsa-lib,alsa-project/alsa-lib.git,v1.2.10"
+        "core,libdrm,xiaoshzx/libdrm-rockchip-1.git,rockchip-2.4.97"
         "core,libmali,oiramario/libmali.git,rk3399-r14p0"
-        "core,librga,oiramario/linux-rga.git,master"
+        "core,librga,airockchip/librga.git,main"
         "core,mpp,oiramario/mpp.git,release"
-        "core,zlib,madler/zlib.git,v1.2.11"
-        "core,libjpeg,libjpeg-turbo/libjpeg-turbo.git,2.0.90"
+        "core,zlib,madler/zlib.git,v1.3"
+        "core,libjpeg,libjpeg-turbo/libjpeg-turbo.git,3.0.0"
         "core,libpng,glennrp/libpng.git,v1.6.37"
         "core,ffmpeg,oiramario/ffmpeg.git,v4.2.4-ubuntu20.04"
         "core,sdl,spurious/SDL-mirror.git,release-2.0.14"

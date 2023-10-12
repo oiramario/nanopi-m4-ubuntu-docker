@@ -22,16 +22,16 @@ clear_devkit()
 clear_docker()
 {
     # stop containers
-    info_msg "stop rk3399 containers"
-    var=$(docker ps -a | grep "rk3399" | awk '{print $1 }')
+    info_msg "stop nanopim4 containers"
+    var=$(docker ps -a | grep "nanopim4" | awk '{print $1 }')
     [ -n "$var" ] && docker stop $var
 
     info_msg "stop exited containers"
     var=$(docker ps -a | grep "Exited" | awk '{print $1 }')
     [ -n "$var" ] && docker stop $var
 
-    info_msg "remove rk3399 containers"
-    var=$(docker ps -a | grep "rk3399" | awk '{print $1 }')
+    info_msg "remove nanopim4 containers"
+    var=$(docker ps -a | grep "nanopim4" | awk '{print $1 }')
     [ -n "$var" ] && docker rm $var
 
     info_msg "remove exited containers"

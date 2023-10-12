@@ -8,4 +8,4 @@ NANOPI4_DISTRO=$(pwd)/distro
 NANOPI4_DEVKIT=/opt/devkit
 [ ! -d $NANOPI4_DEVKIT ] && sudo mkdir -p $NANOPI4_DEVKIT
 
-docker build -t rk3399 . 
+docker build -t nanopim4 . 

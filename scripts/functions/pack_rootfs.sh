@@ -42,11 +42,11 @@ passwd root
 root
 root
 
-useradd -m -s /bin/bash flagon
-passwd flagon
+useradd -m -s /bin/bash mario
+passwd mario
 111
 111
-usermod -aG sudo flagon
+usermod -aG sudo mario
 
 export DEBIAN_FRONTEND=noninteractive 
 
@@ -63,11 +63,11 @@ apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Option
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                sudo ssh htop file mlocate bash-completion usbmount vim
+                sudo ssh htop file mlocate bash-completion usbmount
 
 echo 'devices/platform/ff9a0000.gpu/devfreq/ff9a0000.gpu/governor = performance' >> /etc/sysfs.conf
 
-echo "AllowUsers flagon" >> /etc/ssh/sshd_config
+echo "AllowUsers mario" >> /etc/ssh/sshd_config
 
 systemctl mask systemd-networkd-wait-online.service
 systemctl mask NetworkManager-wait-online.service

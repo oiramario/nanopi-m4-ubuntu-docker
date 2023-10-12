@@ -6,7 +6,7 @@
   
     images {
 		kernel {
-            description = "kernel 4.4.y";
+            description = "kernel 4.19.y";
             data = /incbin/("./kernel.gz");
             type = "kernel";
             arch = "arm64";

@@ -14,5 +14,5 @@ docker run -it \
     -v $(pwd)/scripts:/root/scripts:ro \
     -v /etc/localtime:/etc/localtime:ro \
     --privileged \
-    rk3399:latest \
+    nanopim4:latest \
     /bin/bash #./make.sh rootfs

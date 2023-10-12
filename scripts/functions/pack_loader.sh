@@ -18,18 +18,18 @@ pack_loader_image()
     # rk3399_loader.bin
     echo
    	info_msg "rk3399_loader.bin"
-    ${rkbin_tools}/boot_merger pack RKBOOT/RK3399MINIALL.ini
+    ${rkbin_tools}/boot_merger RKBOOT/RK3399MINIALL.ini
 
     # idbloader.img
     echo
    	info_msg "idbloader.img"
-    ${rkbin_tools}/mkimage -T rksd -n rk3399 -d $(find bin/rk33/ -name "rk3399_ddr_800MHz_v*.bin") idbloader.img
+    ${rkbin_tools}/mkimage -T rksd -n rk3399 -d $(find bin/rk33/ -name "rk3399_ddr_933MHz_v*.bin") idbloader.img
     cat $(find bin/rk33/ -name "rk3399_miniloader_v*.bin") >> idbloader.img
 
     # uboot.img
     echo
    	info_msg "uboot.img"
-    ${rkbin_tools}/loaderimage --pack --uboot ../u-boot/u-boot.bin uboot.img 0x00200000
+    ${rkbin_tools}/loaderimage --pack --uboot ${BUILD}/uboot/u-boot.bin uboot.img 0x00200000
 
     # trust.img
     echo

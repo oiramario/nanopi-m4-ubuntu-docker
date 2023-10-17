@@ -13,18 +13,20 @@ diff -Nur a/unix/Makefile b/unix/Makefile
 @@ -50,7 +50,7 @@
  CC = $(HOST)gcc
  CXX = $(HOST)g++
- override CCFLAGS += `$(SDL_CONFIG) --cflags` -D_GNU_SOURCE -g -Wall -O2 -fno-strict-aliasing $(EXTRA_CCFLAGS) $(TEST_CCFLAGS) $(GENERATED)
+-override CCFLAGS += `$(SDL_CONFIG) --cflags` -D_GNU_SOURCE -g -Wall -O2 -fno-strict-aliasing $(EXTRA_CCFLAGS) $(TEST_CCFLAGS) $(GENERATED)
++override CCFLAGS += `$(SDL_CONFIG) --prefix=/opt/devkit --cflags` -D_GNU_SOURCE -g -Wall -O2 -fno-strict-aliasing $(EXTRA_CCFLAGS) $(TEST_CCFLAGS) $(GENERATED)
 -CXXFLAGS = $(CCFLAGS) -std=c++11 $(FLTK_CXXFLAGS)
 +CXXFLAGS = $(CCFLAGS) -std=c++11 $(FLTK_CXXFLAGS) -Wno-class-memaccess
  CFLAGS = $(CCFLAGS) -std=gnu99 $(FLTK_CFLAGS)
- LDFLAGS = `$(SDL_CONFIG) --libs` $(FLTK_LDFLAGS) $(MIDI_LDFLAGS) -lstdc++ -lm
+-LDFLAGS = `$(SDL_CONFIG) --libs` $(FLTK_LDFLAGS) $(MIDI_LDFLAGS) -lstdc++ -lm
++LDFLAGS = `$(SDL_CONFIG) --prefix=/opt/devkit --libs` $(FLTK_LDFLAGS) $(MIDI_LDFLAGS) -lstdc++ -lm
  TEST_CXXFLAGS += -isystem $(GTEST_DIR)/include -I $(GTEST_DIR) -g -Wall -Wextra -pthread
 @@ -60,7 +60,7 @@
  	LDFLAGS += -framework OpenGL
  	OBJFILES = $(filter-out ../mini_glloader.unix.o, $(TOBJFILES))
  else
 -	LDFLAGS += -lGL -pthread
-+	LDFLAGS += -pthread
++	LDFLAGS += -lGL -pthread
  	OBJFILES = $(TOBJFILES)
  endif
  

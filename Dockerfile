@@ -22,7 +22,7 @@ RUN apt-get update -y \
     && apt-get upgrade -y \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         # compile
-        make  pkg-config  cmake \
+        patch  make  pkg-config  cmake \
         git  gcc  g++  gcc-aarch64-linux-gnu  g++-aarch64-linux-gnu \
         # u-boot
         bison  flex  python3 \
@@ -47,7 +47,7 @@ ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
     TERM=screen
 
-ENV BUILD="/root/modules"
+ENV BUILD="/root/build"
 WORKDIR ${BUILD}
 
 ENV ELAPSED_BEGIN="export start_stamp=\$(date +%s)"
@@ -90,7 +90,7 @@ RUN set -x \
     # make
     && export   ARCH="arm64" \
                 CROSS_COMPILE="aarch64-linux-gnu-" \
-    && make nanopi-m4-rk3399_defconfig \
+    && make nanopi4_defconfig \
     && ${BUILD}/kernel/scripts/config \
                 --disable ROCKCHIP_FIT_IMAGE \
                 --disable ROCKCHIP_UIMAGE \
@@ -139,25 +139,19 @@ ENV ROOTFS="${BUILD}/rootfs"
 ADD "packages/rootfs.tar.gz" ${BUILD}/
 
 
-# rockchip materials
+# rockchip firmware
 #----------------------------------------------------------------------------------------------------------------#
-ADD "packages/rk-rootfs-build.tar.gz" ${BUILD}/
+ADD "packages/sd-fuse_rk3399.tar.gz" ${BUILD}/
 RUN set -x \
     && eval ${ELAPSED_BEGIN} \
     && cd "${BUILD}/kernel" \
     && KERNEL_VER=`make kernelrelease` \
     # firmware
-    && cd "${BUILD}/rk-rootfs-build/overlay-firmware" \
+    && cd "${BUILD}/sd-fuse_rk3399/prebuilt/firmware" \
     # copy dptx.bin to initramfs
     && mkdir -p "${BUILD}/initramfs/lib/firmware/rockchip" \
-    && cp "lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
-    && cp -rf system usr ${ROOTFS}/ \
-    # /lib is symlink to /usr/lib since LTS 20.04
-    && cp -rf lib/* "${ROOTFS}/lib/" \
-    # 64bits wifi/bt
-    && cd "${ROOTFS}/usr/bin" \
-    && mv -f "brcm_patchram_plus1_64" "brcm_patchram_plus1" \
-    && mv -f "rk_wifi_init_64" "rk_wifi_init" \
+    && cp "usr/lib/firmware/rockchip/dptx.bin" "${BUILD}/initramfs/lib/firmware/rockchip/" \
+    && cp -rf etc system usr ${ROOTFS}/ \
     # bt, wifi, audio firmware
     && mkdir -p "${ROOTFS}/system/lib/modules" \
     && cd "${BUILD}/kernel/kmodules/lib/modules/${KERNEL_VER}/kernel/drivers/net/wireless/rockchip_wlan/" \
@@ -460,7 +454,6 @@ RUN set -x \
 ADD "archives/pal.tar.gz" ${BUILD}/
 ADD "packages/sdlpal.tar.gz" ${BUILD}/
 COPY "patch/sdlpal" "$BUILD/patch/sdlpal"
-RUN apt-get -y install patch
 RUN set -x \
     && cd "sdlpal" \
     && PATCH="$BUILD/patch/sdlpal" \

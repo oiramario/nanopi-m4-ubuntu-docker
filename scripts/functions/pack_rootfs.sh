@@ -46,6 +46,7 @@ useradd -m -s /bin/bash mario
 passwd mario
 111
 111
+
 usermod -aG sudo mario
 
 export DEBIAN_FRONTEND=noninteractive 

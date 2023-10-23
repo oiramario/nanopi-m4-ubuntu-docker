@@ -26,9 +26,11 @@ pack_boot_image()
     cd ${BUILD}/kernel/arch/arm64/boot/dts/rockchip
     cp -v rk3399-nanopi4-rev00.dtb rk3399-nanopi4-rev01.dtb rk3399-nanopi4-rev04.dtb ${boot}/
     local dtbs=${boot}/rk3399-nanopi4-rev*.dtb
-    ## friendlyarm disable rga by default, let's re-enable that.
     for dtb in ${dtbs}; do
+        ## friendlyarm disable rga by default, let's re-enable that.
         fdtput -t s ${dtb} /rga status "okay"
+        ## edp is useless and chaos.
+        fdtput -t s ${dtb} /edp status "disabled"
 	done
 
     # initramfs

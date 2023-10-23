@@ -64,7 +64,7 @@ apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Option
 
 apt-get install -y --no-install-recommends --no-install-suggests -o Dpkg::Options::="--force-confold" \
                 --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-                sudo ssh htop file mlocate bash-completion usbmount
+                sudo ssh htop file mlocate bash-completion usbmount vim
 
 echo 'devices/platform/ff9a0000.gpu/devfreq/ff9a0000.gpu/governor = performance' >> /etc/sysfs.conf
 

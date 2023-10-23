@@ -3,7 +3,7 @@ saveenv
 
 rockchip_show_logo
 
-setenv bootargs console=ttyFIQ0 rw root=/dev/mmcblk1p7 rootfstype=ext4 rootwait
+setenv bootargs console=ttyFIQ0 rw root=/dev/mmcblk2p7 rootfstype=ext4 rootwait
 setenv uimage_addr_r 0x5000000
 ext2load mmc ${devnum}:${distro_bootpart} ${uimage_addr_r} /nanopi4.itb
 bootm ${uimage_addr_r}

@@ -8,7 +8,7 @@ mount -t sysfs sysfs /sys
 mdev -s
 
 mkdir -p /mnt/sysroot
-mount -t ext4 /dev/mmcblk1p7 /mnt/sysroot
+mount -t ext4 /dev/mmcblk2p7 /mnt/sysroot
 if [ $? -eq 0 ]; then
     exec switch_root /mnt/sysroot /sbin/init
 fi
